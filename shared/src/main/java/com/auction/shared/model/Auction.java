@@ -4,6 +4,7 @@ import com.auction.shared.model.entity.Entity;
 import com.auction.shared.model.item.Item;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
+import com.auction.shared.enums.AuctionStatus;
 
 import java.io.Serializable;
 import java.time.LocalDate;
