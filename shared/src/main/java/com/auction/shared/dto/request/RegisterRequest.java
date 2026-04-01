@@ -1,10 +1,11 @@
 package com.auction.shared.dto.request;
-
 import com.auction.shared.enums.UserRole;
+
+import java.io.Serializable;
 
 //Lớp DTO (Data Transfer Object) chứa thông tin yêu cầu đăng ký tài khoản từ Client gửi lên Server.
 
-public class RegisterRequest {
+public class RegisterRequest implements Serializable {
     // Tên đăng nhập của người dùng mới
     private String username;
 
