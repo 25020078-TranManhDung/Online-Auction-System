@@ -1,67 +1,82 @@
 package com.auction.shared.model;
 
 import com.auction.shared.model.entity.Entity;
-import com.auction.shared.model.item.Item;
-import com.auction.shared.model.user.Bidder;
-import com.auction.shared.model.user.Seller;
 import com.auction.shared.enums.AuctionStatus;
 
-import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Auction extends Entity {
-    private Item item;
-    private Seller seller;
+    private String itemId;
+    private double startPrice;
+    private double currentPrice;
+    private double minBidIncrement;
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private AuctionStatus status;
 
-    private double currentHighestBid;
-    private Bidder currentWinner;
+    private String currentLeader;
+    private int bidCount;
 
     private List<BidTransaction> bidHistory;
 
-    public Auction(Item item, Seller seller, LocalDateTime startTime, LocalDateTime endTime) {
-        this.item = item;
-        this.seller = seller;
+    public Auction(String id, String itemId, double startPrice, double minBidIncrement, LocalDateTime startTime, LocalDateTime endTime) {
+        super(id);
+        this.itemId = itemId;
+        this.startPrice = startPrice;
+        this.currentPrice = startPrice;
+        this.minBidIncrement = minBidIncrement;
         this.startTime = startTime;
         this.endTime = endTime;
         this.status = AuctionStatus.OPEN;
-        this.currentHighestBid = item.getStartingPrice();
+        this.bidCount = 0;
         this.bidHistory = new ArrayList<>();
     }
 
-    public void addBidTransaction(BidTransaction transaction) {
+    // Vẫn cần synchronized để tránh lỗi cơ bản khi 2 người cùng bid
+    public synchronized boolean addBidTransaction(BidTransaction transaction) {
+        if (transaction.getAmount() < this.currentPrice + this.minBidIncrement) {
+            return false;
+        }
+
         this.bidHistory.add(transaction);
-        this.currentHighestBid = transaction.getBidAmount();
-        this.currentWinner = transaction.getBidder();
+        this.currentPrice = transaction.getAmount();
+        this.currentLeader = transaction.getBidderName();
+        this.bidCount++;
+
+        // Đã xóa phần gia hạn thời gian Anti-sniping
+        return true;
     }
 
-    public Item getItem() { return item; }
+    public String getItemId() { return itemId; }
+    public void setItemId(String itemId) { this.itemId = itemId; }
 
-    public Seller getSeller() { return seller; }
+    public double getStartPrice() { return startPrice; }
+    public void setStartPrice(double startPrice) { this.startPrice = startPrice; }
+
+    public double getCurrentPrice() { return currentPrice; }
+    public void setCurrentPrice(double currentPrice) { this.currentPrice = currentPrice; }
+
+    public double getMinBidIncrement() { return minBidIncrement; }
+    public void setMinBidIncrement(double minBidIncrement) { this.minBidIncrement = minBidIncrement; }
 
     public LocalDateTime getStartTime() { return startTime; }
+    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
 
     public LocalDateTime getEndTime() { return endTime; }
-
-    public void setEndTime(LocalDateTime endTime) {
-        this.endTime = endTime;
-    }
+    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
 
     public AuctionStatus getStatus() { return status; }
+    public void setStatus(AuctionStatus status) { this.status = status; }
 
-    public void setStatus(AuctionStatus status) {
-        this.status = status;
-    }
+    public String getCurrentLeader() { return currentLeader; }
+    public void setCurrentLeader(String currentLeader) { this.currentLeader = currentLeader; }
 
-    public double getCurrentHighestBid() { return currentHighestBid; }
-
-    public Bidder getCurrentWinner() { return currentWinner; }
+    public int getBidCount() { return bidCount; }
+    public void setBidCount(int bidCount) { this.bidCount = bidCount; }
 
     public List<BidTransaction> getBidHistory() { return bidHistory; }
+    public void setBidHistory(List<BidTransaction> bidHistory) { this.bidHistory = bidHistory; }
 }

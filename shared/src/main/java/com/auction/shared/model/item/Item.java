@@ -1,29 +1,34 @@
 package com.auction.shared.model.item;
 
 import com.auction.shared.model.entity.Entity;
+import com.auction.shared.enums.ItemCategory;
 
 public abstract class Item extends Entity {
-    private String name;
+    private String title;          // Protocol: "title"
     private String description;
-    private double startingPrice;
+    private ItemCategory category; // Protocol: "category"
+    private String sellerId;       // Protocol: "sellerId"
 
-    public Item(int id, String name, String description, double startingPrice) {
-        super(id);
-        this.name = name;
+    public Item(String id, String title, String description, ItemCategory category, String sellerId) {
+        super(id); // ID là String
+        this.title = title;
         this.description = description;
-        this.startingPrice = startingPrice;
+        this.category = category;
+        this.sellerId = sellerId;
     }
 
-    // Encapsulation: Sử dụng getter/setter để quản lý truy cập
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public double getStartingPrice() { return startingPrice; }
-    public void setStartingPrice(double startingPrice) { this.startingPrice = startingPrice; }
+    public ItemCategory getCategory() { return category; }
+    public void setCategory(ItemCategory category) { this.category = category; }
 
-    // Polymorphism: Phương thức trừu tượng để các lớp con ghi đè [cite: 121, 122]
-    public abstract String getCategoryDetails();
+    public String getSellerId() { return sellerId; }
+    public void setSellerId(String sellerId) { this.sellerId = sellerId; }
+
+    // Phương thức trừu tượng để đảm bảo tính đa hình cơ bản
+    public abstract void printInfo();
 }

@@ -1,12 +1,16 @@
 package com.auction.shared.model.user;
 
+import com.auction.shared.enums.UserRole;
+
 public class Seller extends User {
 
+    // Vẫn có thể giữ lại reputationScore (điểm uy tín) vì nó là thuộc tính hay của Seller
     private double reputationScore;
 
-    public Seller(String username, String password, String email) {
-        super(username, password, email);
-        this.reputationScore = 5.0;
+    // Cập nhật Constructor: Thêm String id và truyền UserRole.SELLER vào super()
+    public Seller(String id, String username, String password, String email) {
+        super(id, username, password, email, UserRole.SELLER);
+        this.reputationScore = 5.0; // Điểm mặc định
     }
 
     @Override
@@ -22,4 +26,3 @@ public class Seller extends User {
         this.reputationScore = reputationScore;
     }
 }
-

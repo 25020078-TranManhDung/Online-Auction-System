@@ -1,37 +1,36 @@
 package com.auction.shared.model;
 
 import com.auction.shared.model.entity.Entity;
-import com.auction.shared.model.user.Bidder;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class BidTransaction extends Entity {
     private String auctionId;
-    private Bidder bidder;
-    private double bidAmount;
+    private String bidderName;
+    private double amount;       // Protocol: "amount"
     private LocalDateTime timestamp;
+    private boolean isAutoBid;   // Vẫn để đây cho hợp form JSON, server cứ set false là xong
 
-    public BidTransaction(String auctionId, Bidder bidder, double bidAmount, LocalDateTime timestamp) {
+    public BidTransaction(String id, String auctionId, String bidderName, double amount, LocalDateTime timestamp, boolean isAutoBid) {
+        super(id);
         this.auctionId = auctionId;
-        this.bidder = bidder;
-        this.bidAmount = bidAmount;
-        this.timestamp = LocalDateTime.now();
+        this.bidderName = bidderName;
+        this.amount = amount;
+        this.timestamp = timestamp != null ? timestamp : LocalDateTime.now();
+        this.isAutoBid = isAutoBid;
     }
 
-    public String getAuctionId() {
-        return auctionId;
-    }
+    public String getAuctionId() { return auctionId; }
+    public void setAuctionId(String auctionId) { this.auctionId = auctionId; }
 
-    public Bidder getBidder() {
-        return bidder;
-    }
+    public String getBidderName() { return bidderName; }
+    public void setBidderName(String bidderName) { this.bidderName = bidderName; }
 
-    public double getBidAmount() {
-        return bidAmount;
-    }
+    public double getAmount() { return amount; }
+    public void setAmount(double amount) { this.amount = amount; }
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
+    public LocalDateTime getTimestamp() { return timestamp; }
+    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    public boolean isAutoBid() { return isAutoBid; }
+    public void setAutoBid(boolean autoBid) { this.isAutoBid = autoBid; }
 }
