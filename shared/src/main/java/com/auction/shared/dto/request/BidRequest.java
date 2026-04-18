@@ -3,46 +3,30 @@ package com.auction.shared.dto.request;
 import java.io.Serializable;
 
 public class BidRequest implements Serializable {
+
     // ID của phiên đấu giá mà người dùng đang tham gia
-    private Long auctionId;
+    private String auctionId; // SỬA: Long -> String
 
     // ID của người đặt giá (Bidder)
-    private Long bidderId;
+    private String bidderId;  // SỬA: Long -> String
 
     // Mức giá mà họ muốn đặt
-    private double bidAmount;
+    private double amount;    // SỬA: bidAmount -> amount
 
-    public BidRequest() {
-    }
+    public BidRequest() {}
 
-    // Constructor có tham số để Client tiện khởi tạo
-    public BidRequest(Long auctionId, Long bidderId, double bidAmount) {
+    public BidRequest(String auctionId, String bidderId, double amount) {
         this.auctionId = auctionId;
         this.bidderId = bidderId;
-        this.bidAmount = bidAmount;
+        this.amount = amount;
     }
 
-    public Long getAuctionId() {
-        return auctionId;
-    }
+    public String getAuctionId() { return auctionId; }
+    public void setAuctionId(String auctionId) { this.auctionId = auctionId; }
 
-    public void setAuctionId(Long auctionId) {
-        this.auctionId = auctionId;
-    }
+    public String getBidderId() { return bidderId; }
+    public void setBidderId(String bidderId) { this.bidderId = bidderId; }
 
-    public Long getBidderId() {
-        return bidderId;
-    }
-
-    public void setBidderId(Long bidderId) {
-        this.bidderId = bidderId;
-    }
-
-    public double getBidAmount() {
-        return bidAmount;
-    }
-
-    public void setBidAmount(double bidAmount) {
-        this.bidAmount = bidAmount;
-    }
+    public double getAmount() { return amount; }
+    public void setAmount(double amount) { this.amount = amount; }
 }

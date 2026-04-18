@@ -8,10 +8,10 @@ import java.time.LocalDateTime;
 public class CreateAuctionRequest implements Serializable {
 
     // ID của người bán (Seller) tạo ra phiên đấu giá này
-    private Long sellerId;
+    private String sellerId;       // SỬA: Long -> String
 
     // Thông tin cơ bản của sản phẩm
-    private String itemName;
+    private String title;          // SỬA: itemName -> title (Đồng bộ với Item Model)
     private String description;
     private double startingPrice;
 
@@ -23,13 +23,11 @@ public class CreateAuctionRequest implements Serializable {
     private LocalDateTime endTime;
 
     // Constructor rỗng cho thư viện JSON!
-    public CreateAuctionRequest() {
-    }
+    public CreateAuctionRequest() {}
 
-    // Constructor đầy đủ tham số cho Client dễ khởi tạo
-    public CreateAuctionRequest(Long sellerId, String itemName, String description, double startingPrice, ItemCategory category, LocalDateTime startTime, LocalDateTime endTime) {
+    public CreateAuctionRequest(String sellerId, String title, String description, double startingPrice, ItemCategory category, LocalDateTime startTime, LocalDateTime endTime) {
         this.sellerId = sellerId;
-        this.itemName = itemName;
+        this.title = title;
         this.description = description;
         this.startingPrice = startingPrice;
         this.category = category;
@@ -37,59 +35,24 @@ public class CreateAuctionRequest implements Serializable {
         this.endTime = endTime;
     }
 
-    public Long getSellerId() {
-        return sellerId;
-    }
+    public String getSellerId() { return sellerId; }
+    public void setSellerId(String sellerId) { this.sellerId = sellerId; }
 
-    public void setSellerId(Long sellerId) {
-        this.sellerId = sellerId;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    public String getItemName() {
-        return itemName;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public void setItemName(String itemName) {
-        this.itemName = itemName;
-    }
+    public double getStartingPrice() { return startingPrice; }
+    public void setStartingPrice(double startingPrice) { this.startingPrice = startingPrice; }
 
-    public String getDescription() {
-        return description;
-    }
+    public ItemCategory getCategory() { return category; }
+    public void setCategory(ItemCategory category) { this.category = category; }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public LocalDateTime getStartTime() { return startTime; }
+    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
 
-    public double getStartingPrice() {
-        return startingPrice;
-    }
-
-    public void setStartingPrice(double startingPrice) {
-        this.startingPrice = startingPrice;
-    }
-
-    public ItemCategory getCategory() {
-        return category;
-    }
-
-    public void setCategory(ItemCategory category) {
-        this.category = category;
-    }
-
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
-    }
-
-    public LocalDateTime getEndTime() {
-        return endTime;
-    }
-
-    public void setEndTime(LocalDateTime endTime) {
-        this.endTime = endTime;
-    }
+    public LocalDateTime getEndTime() { return endTime; }
+    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
 }

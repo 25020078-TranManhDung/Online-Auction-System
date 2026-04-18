@@ -14,8 +14,8 @@ public class AuctionResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     // Thông tin cơ bản về phiên đấu giá
-    private Long auctionId;
-    private String itemName;
+    private String auctionId; // sửa long -> String
+    private String title;
     private String description;
     private String category;
 
@@ -24,6 +24,7 @@ public class AuctionResponse implements Serializable {
     private double currentPrice;
     private String highestBidderName;
 
+    private String sellerId; // thêm  để client biết chủ là ai
     // Thông tin thời gian và trạng thái
     private LocalDateTime startTime;
     private LocalDateTime endTime;
@@ -33,11 +34,11 @@ public class AuctionResponse implements Serializable {
     public AuctionResponse() {}
 
     //Constructor đầy đủ để khởi tạo dữ liệu phản hồi từ thực thể Auction trên Server.
-    public AuctionResponse(Long auctionId, String itemName, String description, String category,
+    public AuctionResponse(String auctionId, String title, String description, String category,
                            double startingPrice, double currentPrice, String highestBidderName,
                            LocalDateTime startTime, LocalDateTime endTime, AuctionStatus status) {
         this.auctionId = auctionId;
-        this.itemName = itemName;
+        this.title = title;
         this.description = description;
         this.category = category;
         this.startingPrice = startingPrice;
@@ -48,11 +49,11 @@ public class AuctionResponse implements Serializable {
         this.status = status;
     }
 
-    public Long getAuctionId() { return auctionId; }
-    public void setAuctionId(Long auctionId) { this.auctionId = auctionId; }
+    public String getAuctionId() { return auctionId; }
+    public void setAuctionId(String auctionId) { this.auctionId = auctionId; }
 
-    public String getItemName() { return itemName; }
-    public void setItemName(String itemName) { this.itemName = itemName; }
+    public String getTitle() { return title ; }
+    public void setTitle(String title) { this.title = title; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
