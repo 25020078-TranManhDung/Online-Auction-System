@@ -9,6 +9,7 @@ import java.util.List;
 
 public class Auction extends Entity {
     private String itemId;
+    private String sellerId;
     private double startPrice;
     private double currentPrice;
     private double minBidIncrement;
@@ -22,9 +23,10 @@ public class Auction extends Entity {
 
     private List<BidTransaction> bidHistory;
 
-    public Auction(String id, String itemId, double startPrice, double minBidIncrement, LocalDateTime startTime, LocalDateTime endTime) {
+    public Auction(String id, String itemId, String sellerId, double startPrice, double minBidIncrement, LocalDateTime startTime, LocalDateTime endTime) {
         super(id);
         this.itemId = itemId;
+        this.sellerId = sellerId;
         this.startPrice = startPrice;
         this.currentPrice = startPrice;
         this.minBidIncrement = minBidIncrement;
@@ -79,4 +81,7 @@ public class Auction extends Entity {
 
     public List<BidTransaction> getBidHistory() { return bidHistory; }
     public void setBidHistory(List<BidTransaction> bidHistory) { this.bidHistory = bidHistory; }
+
+    public String getSellerId() { return sellerId; }
+    public void setSellerId(String sellerId) { this.sellerId = sellerId; }
 }
