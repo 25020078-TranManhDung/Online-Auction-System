@@ -1,9 +1,10 @@
 package com.auction.shared.exception;
 
 /**
- * Ngoại lệ liên quan đến trạng thái của phiên đấu giá (AuctionStatus Enum).
- * Ném ra khi người dùng thao tác trên phiên đấu giá không ở trạng thái phù hợp.
- * Ví dụ: Đặt giá khi phiên đã FINISHED hoặc CANCELED.
+ * Ngoại lệ liên quan đến vòng đời và trạng thái của phiên đấu giá (AuctionStatus).
+ * Các trường hợp sử dụng:
+ * - Người dùng cố đặt giá nhưng phiên đấu giá đã kết thúc (FINISHED) hoặc bị hủy (CANCELED).
+ * - Phiên đấu giá chưa tới giờ bắt đầu (nếu hệ thống hỗ trợ lên lịch trước).
  */
 public class AuctionStatusException extends AuctionException {
     public AuctionStatusException(String message) {
