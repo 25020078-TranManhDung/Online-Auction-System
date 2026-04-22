@@ -1,0 +1,607 @@
+@startuml
+!theme plain
+
+' ============================================================
+' GLOBAL CONFIG
+' ============================================================
+skinparam linetype ortho
+skinparam nodesep 36
+skinparam ranksep 48
+skinparam roundcorner 8
+skinparam padding 4
+skinparam backgroundColor #1A1D2A
+skinparam shadowing false
+
+skinparam legend {
+    BackgroundColor #1A1D2A
+    BorderColor #3C4060
+    FontColor #C8D0E4
+}
+
+legend top
+<size:26><b>UML Class Diagram — Online Auction System</b></size>
+<size:13>
+<color:#5FD4A0>■</color> shared.model / protocol    <color:#FFD060>■</color> enum    <color:#F8C8B0>■</color> DTO    <color:#F8C0C0>■</color> Exception
+<color:#72B8F0>■</color> server.network    <color:#A0D060>■</color> server.strategy    <color:#E080EE>■</color> server.observer    <color:#BEAAFF>■</color> server.dao
+<color:#E06C75>──▷</color> extends    <color:#E06C75>- -▷</color> implements    <color:#666888>··▷</color> uses/depends    <color:#56B6C2>──</color> association</size>
+end legend
+
+' ============================================================
+' MÀU SẮC
+' ============================================================
+skinparam class {
+    BackgroundColor #22263A
+    BorderColor #3C4060
+    AttributeFontColor #BCC4D8
+    MethodFontColor #BCC4D8
+    FontSize 12
+}
+skinparam class<<shared>> {
+    HeaderBackgroundColor #0A4A35
+    BorderColor #1A7A58
+    FontColor #5FD4A0
+}
+skinparam class<<server>> {
+    HeaderBackgroundColor #0A2D55
+    BorderColor #1A5FA0
+    FontColor #72B8F0
+}
+skinparam class<<dao>> {
+    HeaderBackgroundColor #28126A
+    BorderColor #5A30C0
+    FontColor #BEAAFF
+}
+skinparam class<<strategy>> {
+    HeaderBackgroundColor #183808
+    BorderColor #3E7A18
+    FontColor #A0D060
+}
+skinparam class<<observer>> {
+    HeaderBackgroundColor #380A38
+    BorderColor #8A188A
+    FontColor #E080EE
+}
+skinparam class<<dto>> {
+    HeaderBackgroundColor #481808
+    BorderColor #904020
+    FontColor #F8C8B0
+}
+skinparam class<<exception>> {
+    HeaderBackgroundColor #480A0A
+    BorderColor #902020
+    FontColor #F8C0C0
+}
+skinparam enum<<enum>> {
+    BackgroundColor #22263A
+    HeaderBackgroundColor #4A3800
+    BorderColor #C09000
+    FontColor #FFD060
+    AttributeFontColor #BCC4D8
+}
+skinparam package {
+    FontColor #8A90AA
+    BorderColor #3C4060
+    BackgroundColor #1E2135
+    FontSize 13
+    FontStyle bold
+}
+
+' ============================================================
+' ① ENUMS — hàng trên cùng, nằm ngang
+' ============================================================
+package "① enums" as PKG_ENUM {
+    together {
+        enum AuctionStatus <<enum>> {
+            OPEN
+            RUNNING
+            FINISHED
+            PAID
+            CANCELED
+        }
+        enum ItemCategory <<enum>> {
+            ELECTRONICS
+            ART
+            VEHICLE
+            OTHER
+        }
+        enum UserRole <<enum>> {
+            BIDDER
+            SELLER
+            ADMIN
+        }
+    }
+}
+
+' ============================================================
+' ② SHARED MODEL
+' ============================================================
+package "② shared.model" as PKG_MODEL {
+
+    abstract class Entity <<shared>> <<abstract>> {
+        # id : String
+        + Entity()
+        + Entity(id: String)
+        + equals(o: Object) : boolean
+        + hashCode() : int
+    }
+
+    together {
+        abstract class User <<shared>> <<abstract>> {
+            - username : String
+            - password : String
+            - email : String
+            - role : UserRole
+            + login(inputPassword: String) : boolean
+            + {abstract} showRole() : void
+        }
+        class Admin <<shared>> {
+            - adminLevel : int
+            + showRole() : void
+        }
+        class Bidder <<shared>> {
+            + showRole() : void
+        }
+        class Seller <<shared>> {
+            - reputationScore : double
+            + showRole() : void
+        }
+    }
+
+    together {
+        abstract class Item <<shared>> <<abstract>> {
+            - title : String
+            - description : String
+            - category : ItemCategory
+            - sellerId : String
+            + {abstract} printInfo() : void
+        }
+        class Art <<shared>> {
+            - artist : String
+            - medium : String
+            - yearCreated : int
+            + printInfo() : void
+        }
+        class Electronics <<shared>> {
+            - brand : String
+            - model : String
+            - warrantyMonths : int
+            + printInfo() : void
+        }
+        class Vehicle <<shared>> {
+            - make : String
+            - vehicleModel : String
+            - year : int
+            - mileage : int
+            + printInfo() : void
+        }
+    }
+
+    together {
+        class Auction <<shared>> {
+            - itemId : String
+            - sellerId : String
+            - startPrice : double
+            - currentPrice : double
+            - minBidIncrement : double
+            - startTime : LocalDateTime
+            - endTime : LocalDateTime
+            - status : AuctionStatus
+            - currentLeader : String
+            - bidCount : int
+            - bidHistory : List<BidTransaction>
+            + Auction(id, itemId, startPrice, minBidIncrement, startTime, endTime)
+            + <<synchronized>> addBidTransaction(t: BidTransaction) : boolean
+        }
+        class BidTransaction <<shared>> {
+            - auctionId : String
+            - bidderName : String
+            - amount : double
+            - timestamp : LocalDateTime
+            - isAutoBid : boolean
+            + BidTransaction(id, auctionId, bidderName, amount, timestamp, isAutoBid)
+        }
+    }
+}
+
+' ============================================================
+' ③ NETWORK PROTOCOL
+' ============================================================
+package "③ shared.network.protocol" as PKG_PROTO {
+    together {
+        class Actions <<shared>> <<final>> {
+            + {static} LOGIN : String
+            + {static} REGISTER : String
+            + {static} LOGOUT : String
+            + {static} GET_AUCTIONS : String
+            + {static} GET_AUCTION_DETAIL : String
+            + {static} CREATE_AUCTION : String
+            + {static} START_AUCTION : String
+            + {static} CLOSE_AUCTION : String
+            + {static} PLACE_BID : String
+            + {static} GET_BID_HISTORY : String
+            + {static} SET_AUTO_BID : String
+            + {static} CANCEL_AUTO_BID : String
+            + {static} BID_PLACED : String
+            + {static} AUCTION_CLOSED : String
+            + {static} AUCTION_EXTENDED : String
+            - Actions()
+        }
+        class Message <<shared>> {
+            - action : String
+            - token : String
+            - requestId : String
+            - data : Object
+            + Message(action, token, requestId, data)
+            + <T> getData(clazz: Class<T>) : T
+        }
+        class PushMessage <<shared>> {
+            - type : String = "PUSH"
+            - event : String
+            - data : Object
+            + PushMessage(event, data)
+            + <T> getData(clazz: Class<T>) : T
+        }
+        class ServerResponse <<shared>> {
+            - requestId : String
+            - success : boolean
+            - data : Object
+            - error : ErrorPayload
+            + {static} ok(reqId, data) : ServerResponse
+            + {static} fail(reqId, code, msg) : ServerResponse
+            + <T> getData(clazz: Class<T>) : T
+        }
+        class ErrorPayload <<shared>> {
+            - code : String
+            - message : String
+            + ErrorPayload(code, message)
+        }
+    }
+}
+
+' ============================================================
+' ④ DTOs
+' ============================================================
+package "④ shared.dto" as PKG_DTO {
+    together {
+        class LoginRequest <<dto>> {
+            - username : String
+            - password : String
+        }
+        class RegisterRequest <<dto>> {
+            - username : String
+            - password : String
+            - email : String
+            - role : UserRole
+        }
+        class BidRequest <<dto>> {
+            - auctionId : String
+            - bidderId : String
+            - amount : double
+        }
+        class AutoBidRequest <<dto>> {
+            - auctionId : String
+            - bidderId : String
+            - maxBidAmount : double
+            - incrementAmount : double
+        }
+        class CreateAuctionRequest <<dto>> {
+            - sellerId : String
+            - title : String
+            - description : String
+            - startingPrice : double
+            - category : ItemCategory
+            - startTime : LocalDateTime
+            - endTime : LocalDateTime
+        }
+        class UpdateItemRequest <<dto>> {
+            - auctionId : String
+            - title : String
+            - description : String
+            - startingPrice : double
+        }
+        class DeleteItemRequest <<dto>> {
+            - auctionId : String
+        }
+    }
+
+    together {
+        class AuctionListResponse <<dto>> {
+            - auctions : List<AuctionResponse>
+            - message : String
+        }
+        class AuctionResponse <<dto>> {
+            - auctionId : String
+            - title : String
+            - description : String
+            - category : String
+            - startingPrice : double
+            - currentPrice : double
+            - highestBidderName : String
+            - sellerId : String
+            - startTime : LocalDateTime
+            - endTime : LocalDateTime
+            - status : AuctionStatus
+        }
+        class AuthResponse <<dto>> {
+            - userId : String
+            - username : String
+            - role : UserRole
+            - token : String
+        }
+        class BidResponse <<dto>> {
+            - auctionId : String
+            - bidderId : String
+            - bidderName : String
+            - amount : double
+            - newCurrentPrice : double
+            - timestamp : LocalDateTime
+        }
+    }
+}
+
+' ============================================================
+' ⑤ EXCEPTIONS
+' ============================================================
+package "⑤ shared.exception" as PKG_EX {
+    class AuctionException <<exception>> {
+        - code : String
+        + AuctionException(code: String, message: String)
+        + getCode() : String
+    }
+    together {
+        class AuctionClosedException <<exception>> {
+            ' code = "AUCTION_CLOSED"
+            + AuctionClosedException(message: String)
+        }
+        class InvalidBidException <<exception>> {
+            ' code = "INVALID_BID"
+            + InvalidBidException(message: String)
+        }
+        class InvalidCredentialsException <<exception>> {
+            ' code = "AUTH_FAILED"
+            + InvalidCredentialsException(message: String)
+        }
+        class ResourceNotFoundException <<exception>> {
+            ' code = flexible
+            + ResourceNotFoundException(code: String, message: String)
+        }
+        class TokenExpiredException <<exception>> {
+            ' code = "TOKEN_EXPIRED"
+            + TokenExpiredException(message: String)
+        }
+        class UnauthorizedException <<exception>> {
+            ' code = "PERMISSION_DENIED"
+            + UnauthorizedException(message: String)
+        }
+    }
+}
+
+' ============================================================
+' ⑥ SERVER NETWORK
+' ============================================================
+package "⑥ server.network" as PKG_NET {
+    together {
+        class SocketServer <<server>> {
+            - port : int
+            - router : MessageRouter
+            - serverSocket : ServerSocket
+            - pool : ExecutorService
+            - auctionSubscribers : Map<String, Set<ClientHandler>>
+            - userHandlers : Map<String, ClientHandler>
+            + SocketServer(port: int, router: MessageRouter)
+            + start() : void
+            + broadcastToAuction(auctionId, json) : void
+            + sendToUser(userId, json) : void
+            + subscribeAuction(auctionId, handler) : void
+            + unsubscribeAuction(auctionId, handler) : void
+            + registerUser(userId, handler) : void
+            + unregisterUser(userId) : void
+            + removeClient(handler) : void
+            + shutdown() : void
+        }
+        class ClientHandler <<server>> <<Runnable>> {
+            - socket : Socket
+            - router : MessageRouter
+            - server : SocketServer
+            - out : PrintWriter
+            - userId : String
+            - watchingAuctionId : String
+            + ClientHandler(socket, router, server)
+            + run() : void
+            + <<synchronized>> sendMessage(json) : void
+            - cleanup() : void
+            + setUserId(id) : void
+            + getUserId() : String
+            + setWatchingAuction(auctionId) : void
+            + getWatchingAuctionId() : String
+        }
+        class MessageRouter <<server>> {
+            - {static} GSON : Gson
+            - {static} PUBLIC : Set<String>
+            + MessageRouter()
+            + route(rawJson, sender: ClientHandler) : String
+            - err(reqId, code, msg) : String
+            - reqId(m: Message) : String
+        }
+    }
+}
+
+' ============================================================
+' ⑦ SERVER STRATEGY
+' ============================================================
+package "⑦ server.pattern.strategy" as PKG_STRAT {
+    together {
+        interface BidStrategy <<strategy>> {
+            + validateBid(auction: Auction, bidder: User, amount: double) : void
+            + calculateNewPrice(auction: Auction, amount: double) : double
+        }
+        class NormalBidStrategy <<strategy>> {
+            + validateBid(auction, bidder, amount) : void
+            + calculateNewPrice(auction, amount) : double
+        }
+        class AutoBidStrategy <<strategy>> {
+            - maxBid : double
+            - increment : double
+            + AutoBidStrategy(maxBid: double, increment: double)
+            + validateBid(auction, bidder, amount) : void
+            + calculateNewPrice(auction, amount) : double
+            + getMaxBid() : double
+            + getIncrement() : double
+        }
+    }
+}
+
+' ============================================================
+' ⑧ SERVER OBSERVER
+' ============================================================
+package "⑧ server.observer" as PKG_OBS {
+    together {
+        interface AuctionObserver <<observer>> {
+            + onBidPlaced(auction: Auction, bid: BidTransaction) : void
+            + onAuctionStarted(auction: Auction) : void
+            + onAuctionClosed(auction: Auction) : void
+            + onAuctionExtended(auction: Auction, extraSeconds: long) : void
+            + onError(auction: Auction, errorCode: String, message: String) : void
+        }
+        class AuctionEventBus <<observer>> <<Singleton>> {
+            - {static} volatile instance : AuctionEventBus
+            - observers : List<AuctionObserver>
+            - AuctionEventBus()
+            + {static} getInstance() : AuctionEventBus
+            + subscribe(o: AuctionObserver) : void
+            + unsubscribe(o: AuctionObserver) : void
+            + publishBidPlaced(a: Auction, b: BidTransaction) : void
+            + publishAuctionStarted(a: Auction) : void
+            + publishAuctionClosed(a: Auction) : void
+            + publishAuctionExtended(a: Auction, extraSeconds: long) : void
+            + publishError(a: Auction, errorCode, message) : void
+        }
+    }
+}
+
+' ============================================================
+' ⑨ SERVER DAO
+' ============================================================
+package "⑨ server.dao" as PKG_DAO {
+    together {
+        interface UserDAO <<dao>> {
+            + findById(id: int) : User
+            + findByUsername(username: String) : User
+            + findAll() : List<User>
+            + save(user: User) : boolean
+            + update(user: User) : boolean
+            + delete(id: int) : boolean
+            + existsByUsername(username: String) : boolean
+            + existsByEmail(email: String) : boolean
+        }
+        interface AuctionDAO <<dao>> {
+            + findById(id: String) : Auction
+            + findByStatus(status: AuctionStatus) : List<Auction>
+            + findBySellerId(sellerId: int) : List<Auction>
+            + findExpiringBefore(deadline: LocalDateTime) : List<Auction>
+            + save(auction: Auction) : boolean
+            + update(auction: Auction) : boolean
+        }
+        interface BidTransactionDAO <<dao>> {
+            + save(bid: BidTransaction) : boolean
+            + findByAuctionId(auctionId: String) : List<BidTransaction>
+            + findByBidderId(bidderId: int) : List<BidTransaction>
+            + findHighestBid(auctionId: String) : Optional<BidTransaction>
+            + getCurrentPrice(auctionId: String) : BigDecimal
+        }
+        interface ItemDAO <<dao>> {
+            + findById(id: int) : Item
+            + findBySellerId(sellerId: int) : List<Item>
+            + findByCategory(category: ItemCategory) : List<Item>
+            + searchByName(keyword: String) : List<Item>
+            + save(item: Item) : boolean
+            + update(item: Item) : boolean
+            + delete(id: int) : boolean
+        }
+    }
+}
+
+' ============================================================
+' RELATIONSHIPS
+' ============================================================
+
+' Inner class
+ServerResponse +-- ErrorPayload
+
+' ── Model inheritance ──────────────────────────────────────
+Entity <|-- User #E06C75
+Entity <|-- Item #E06C75
+Entity <|-- Auction #E06C75
+Entity <|-- BidTransaction #E06C75
+User <|-- Admin #E06C75
+User <|-- Bidder #E06C75
+User <|-- Seller #E06C75
+Item <|-- Art #E06C75
+Item <|-- Electronics #E06C75
+Item <|-- Vehicle #E06C75
+
+' ── Exception inheritance ──────────────────────────────────
+AuctionException <|-- AuctionClosedException #E06C75
+AuctionException <|-- InvalidBidException #E06C75
+AuctionException <|-- InvalidCredentialsException #E06C75
+AuctionException <|-- ResourceNotFoundException #E06C75
+AuctionException <|-- TokenExpiredException #E06C75
+AuctionException <|-- UnauthorizedException #E06C75
+
+' ── Enum composition ───────────────────────────────────────
+Auction *-- AuctionStatus #56B6C2 : "status"
+Item *-- ItemCategory #56B6C2 : "category"
+User *-- UserRole #56B6C2 : "role"
+AuctionResponse *-- AuctionStatus #56B6C2 : "status"
+AuthResponse *-- UserRole #56B6C2 : "role"
+RegisterRequest *-- UserRole #56B6C2 : "role"
+CreateAuctionRequest *-- ItemCategory #56B6C2 : "category"
+
+' ── Model associations ─────────────────────────────────────
+Auction "1" *-- "*" BidTransaction #56B6C2 : "bidHistory"
+Auction ..> Item #666888 : "itemId"
+AuctionListResponse "1" *-- "*" AuctionResponse #56B6C2 : "auctions"
+
+' ── Protocol ───────────────────────────────────────────────
+Message ..> Actions #666888
+
+' ── Server network ─────────────────────────────────────────
+SocketServer "1" o-- "*" ClientHandler #56B6C2 : "manages"
+ClientHandler --> SocketServer #666888
+ClientHandler --> MessageRouter #666888
+SocketServer --> MessageRouter #666888
+MessageRouter ..> Message #666888
+MessageRouter ..> ServerResponse #666888
+MessageRouter ..> AuctionException #666888 : "catch"
+
+' ── DAO ────────────────────────────────────────────────────
+AuctionDAO ..> Auction #666888
+BidTransactionDAO ..> BidTransaction #666888
+ItemDAO ..> Item #666888
+UserDAO ..> User #666888
+
+' ── Strategy ───────────────────────────────────────────────
+BidStrategy <|.. NormalBidStrategy #E06C75
+BidStrategy <|.. AutoBidStrategy #E06C75
+BidStrategy ..> Auction #666888
+BidStrategy ..> User #666888
+
+' ── Observer ───────────────────────────────────────────────
+AuctionEventBus "1" o-- "*" AuctionObserver #56B6C2 : "observers"
+AuctionEventBus ..> Auction #666888
+AuctionEventBus ..> BidTransaction #666888
+
+' ============================================================
+' LAYOUT HINTS — ép thứ tự tầng dọc
+' ============================================================
+PKG_ENUM  -[hidden]down-> PKG_MODEL
+PKG_MODEL -[hidden]down-> PKG_PROTO
+PKG_PROTO -[hidden]down-> PKG_DTO
+PKG_DTO   -[hidden]down-> PKG_EX
+PKG_EX    -[hidden]down-> PKG_NET
+PKG_NET   -[hidden]right-> PKG_STRAT
+PKG_STRAT -[hidden]right-> PKG_OBS
+PKG_OBS   -[hidden]right-> PKG_DAO
+PKG_NET   -[hidden]down-> PKG_DAO
+
+@enduml
