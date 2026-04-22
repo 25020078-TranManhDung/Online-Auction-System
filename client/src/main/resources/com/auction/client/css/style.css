@@ -1,0 +1,75 @@
+/* 1. Hình nền cho toàn bộ màn hình Đăng nhập */
+#loginPane {
+
+    -fx-background-image: url("/com/auction/client/images/bg_login.jpg");
+    -fx-background-size: cover;
+    -fx-background-position: center;
+    -fx-background-repeat: no-repeat;
+}
+
+/* 2. Khung chứa các ô nhập liệu (Glassmorphism effect) */
+.login-container {
+    -fx-background-color: rgba(255, 255, 255, 0.85); /* Màu trắng trong suốt */
+    -fx-background-radius: 15;
+    -fx-padding: 40;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 15, 0, 0, 5);
+    -fx-alignment: center;
+}
+
+/* 3. Tùy chỉnh các ô nhập liệu (TextField & PasswordField) */
+.text-field, .password-field {
+    -fx-background-radius: 5;
+    -fx-padding: 10;
+    -fx-font-size: 14px;
+    -fx-border-color: #dcdcdc;
+    -fx-border-radius: 5;
+    -fx-background-color: white;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #2c3e50; /* Màu viền khi nhấn vào */
+    -fx-border-width: 2;
+}
+
+/* 4. Nút bấm Đăng nhập */
+.button-login {
+    -fx-background-color: #2c3e50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+    -fx-padding: 10 30;
+}
+
+.button-login:hover {
+    -fx-background-color: #34495e;
+    -fx-scale-x: 1.05; /* Phóng to nhẹ khi di chuột vào */
+    -fx-scale-y: 1.05;
+}
+
+.button-login:pressed {
+    -fx-scale-x: 0.95;
+}
+
+/* 5. Tiêu đề chính */
+.login-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+/* 6. Hình nền cho màn hình đăng ký  */
+#registerPane {
+    -fx-background-image: url("/com/auction/client/images/bg_login.jpg");
+    -fx-background-size: cover;
+    -fx-background-position: center;
+    -fx-background-repeat: no-repeat;
+}
+
+/* Đảm bảo khung đăng ký có độ trong suốt để thấy nền */
+.login-container {
+    -fx-background-color: rgba(255, 255, 255, 0.9); /* Màu trắng đục 90% */
+    -fx-background-radius: 15;
+    -fx-padding: 30;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 10);
+}
