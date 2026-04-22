@@ -10,7 +10,6 @@ import java.io.IOException;
 
 public class ViewLoader {
     public static void load(Event event, String fxml, String title) throws IOException {
-        // Sửa đường dẫn cho đúng thư mục của bạn
         String path = "/com/auction/client/fxml/" + fxml;
 
         FXMLLoader loader = new FXMLLoader(ViewLoader.class.getResource(path));
