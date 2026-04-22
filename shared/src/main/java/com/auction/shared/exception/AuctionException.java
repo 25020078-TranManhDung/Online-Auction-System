@@ -6,7 +6,16 @@ package com.auction.shared.exception;
  * là có thể tóm được toàn bộ lỗi nghiệp vụ và lấy e.getMessage() để gửi JSON về cho Client.
  */
 public class AuctionException extends RuntimeException {
-    public AuctionException(String message) {
+
+    // Bổ sung biến code để chứa mã lỗi chuẩn từ PROTOCOL.md
+    private String code;
+
+    public AuctionException(String code, String message) {
         super(message);
+        this.code = code;
+    }
+
+    public String getCode() {
+        return code;
     }
 }

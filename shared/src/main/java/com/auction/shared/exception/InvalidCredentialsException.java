@@ -9,6 +9,6 @@ package com.auction.shared.exception;
  */
 public class InvalidCredentialsException extends AuctionException {
     public InvalidCredentialsException(String message) {
-        super(message);
+        super("AUTH_FAILED", message);
     }
 }

@@ -8,6 +8,6 @@ package com.auction.shared.exception;
  */
 public class UserAlreadyExistsException extends AuctionException {
     public UserAlreadyExistsException(String message) {
-        super(message);
+        super("BAD_REQUEST", message); // Gán mã lỗi chung cho lỗi dữ liệu đầu vào
     }
 }

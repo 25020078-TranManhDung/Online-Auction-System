@@ -7,7 +7,8 @@ package com.auction.shared.exception;
  * - Tìm phiên đấu giá (Auction) hoặc sản phẩm (Item) theo ID không tồn tại.
  */
 public class ResourceNotFoundException extends AuctionException {
-    public ResourceNotFoundException(String message) {
-        super(message);
+    // Cho phép truyền mã linh hoạt vì theo protocol có thể là USER_NOT_FOUND hoặc AUCTION_NOT_FOUND
+    public ResourceNotFoundException(String code, String message) {
+        super(code, message);
     }
 }

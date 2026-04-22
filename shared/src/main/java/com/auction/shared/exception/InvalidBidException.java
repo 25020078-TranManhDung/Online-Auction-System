@@ -8,6 +8,6 @@ package com.auction.shared.exception;
  */
 public class InvalidBidException extends AuctionException {
     public InvalidBidException(String message) {
-        super(message);
+        super("INVALID_BID", message);
     }
 }

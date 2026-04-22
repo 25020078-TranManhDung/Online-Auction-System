@@ -9,6 +9,6 @@ package com.auction.shared.exception;
  */
 public class InvalidAuctionRequestException extends AuctionException {
     public InvalidAuctionRequestException(String message) {
-        super(message);
+        super("BAD_REQUEST", message);
     }
 }

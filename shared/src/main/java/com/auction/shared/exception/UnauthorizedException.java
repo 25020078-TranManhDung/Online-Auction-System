@@ -9,6 +9,6 @@ package com.auction.shared.exception;
  */
 public class UnauthorizedException extends AuctionException {
     public UnauthorizedException(String message) {
-        super(message);
+        super("PERMISSION_DENIED", message);
     }
 }
