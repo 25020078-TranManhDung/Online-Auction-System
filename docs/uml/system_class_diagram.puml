@@ -194,6 +194,7 @@ package "② shared.model" as PKG_MODEL {
         }
         class BidTransaction <<shared>> {
             - auctionId : String
+            - bidderId : String
             - bidderName : String
             - amount : double
             - timestamp : LocalDateTime
@@ -476,6 +477,15 @@ package "⑧ server.observer" as PKG_OBS {
             + publishAuctionExtended(a: Auction, extraSeconds: long) : void
             + publishError(a: Auction, errorCode, message) : void
         }
+        class BidNotifier <<observer>> {
+            - socketServer : SocketServer
+            + BidNotifier(socketServer: SocketServer)
+            + onBidPlaced(auction: Auction, bid: BidTransaction) : void
+            + onAuctionStarted(auction: Auction) : void
+            + onAuctionClosed(auction: Auction) : void
+            + onAuctionExtended(auction: Auction, extraSeconds: long) : void
+            + onError(auction: Auction, errorCode: String, message: String) : void
+        }
     }
 }
 
@@ -590,6 +600,9 @@ BidStrategy ..> User #666888
 AuctionEventBus "1" o-- "*" AuctionObserver #56B6C2 : "observers"
 AuctionEventBus ..> Auction #666888
 AuctionEventBus ..> BidTransaction #666888
+AuctionObserver <|.. BidNotifier #E06C75
+BidNotifier --> SocketServer #666888 : "broadcast"
+BidNotifier ..> PushMessage #666888
 
 ' ============================================================
 ' LAYOUT HINTS — ép thứ tự tầng dọc

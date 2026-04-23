@@ -4,7 +4,7 @@ import com.auction.shared.enums.UserRole;
 
 public class Seller extends User {
 
-    // Vẫn có thể giữ lại reputationScore (điểm uy tín) vì nó là thuộc tính hay của Seller
+    // reputationScore (điểm uy tín)
     private double reputationScore;
 
     // Cập nhật Constructor: Thêm String id và truyền UserRole.SELLER vào super()

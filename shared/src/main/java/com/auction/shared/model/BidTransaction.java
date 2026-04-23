@@ -5,19 +5,24 @@ import java.time.LocalDateTime;
 
 public class BidTransaction extends Entity {
     private String auctionId;
+    private String bidderId;
     private String bidderName;
     private double amount;       // Protocol: "amount"
     private LocalDateTime timestamp;
     private boolean isAutoBid;   // Vẫn để đây cho hợp form JSON, server cứ set false là xong
 
-    public BidTransaction(String id, String auctionId, String bidderName, double amount, LocalDateTime timestamp, boolean isAutoBid) {
+    public BidTransaction(String id, String auctionId, String bidderId, String bidderName, double amount, LocalDateTime timestamp, boolean isAutoBid) {
         super(id);
         this.auctionId = auctionId;
+        this.bidderId = bidderId;
         this.bidderName = bidderName;
         this.amount = amount;
         this.timestamp = timestamp != null ? timestamp : LocalDateTime.now();
         this.isAutoBid = isAutoBid;
     }
+
+    public String getBidderId() { return bidderId; }
+    public void setBidderId(String bidderId) { this.bidderId = bidderId; }
 
     public String getAuctionId() { return auctionId; }
     public void setAuctionId(String auctionId) { this.auctionId = auctionId; }

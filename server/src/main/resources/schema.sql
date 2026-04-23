@@ -1,47 +1,62 @@
-CREATE DATABASE auction_system;
-USE auction_system;
+USE defaultdb;
 
--- Bảng users:
+-- 1. Bảng Users (Khớp User.java và các sub-classes)
 CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id VARCHAR(50) PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100) UNIQUE,
-    role ENUM ('ADMIN', 'SELLER', 'BIDDER') NOT NULL
+    role ENUM('BIDDER', 'SELLER', 'ADMIN') NOT NULL,
+    admin_level INT DEFAULT 0,          -- Thuộc tính của Admin.java
+    reputation_score DOUBLE DEFAULT 5.0 -- Thuộc tính của Seller.java
 );
 
--- Bảng Items:
+-- 2. Bảng Items (Gộp Item.java và subclasses Electronics, Vehicle, Art)
 CREATE TABLE items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    id VARCHAR(50) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
     description TEXT,
-    starting_price DECIMAL(15,2) NOT NULL,
-    category ENUM('ELECTRONICS', 'ART', 'VEHICLE') NOT NULL,
-    seller_id INT NOT NULL,
-    FOREIGN KEY (seller_id) REFERENCES users(id)
+    category ENUM('ELECTRONICS', 'ART', 'VEHICLE', 'OTHER') NOT NULL,
+    seller_id VARCHAR(50) NOT NULL,
+
+    -- Các trường đặc thù (Null nếu không thuộc category đó)
+    brand VARCHAR(100), model VARCHAR(100), warranty_months INT, -- Electronics
+    make VARCHAR(100), vehicle_model VARCHAR(100), year INT, mileage INT, -- Vehicle
+    artist VARCHAR(100), medium VARCHAR(100), year_created INT, -- Art
+
+    FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Bảng auction:
+-- 3. Bảng Auctions (Khớp Auction.java và AuctionResponse.java)
 CREATE TABLE auctions (
     id VARCHAR(50) PRIMARY KEY,
-    item_id INT NOT NULL,
-    current_price DECIMAL(15,2) NOT NULL,
+    item_id VARCHAR(50) NOT NULL,
+    seller_id VARCHAR(50) NOT NULL,
+    start_price DOUBLE NOT NULL,
+    current_price DOUBLE NOT NULL,
+    min_bid_increment DOUBLE NOT NULL,
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
     status ENUM('OPEN', 'RUNNING', 'FINISHED', 'PAID', 'CANCELED') DEFAULT 'OPEN',
-    FOREIGN KEY (item_id) REFERENCES items(id)
+    current_leader VARCHAR(100), -- bidderName dẫn đầu
+    bid_count INT DEFAULT 0,
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+    FOREIGN KEY (seller_id) REFERENCES users(id)
 );
 
--- Bảng transactions
+-- 4. Bảng Bid Transactions (Khớp BidTransaction.java)
 CREATE TABLE bid_transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id VARCHAR(50) PRIMARY KEY,
     auction_id VARCHAR(50) NOT NULL,
-    bidder_id INT NOT NULL,
-    bid_amount DECIMAL(15,2) NOT NULL,
+    bidder_name VARCHAR(100) NOT NULL,
+    amount DOUBLE NOT NULL,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (auction_id) REFERENCES auctions(id),
-    FOREIGN KEY (bidder_id) REFERENCES users(id)
+    is_auto_bid BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_auction_id ON bid_transactions(auction_id);
-CREATE INDEX idx_auction_status ON auctions(status);
+-- TĂNG TỐC HỆ THỐNG (INDEX)
+
+CREATE INDEX idx_auction_status ON auctions(status); -- Tìm nhanh các phiên đang chạy
+CREATE INDEX idx_bid_history ON bid_transactions(auction_id, amount DESC); -- Lấy top bid nhanh nhất
+CREATE INDEX idx_item_category ON items(category); -- Lọc theo loại sản phẩm
