@@ -1,4 +1,3 @@
-CREATE DATABASE IF NOT EXISTS auction_system;
 USE defaultdb;
 
 -- 1. Bảng Users (Khớp User.java và các sub-classes)
