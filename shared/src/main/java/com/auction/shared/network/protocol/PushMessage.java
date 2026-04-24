@@ -1,11 +1,10 @@
 package com.auction.shared.network.protocol;
 
-import com.google.gson.Gson;
+import com.auction.shared.util.JsonUtil;
 
 public class PushMessage {
 
-    // TỐI ƯU HÓA: Dùng chung một đối tượng Gson tĩnh cho toàn bộ ứng dụng
-    private static final Gson GSON = new Gson();
+    // ĐÃ XÓA: Dùng chung một đối tượng Gson tĩnh cục bộ, thay bằng JsonUtil tập trung
 
     private String type = "PUSH";
     private String event;
@@ -20,11 +19,10 @@ public class PushMessage {
         this.data = data;
     }
 
-    // Hàm ma thuật được viết bằng logic của Gson
+    // Hàm ma thuật được viết bằng logic của Gson (Chuyển xử lý sang JsonUtil)
     public <T> T getData(Class<T> clazz) {
-        if (this.data == null) return null;
-        // Gson biến Object thành JsonTree, sau đó ép kiểu sang DTO một cách an toàn và nhẹ nhàng
-        return GSON.fromJson(GSON.toJsonTree(this.data), clazz);
+        // JsonUtil biến Object thành JsonTree, sau đó ép kiểu sang DTO một cách an toàn và nhẹ nhàng
+        return JsonUtil.convertData(this.data, clazz);
     }
 
 

@@ -1,9 +1,8 @@
 package com.auction.shared.network.protocol;
 
-import com.google.gson.Gson;
+import com.auction.shared.util.JsonUtil;
 
 public class Message {
-    private static final Gson GSON = new Gson();
 
     private String action;
     private String token;
@@ -20,8 +19,7 @@ public class Message {
     }
 
     public <T> T getData(Class<T> clazz) {
-        if (this.data == null) return null;
-        return GSON.fromJson(GSON.toJsonTree(this.data), clazz);
+        return JsonUtil.convertData(this.data, clazz);
     }
 
 

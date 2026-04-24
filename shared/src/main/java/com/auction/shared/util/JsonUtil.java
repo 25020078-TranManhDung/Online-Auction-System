@@ -39,4 +39,13 @@ public class JsonUtil {
         }
         return gson.fromJson(json, clazz);
     }
+
+    /**
+     * Ép kiểu đối tượng data thô (Object) sang chuẩn DTO mong muốn.
+     * Tận dụng JsonTree của Gson.
+     */
+    public static <T> T convertData(Object rawData, Class<T> clazz) {
+        if (rawData == null) return null;
+        return gson.fromJson(gson.toJsonTree(rawData), clazz);
+    }
 }

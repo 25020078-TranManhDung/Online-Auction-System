@@ -1,10 +1,9 @@
 package com.auction.shared.network.protocol;
 
-import com.google.gson.Gson;
+import com.auction.shared.util.JsonUtil;
 
 public class ServerResponse {
-    // Tối ưu hóa: Dùng chung 1 đối tượng Gson
-    private static final Gson GSON = new Gson();
+    // Tối ưu hóa: Đã chuyển việc cấu hình Gson về class dùng chung là JsonUtil
 
     private String requestId;
     private boolean success;
@@ -31,10 +30,9 @@ public class ServerResponse {
         return r;
     }
 
-    // Hàm ép kiểu dùng Gson
+    // Hàm ép kiểu dùng JsonUtil
     public <T> T getData(Class<T> clazz) {
-        if (this.data == null) return null;
-        return GSON.fromJson(GSON.toJsonTree(this.data), clazz);
+        return JsonUtil.convertData(this.data, clazz);
     }
 
 
