@@ -3,11 +3,13 @@ package com.auction.client.model;
 public class UserSession {
     private static UserSession instance;
 
+
+    private String userId;
     private String username;
     private String token;
     private String role;
+    private String expiresAt; // Lưu thời gian hết hạn để xử lý tự động đăng xuất nếu cần
 
-    // Private constructor để ngăn việc tạo đối tượng mới bên ngoài
     private UserSession() {}
 
     public static UserSession getInstance() {
@@ -17,22 +19,27 @@ public class UserSession {
         return instance;
     }
 
-    // Khởi tạo phiên làm việc mới
-    public void initSession(String username, String token, String role) {
+
+    public void initSession(String userId, String username, String token, String role, String expiresAt) {
+        this.userId = userId;
         this.username = username;
         this.token = token;
         this.role = role;
+        this.expiresAt = expiresAt;
     }
 
-    // Xóa phiên làm việc khi đăng xuất
     public void cleanUserSession() {
+        this.userId = null;
         this.username = null;
         this.token = null;
         this.role = null;
+        this.expiresAt = null;
     }
 
-    // Getters
+    // Getters đầy đủ
+    public String getUserId() { return userId; }
     public String getUsername() { return username; }
     public String getToken() { return token; }
     public String getRole() { return role; }
+    public String getExpiresAt() { return expiresAt; }
 }
