@@ -3,29 +3,24 @@ package com.auction.shared.dto.request;
 import com.auction.shared.enums.ItemCategory;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Map; // THÊM IMPORT NÀY
 
-//DTO đóng gói yêu cầu tạo một phiên đấu giá mới từ phía Seller.
 public class CreateAuctionRequest implements Serializable {
 
-    // ID của người bán (Seller) tạo ra phiên đấu giá này
-    private String sellerId;       // SỬA: Long -> String
-
-    // Thông tin cơ bản của sản phẩm
-    private String title;          // SỬA: itemName -> title (Đồng bộ với Item Model)
+    private String sellerId;
+    private String title;
     private String description;
     private double startingPrice;
-
-    // Danh mục sản phẩm
     private ItemCategory category;
-
-    // Thời gian bắt đầu và kết thúc đấu giá
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    // Constructor rỗng cho thư viện JSON!
+    // THÊM CÁI NÀY: Dùng để chứa các thuộc tính riêng (brand, model, artist, mileage...)
+    private Map<String, Object> itemAttributes;
+
     public CreateAuctionRequest() {}
 
-    public CreateAuctionRequest(String sellerId, String title, String description, double startingPrice, ItemCategory category, LocalDateTime startTime, LocalDateTime endTime) {
+    public CreateAuctionRequest(String sellerId, String title, String description, double startingPrice, ItemCategory category, LocalDateTime startTime, LocalDateTime endTime, Map<String, Object> itemAttributes) {
         this.sellerId = sellerId;
         this.title = title;
         this.description = description;
@@ -33,6 +28,7 @@ public class CreateAuctionRequest implements Serializable {
         this.category = category;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.itemAttributes = itemAttributes; // LƯU LẠI
     }
 
     public String getSellerId() { return sellerId; }
@@ -55,4 +51,8 @@ public class CreateAuctionRequest implements Serializable {
 
     public LocalDateTime getEndTime() { return endTime; }
     public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
+
+    public Map<String, Object> getItemAttributes() { return itemAttributes; }
+    public void setItemAttributes(Map<String, Object> itemAttributes) { this.itemAttributes = itemAttributes; }
 }
+

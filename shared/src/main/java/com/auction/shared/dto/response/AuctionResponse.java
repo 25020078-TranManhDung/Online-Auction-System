@@ -78,4 +78,7 @@ public class AuctionResponse implements Serializable {
 
     public AuctionStatus getStatus() { return status; }
     public void setStatus(AuctionStatus status) { this.status = status; }
+
+    public String getSellerId() { return sellerId; }
+    public void setSellerId(String sellerId) { this.sellerId = sellerId; }
 }
