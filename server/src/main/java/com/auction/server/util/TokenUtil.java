@@ -18,11 +18,11 @@ public final class TokenUtil {
 
     // 1. TỐI ƯU: Gộp UserId, Role và Expiry vào chung 1 object để quản lý
     private static class TokenPayload {
-        final Long userId;
+        final String userId;
         final String role;
         final LocalDateTime expiry;
 
-        TokenPayload(Long userId, String role, LocalDateTime expiry) {
+        TokenPayload(String userId, String role, LocalDateTime expiry) {
             this.userId = userId;
             this.role = role;
             this.expiry = expiry;
@@ -52,7 +52,7 @@ public final class TokenUtil {
     /**
      * Khớp với hàm generate() được gọi trong UserService của bạn
      */
-    public static String generate(Long userId, String role) {
+    public static String generate(String userId, String role) {
         String token = UUID.randomUUID().toString().replace("-", "")
                 + UUID.randomUUID().toString().replace("-", ""); // Gọn gàng hơn
 
@@ -77,7 +77,7 @@ public final class TokenUtil {
         }
     }
 
-    public static Long getUserId(String token) {
+    public static String getUserId(String token) {
         if (!isValid(token)) return null;
         return tokenStore.get(token).userId;
     }
