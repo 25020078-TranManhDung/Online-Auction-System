@@ -13,6 +13,7 @@ public class Auction extends Entity {
     private double startPrice;
     private double currentPrice;
     private double minBidIncrement;
+    private String winnerId;
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
@@ -87,4 +88,7 @@ public class Auction extends Entity {
 
     public String getSellerId() { return sellerId; }
     public void setSellerId(String sellerId) { this.sellerId = sellerId; }
+
+    public String getWinnerId() { return winnerId; }
+    public void setWinnerId(String winnerId) { this.winnerId = winnerId; }
 }
