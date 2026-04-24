@@ -7,6 +7,9 @@ public class Bidder extends User {
 
 
     // Cập nhật Constructor: Thêm String id và truyền UserRole.BIDDER vào super()
+    public Bidder() {
+        super("", "", "", "", UserRole.BIDDER);
+    }
     public Bidder(String id, String username, String password, String email) {
         super(id, username, password, email, UserRole.BIDDER);
     }

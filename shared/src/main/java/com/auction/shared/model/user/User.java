@@ -9,6 +9,9 @@ public abstract class User extends Entity {
     private String email;
     private UserRole role; // Bắt buộc để map JSON
 
+    public User() {
+        super();
+    }
     public User(String id, String username, String password, String email, UserRole role) {
         super(id);
         this.username = username;

@@ -7,6 +7,9 @@ public class Electronics extends Item {
     private String model;          // Protocol: "model"
     private int warrantyMonths;    // Protocol: "warrantyMonths"
 
+    public Electronics() {
+        super("", "", "", ItemCategory.ELECTRONICS, "");
+    }
     public Electronics(String id, String title, String description, String sellerId, String brand, String model, int warrantyMonths) {
         super(id, title, description, ItemCategory.ELECTRONICS, sellerId);
         this.brand = brand;

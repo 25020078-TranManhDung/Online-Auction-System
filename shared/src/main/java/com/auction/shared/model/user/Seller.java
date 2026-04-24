@@ -8,6 +8,10 @@ public class Seller extends User {
     private double reputationScore;
 
     // Cập nhật Constructor: Thêm String id và truyền UserRole.SELLER vào super()
+
+    public Seller() {
+        super("", "", "", "", UserRole.SELLER);
+    }
     public Seller(String id, String username, String password, String email) {
         super(id, username, password, email, UserRole.SELLER);
         this.reputationScore = 5.0; // Điểm mặc định

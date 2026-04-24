@@ -9,6 +9,9 @@ public abstract class Item extends Entity {
     private ItemCategory category; // Protocol: "category"
     private String sellerId;       // Protocol: "sellerId"
 
+    public Item() {
+        super();
+    }
     public Item(String id, String title, String description, ItemCategory category, String sellerId) {
         super(id); // ID là String
         this.title = title;

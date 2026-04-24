@@ -7,6 +7,10 @@ public class Admin extends User {
     private int adminLevel;
 
     // Cập nhật Constructor: Thêm String id và truyền UserRole.ADMIN vào super()
+
+    public Admin() {
+        super("", "", "", "", UserRole.ADMIN);
+    }
     public Admin(String id, String username, String password, String email, int adminLevel) {
         super(id, username, password, email, UserRole.ADMIN);
         this.adminLevel = adminLevel;

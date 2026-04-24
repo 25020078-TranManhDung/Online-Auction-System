@@ -8,6 +8,9 @@ public class Vehicle extends Item {
     private int year;
     private int mileage;           // Protocol: "mileage"
 
+    public Vehicle() {
+        super("", "", "", ItemCategory.VEHICLE, "");
+    }
     public Vehicle(String id, String title, String description, String sellerId, String make, String vehicleModel, int year, int mileage) {
         super(id, title, description, ItemCategory.VEHICLE, sellerId);
         this.make = make;

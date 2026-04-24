@@ -11,6 +11,10 @@ public class BidTransaction extends Entity {
     private LocalDateTime timestamp;
     private boolean isAutoBid;   // Vẫn để đây cho hợp form JSON, server cứ set false là xong
 
+
+    public BidTransaction() {
+        super();
+    }
     public BidTransaction(String id, String auctionId, String bidderId, String bidderName, double amount, LocalDateTime timestamp, boolean isAutoBid) {
         super(id);
         this.auctionId = auctionId;

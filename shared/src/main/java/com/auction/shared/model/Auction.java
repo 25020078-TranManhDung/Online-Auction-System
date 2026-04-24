@@ -23,6 +23,9 @@ public class Auction extends Entity {
 
     private List<BidTransaction> bidHistory;
 
+    public Auction() {
+        super();
+    }
     public Auction(String id, String itemId, String sellerId, double startPrice, double minBidIncrement, LocalDateTime startTime, LocalDateTime endTime) {
         super(id);
         this.itemId = itemId;

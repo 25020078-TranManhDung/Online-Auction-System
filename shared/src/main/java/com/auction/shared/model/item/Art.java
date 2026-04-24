@@ -7,6 +7,9 @@ public class Art extends Item {
     private String medium;         // Protocol: "medium"
     private int yearCreated;       // Protocol: "yearCreated"
 
+    public Art() {
+        super("", "", "", ItemCategory.ART, "");
+    }
     public Art(String id, String title, String description, String sellerId, String artist, String medium, int yearCreated) {
         super(id, title, description, ItemCategory.ART, sellerId);
         this.artist = artist;
