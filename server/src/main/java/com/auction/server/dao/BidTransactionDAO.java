@@ -9,9 +9,9 @@ public interface BidTransactionDAO {
     boolean save(BidTransaction bid);
 
     List<BidTransaction> findByAuctionId(String auctionId);
-    List<BidTransaction> findByBidderId(int bidderId);
+    List<BidTransaction> findByBidderId(String bidderId);
 
     Optional<BidTransaction> findHighestBid(String auctionId);
 
-    BigDecimal getCurrentPrice(String auctionId);
+    double getCurrentPrice(String auctionId);
 }

@@ -9,7 +9,7 @@ public interface AuctionDAO {
     Auction findById(String id);
     List<Auction> findByStatus(AuctionStatus status);
 
-    List<Auction> findBySellerId(int sellerId);
+    List<Auction> findBySellerId(String sellerId);
 
     List<Auction> findExpiringBefore(LocalDateTime deadline);
 
