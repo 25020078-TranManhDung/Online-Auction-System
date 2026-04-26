@@ -13,12 +13,15 @@ public class BidRequest implements Serializable {
     // Mức giá mà họ muốn đặt
     private double amount;    // SỬA: bidAmount -> amount
 
+    private boolean isAutoBid;
+
     public BidRequest() {}
 
-    public BidRequest(String auctionId, String bidderId, double amount) {
+    public BidRequest(String auctionId, String bidderId, double amount, boolean isAutoBid) {
         this.auctionId = auctionId;
         this.bidderId = bidderId;
         this.amount = amount;
+        this.isAutoBid = isAutoBid;
     }
 
     public String getAuctionId() { return auctionId; }
@@ -29,4 +32,7 @@ public class BidRequest implements Serializable {
 
     public double getAmount() { return amount; }
     public void setAmount(double amount) { this.amount = amount; }
+
+    public boolean isAutoBid() { return isAutoBid; }
+    public void setAutoBid(boolean autoBid) { this.isAutoBid = autoBid; }
 }
