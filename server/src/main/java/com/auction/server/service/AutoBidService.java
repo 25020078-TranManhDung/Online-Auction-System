@@ -2,6 +2,7 @@ package com.auction.server.service;
 
 import com.auction.server.dao.AutoBidDAO;
 import com.auction.server.dao.BidTransactionDAO;
+import com.auction.server.observer.AuctionObserver;
 import com.auction.server.pattern.singleton.AuctionManager;
 import com.auction.server.util.TokenUtil;
 import com.auction.shared.dto.request.AutoBidRequest;
@@ -28,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Đảm bảo nguyên tắc: Người đăng ký trước được ưu tiên nếu trùng giá.
  * Chống vòng lặp vô hạn (Infinite Loop) khi 2 Auto-bidder đấu nhau.
  */
-public class AutoBidService {
+public class AutoBidService implements AuctionObserver {
 
     // PriorityQueue: Ưu tiên người đăng ký sớm (So sánh theo thời gian)
     private static final Comparator<AutoBidSetting> BY_TIME = Comparator.comparing(AutoBidSetting::getRegisteredAt);
@@ -158,4 +159,44 @@ public class AutoBidService {
         queues.remove(auctionId);
         processing.remove(auctionId);
     }
+
+    // =================================================================
+    // 2. EVENT LISTENER (Tuân thủ hợp đồng AuctionObserver)
+    // =================================================================
+
+    @Override
+    public void onBidPlaced(Auction auction, BidTransaction bid) {
+        // TỐI ƯU CỰC MẠNH: Nếu lượt bid vừa rồi CŨNG LÀ auto-bid -> BỎ QUA để chống vòng lặp vô hạn
+        if (bid.isAutoBid()) return;
+
+        // Nếu là bid thủ công, đánh thức các Auto-bidder khác
+        triggerAutoBid(auction.getId(), auction.getCurrentPrice());
+    }
+
+    @Override
+    public void onAuctionStarted(Auction auction) {
+        // AutoBidService không cần quan tâm lúc phiên mới mở, để trống.
+    }
+
+    @Override
+    public void onAuctionClosed(Auction auction) {
+        // Dọn dẹp RAM khi phiên kết thúc
+        queues.remove(auction.getId());
+        processing.remove(auction.getId());
+    }
+
+    @Override
+    public void onAuctionExtended(Auction auction, long extraSeconds) {
+        // AutoBidService không bị ảnh hưởng bởi việc gia hạn thời gian, để trống.
+    }
+
+    @Override
+    public void onError(Auction auction, String errorCode, String message) {
+        // Có thể in ra log để debug nếu cần
+        System.err.println("AutoBidService nhận được lỗi từ phiên " + auction.getId() + ": " + message);
+    }
+
+    // =================================================================
+    // 3. LOGIC LÕI XỬ LÝ ĐUA GIÁ (Giữ nguyên phần code triggerAutoBid của bạn ở dưới đây)
+    // =================================================================
 }
