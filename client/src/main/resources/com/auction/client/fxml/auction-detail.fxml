@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="650.0" prefWidth="900.0" style="-fx-background-color: #f8f9fa;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AuctionDetailController">
+    <children>
+        <Button layoutX="20.0" layoutY="20.0" mnemonicParsing="false" onAction="#goBack" style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-cursor: hand;" text="← Quay lại danh sách" />
+
+        <HBox layoutX="50.0" layoutY="70.0" prefHeight="530.0" prefWidth="800.0" spacing="30.0">
+            <children>
+                <VBox prefWidth="450.0" spacing="15.0" style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);">
+                    <children>
+                        <Label fx:id="lblProductName" text="Tên sản phẩm đấu giá" textFill="#2c3e50">
+                            <font>
+                                <Font name="System Bold" size="24.0" />
+                            </font>
+                        </Label>
+                        <Separator prefWidth="200.0" />
+
+                        <Label text="Mô tả sản phẩm:">
+                            <font>
+                                <Font name="System Bold" size="14.0" />
+                            </font>
+                        </Label>
+                        <Label fx:id="lblDescription" alignment="TOP_LEFT" prefHeight="120.0" prefWidth="400.0" text="Thông tin chi tiết về sản phẩm sẽ hiển thị ở đây..." wrapText="true" />
+
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <children>
+                                <Label text="Giá khởi điểm:">
+                                    <font>
+                                        <Font size="14.0" />
+                                    </font>
+                                </Label>
+                                <Label fx:id="lblStartPrice" text="1,000,000 VNĐ" textFill="#7f8c8d">
+                                    <font>
+                                        <Font name="System Italic" size="14.0" />
+                                    </font>
+                                </Label>
+                            </children>
+                        </HBox>
+
+                        <VBox style="-fx-background-color: #ecf0f1; -fx-padding: 15; -fx-background-radius: 5;">
+                            <children>
+                                <Label text="GIÁ HIỆN TẠI" textFill="#2c3e50">
+                                    <font>
+                                        <Font name="System Bold" size="13.0" />
+                                    </font>
+                                </Label>
+                                <Label fx:id="lblCurrentPrice" text="1,500,000 VNĐ" textFill="#e74c3c">
+                                    <font>
+                                        <Font name="System Bold" size="28.0" />
+                                    </font>
+                                </Label>
+                            </children>
+                        </VBox>
+
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <children>
+                                <Label text="Thời gian còn lại:">
+                                    <font>
+                                        <Font name="System Bold" size="14.0" />
+                                    </font>
+                                </Label>
+                                <Label fx:id="lblTimer" text="00:05:42" textFill="#c0392b">
+                                    <font>
+                                        <Font name="System Bold" size="16.0" />
+                                    </font>
+                                </Label>
+                            </children>
+                        </HBox>
+
+                        <Separator prefWidth="200.0" />
+
+                        <HBox spacing="10.0">
+                            <children>
+                                <TextField fx:id="txtBidAmount" prefHeight="40.0" prefWidth="250.0" promptText="Nhập giá muốn trả..." style="-fx-font-size: 14;" />
+                                <Button mnemonicParsing="false" onAction="#handlePlaceBid" prefHeight="40.0" prefWidth="120.0" styleClass="button-login" text="ĐẶT GIÁ" />
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+
+                <VBox prefWidth="320.0" spacing="10.0">
+                    <children>
+                        <Label text="LỊCH SỬ ĐẶT GIÁ">
+                            <font>
+                                <Font name="System Bold" size="16.0" />
+                            </font>
+                        </Label>
+                        <ListView fx:id="lvBidHistory" prefHeight="480.0" prefWidth="320.0" style="-fx-background-radius: 5;" />
+                    </children>
+                </VBox>
+            </children>
+        </HBox>
+    </children>
+</AnchorPane>
