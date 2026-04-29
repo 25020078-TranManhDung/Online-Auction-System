@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="300.0" prefWidth="450.0" style="-fx-background-color: white; -fx-border-color: #2c3e50; -fx-border-width: 2;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.BiddingController">
+    <children>
+        <VBox alignment="CENTER" layoutX="40.0" layoutY="30.0" prefWidth="370.0" spacing="20.0">
+            <children>
+                <Label text="ĐẶT GIÁ ĐẤU GIÁ" textFill="#2c3e50">
+                    <font>
+                        <Font name="System Bold" size="20.0" />
+                    </font>
+                </Label>
+
+                <VBox spacing="10.0" style="-fx-background-color: #f8f9fa; -fx-padding: 15; -fx-background-radius: 5;">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <children>
+                                <Label text="Giá hiện tại:" />
+                                <Label fx:id="lblCurrentPrice" text="1.500.000 VNĐ" textFill="#e74c3c">
+                                    <font>
+                                        <Font name="System Bold" size="16.0" />
+                                    </font>
+                                </Label>
+                            </children>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <children>
+                                <Label text="Bước giá tối thiểu:" />
+                                <Label fx:id="lblMinIncrement" text="50.000 VNĐ" textFill="#27ae60" />
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+
+                <VBox spacing="5.0">
+                    <children>
+                        <Label text="Số tiền bạn muốn đặt:" font="$null" />
+                        <TextField fx:id="txtBidInput" prefHeight="40.0" promptText="Ví dụ: 1600000" style="-fx-font-size: 16;" />
+                    </children>
+                </VBox>
+
+                <HBox alignment="CENTER" spacing="20.0">
+                    <children>
+                        <Button mnemonicParsing="false" onAction="#cancelBid" prefHeight="35.0" prefWidth="100.0" style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-cursor: hand;" text="HỦY BỎ" />
+                        <Button mnemonicParsing="false" onAction="#confirmBid" prefHeight="35.0" prefWidth="150.0" styleClass="button-login" text="XÁC NHẬN ĐẶT GIÁ" />
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </children>
+</AnchorPane>

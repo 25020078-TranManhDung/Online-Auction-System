@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.Separator?>
-<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -16,7 +18,7 @@
 
         <HBox layoutX="50.0" layoutY="70.0" prefHeight="530.0" prefWidth="800.0" spacing="30.0">
             <children>
-                <VBox prefWidth="450.0" spacing="15.0" style="-fx-background-color: white; -fx-padding: 25; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);">
+                <VBox prefWidth="450.0" spacing="10.0" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);">
                     <children>
                         <Label fx:id="lblProductName" text="Tên sản phẩm đấu giá" textFill="#2c3e50">
                             <font>
@@ -24,13 +26,6 @@
                             </font>
                         </Label>
                         <Separator prefWidth="200.0" />
-
-                        <Label text="Mô tả sản phẩm:">
-                            <font>
-                                <Font name="System Bold" size="14.0" />
-                            </font>
-                        </Label>
-                        <Label fx:id="lblDescription" alignment="TOP_LEFT" prefHeight="120.0" prefWidth="400.0" text="Thông tin chi tiết về sản phẩm sẽ hiển thị ở đây..." wrapText="true" />
 
                         <HBox alignment="CENTER_LEFT" spacing="10.0">
                             <children>
@@ -47,7 +42,7 @@
                             </children>
                         </HBox>
 
-                        <VBox style="-fx-background-color: #ecf0f1; -fx-padding: 15; -fx-background-radius: 5;">
+                        <VBox style="-fx-background-color: #ecf0f1; -fx-padding: 10; -fx-background-radius: 5;">
                             <children>
                                 <Label text="GIÁ HIỆN TẠI" textFill="#2c3e50">
                                     <font>
@@ -79,10 +74,18 @@
 
                         <Separator prefWidth="200.0" />
 
-                        <HBox spacing="10.0">
+                        <LineChart fx:id="priceChart" prefHeight="200.0" prefWidth="400.0" style="-fx-font-size: 10px;">
+                            <xAxis>
+                                <CategoryAxis side="BOTTOM" />
+                            </xAxis>
+                            <yAxis>
+                                <NumberAxis side="LEFT" />
+                            </yAxis>
+                        </LineChart>
+
+                        <HBox alignment="CENTER" spacing="10.0">
                             <children>
-                                <TextField fx:id="txtBidAmount" prefHeight="40.0" prefWidth="250.0" promptText="Nhập giá muốn trả..." style="-fx-font-size: 14;" />
-                                <Button mnemonicParsing="false" onAction="#handlePlaceBid" prefHeight="40.0" prefWidth="120.0" styleClass="button-login" text="ĐẶT GIÁ" />
+                                <Button mnemonicParsing="false" onAction="#handlePlaceBid" prefHeight="40.0" prefWidth="250.0" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;" text="THAM GIA ĐẶT GIÁ" />
                             </children>
                         </HBox>
                     </children>
