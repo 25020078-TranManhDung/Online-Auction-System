@@ -79,50 +79,41 @@ public class SocketClient {
      * @return Đối tượng DTO kết quả sau khi giải mã JSON
      */
     public <T> T send(String action, Object data, Class<T> responseType) {
-        // Tạo requestId duy nhất để khớp nối với Response sau này
+        // 1. TẤM KHIÊN PHÒNG THỦ (Defensive Check)
+        if (this.out == null || this.socket == null || this.socket.isClosed()) {
+            throw new IllegalStateException("Không thể gửi yêu cầu: Chưa có kết nối đến Server. Hãy chắc chắn rằng Server đã khởi động.");
+        }
+
         String reqId = UUID.randomUUID().toString();
-
-        // Lấy token trực tiếp từ UserSession (Singleton luôn tồn tại)
-        // Nếu chưa đăng nhập, token sẽ là null (hợp lệ cho LOGIN/REGISTER)
         String token = UserSession.getInstance().getToken();
-
-        // Đóng gói vào "phong bì" Message chuẩn Protocol
         Message msg = new Message(action, token, reqId, data);
 
-        // Tạo một "phễu" để hứng kết quả trả về từ MessageHandler
         CompletableFuture<ServerResponse> future = new CompletableFuture<>();
         pending.put(reqId, future);
 
         try {
-            // Gửi chuỗi JSON qua mạng (Thread-safe nhờ synchronized)
-            synchronized (out) {
-                // out.println() tự động thêm ký tự xuống dòng \n để Server readLine() được
-                out.println(JsonUtil.toJson(msg));
+            // 2. An toàn tuyệt đối để lock
+            synchronized (this.out) {
+                this.out.println(JsonUtil.toJson(msg));
             }
 
-            // Đứng chờ Server phản hồi
             ServerResponse resp = future.get(10, TimeUnit.SECONDS);
 
-            // Kiểm tra trạng thái thành công của nghiệp vụ
             if (!resp.isSuccess()) {
                 String errMsg = resp.getError() != null
-                        ? resp.getError().getMessage()
-                        : "Lỗi không xác định từ Server";
+                    ? resp.getError().getMessage()
+                    : "Lỗi không xác định từ Server";
                 throw new RuntimeException(errMsg);
             }
 
-            // Nếu thành công và không cần trả về data (VD: LOGOUT)
             if (responseType == Void.class) return null;
-
-            // Sử dụng hàm ép kiểu dùng Gson có sẵn trong ServerResponse
             return resp.getData(responseType);
 
         } catch (TimeoutException e) {
             throw new RuntimeException("Server không phản hồi sau 10 giây (Timeout).");
         } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Lỗi hệ thống trong quá trình giao tiếp: " + e.getMessage());
+            throw new RuntimeException("Lỗi giao tiếp mạng: " + e.getMessage());
         } finally {
-            // Luôn dọn dẹp requestId để tránh tràn bộ nhớ (Memory Leak)
             pending.remove(reqId);
         }
     }
