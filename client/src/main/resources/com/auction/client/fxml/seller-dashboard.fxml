@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="650.0" prefWidth="950.0" style="-fx-background-color: #f4f7f6;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerDashboardController">
+    <children>
+        <VBox layoutX="30.0" layoutY="30.0" spacing="20.0" prefWidth="890.0">
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="20.0">
+                    <children>
+                        <Label text="QUẢN LÝ NGƯỜI BÁN" textFill="#2c3e50">
+                            <font>
+                                <Font name="System Bold" size="24.0" />
+                            </font>
+                        </Label>
+                        <Button mnemonicParsing="false" onAction="#goBack" style="-fx-background-color: #95a5a6; -fx-text-fill: white;" text="Quay lại" />
+                    </children>
+                </HBox>
+
+                <HBox spacing="30.0">
+                    <children>
+                        <VBox prefWidth="350.0" spacing="15.0" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 10;">
+                            <children>
+                                <Label text="Đăng Sản Phẩm Mới" textFill="#2c3e50">
+                                    <font>
+                                        <Font name="System Bold" size="16.0" />
+                                    </font>
+                                </Label>
+                                <TextField fx:id="txtProductName" promptText="Tên sản phẩm" />
+                                <TextArea fx:id="txtDescription" prefHeight="100.0" promptText="Mô tả chi tiết sản phẩm..." />
+                                <TextField fx:id="txtStartPrice" promptText="Giá khởi điểm (VNĐ)" />
+                                <TextField fx:id="txtDuration" promptText="Thời gian đấu giá (phút)" />
+                                <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleAddItem" styleClass="button-login" text="ĐĂNG ĐẤU GIÁ" />
+                            </children>
+                        </VBox>
+
+                        <VBox prefWidth="510.0" spacing="10.0">
+                            <children>
+                                <Label text="Sản phẩm của bạn" textFill="#2c3e50">
+                                    <font>
+                                        <Font name="System Bold" size="16.0" />
+                                    </font>
+                                </Label>
+                                <TableView fx:id="tvSellerItems" prefHeight="400.0">
+                                    <columns>
+                                        <TableColumn fx:id="colName" prefWidth="150.0" text="Tên sản phẩm" />
+                                        <TableColumn fx:id="colPrice" prefWidth="120.0" text="Giá hiện tại" />
+                                        <TableColumn fx:id="colStatus" prefWidth="100.0" text="Trạng thái" />
+                                        <TableColumn fx:id="colAction" prefWidth="130.0" text="Hành động" />
+                                    </columns>
+                                </TableView>
+                            </children>
+                        </VBox>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </children>
+</AnchorPane>
