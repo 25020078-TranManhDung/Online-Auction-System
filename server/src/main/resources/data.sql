@@ -13,12 +13,12 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Sử dụng ID dạng String để khớp với Entity.java (UUID/String)
 
 INSERT INTO users (id, username, password, email, role, admin_level, reputation_score) VALUES
-('u-admin',  'admin',   'admin123', 'admin@auction.com',   'ADMIN', 1, NULL),
-('u-sel-01', 'seller1', '123456',   'seller1@auction.com', 'SELLER', 0, 4.8),
-('u-sel-02', 'seller2', '123456',   'seller2@auction.com', 'SELLER', 0, 5.0),
-('u-bid-01', 'bidder1', '123456',   'bidder1@auction.com', 'BIDDER', 0, NULL),
-('u-bid-02', 'bidder2', '123456',   'bidder2@auction.com', 'BIDDER', 0, NULL),
-('u-bid-03', 'bidder3', '123456',   'bidder3@auction.com', 'BIDDER', 0, NULL);
+('u-admin',  'admin',   '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'admin@auction.com',   'ADMIN', 1, NULL),
+('u-sel-01', 'seller1', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC',   'seller1@auction.com', 'SELLER', 0, 4.8),
+('u-sel-02', 'seller2', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC',   'seller2@auction.com', 'SELLER', 0, 5.0),
+('u-bid-01', 'bidder1', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC',   'bidder1@auction.com', 'BIDDER', 0, NULL),
+('u-bid-02', 'bidder2', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC',   'bidder2@auction.com', 'BIDDER', 0, NULL),
+('u-bid-03', 'bidder3', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC',   'bidder3@auction.com', 'BIDDER', 0, NULL);
 
 -- =========================================================================
 -- 2. BƠM ĐỦ 5 ITEMS (Gắn cho seller1 và seller2)
