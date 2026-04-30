@@ -20,6 +20,8 @@ import com.auction.shared.model.user.User;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * AuctionService xử lý logic nghiệp vụ vòng đời của phiên đấu giá.
@@ -230,5 +232,61 @@ public class AuctionService {
             throw new ResourceNotFoundException("AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá có ID: " + id);
         }
         return a;
+    }
+
+    public List<AuctionResponse> getList(String statusStr, int page, int size) {
+        // 1. Xử lý trạng thái (Parse Enum an toàn)
+        AuctionStatus statusEnum = null;
+
+        // Tránh lỗi NullPointerException và cho phép lấy TẤT CẢ (ALL) nếu không truyền status
+        if (statusStr != null && !statusStr.trim().isEmpty() && !statusStr.equalsIgnoreCase("ALL")) {
+            try {
+                statusEnum = AuctionStatus.valueOf(statusStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Bắt lỗi nếu Client truyền lên một status rác không tồn tại trong hệ thống
+                throw new AuctionException("INVALID_STATUS", "Trạng thái phiên đấu giá không hợp lệ: " + statusStr);
+            }
+        }
+
+        // 2. Tính toán thông số phân trang (Offset)
+        int offset = page * size;
+
+        // 3. Gọi DAO để lấy dữ liệu
+        // LƯU Ý: Giả định AuctionDAO của bạn có hàm findAuctions nhận vào (status, offset, limit).
+        // Nếu DAO của bạn đặt tên khác (ví dụ: findAll, getList), hãy sửa lại tên hàm cho khớp nhé!
+        List<Auction> auctions = auctionDao.findAuctions(statusEnum, offset, size);
+
+        // 4. Map dữ liệu từ Entity (Auction) sang DTO (AuctionResponse)
+        List<AuctionResponse> responseList = new ArrayList<>();
+        if (auctions != null) {
+            for (Auction auction : auctions) {
+                responseList.add(mapToResponse(auction));
+            }
+        }
+
+        return responseList;
+    }
+
+    private AuctionResponse mapToResponse(Auction auction) {
+        AuctionResponse response = new AuctionResponse();
+
+        // Truy vấn ItemDAO để lấy thêm thông tin chi tiết của sản phẩm
+        Item item = itemDao.findById(auction.getItemId());
+
+        response.setAuctionId(auction.getId());
+        response.setTitle(item != null ? item.getTitle() : "Không xác định");
+        response.setDescription(item != null ? item.getDescription() : "Không xác định");
+        response.setCategory((item != null && item.getCategory() != null) ? item.getCategory().name() : "N/A");
+
+        response.setStartingPrice(auction.getStartPrice());
+        response.setCurrentPrice(auction.getCurrentPrice());
+        response.setHighestBidderName(auction.getCurrentLeader());
+        response.setSellerId(auction.getSellerId());
+
+        response.setStartTime(auction.getStartTime());
+        response.setEndTime(auction.getEndTime());
+        response.setStatus(auction.getStatus());
+
+        return response;
     }
 }
