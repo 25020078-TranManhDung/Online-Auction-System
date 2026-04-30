@@ -15,6 +15,8 @@ import com.auction.shared.model.BidTransaction;
 import com.auction.shared.model.user.User;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -155,5 +157,23 @@ public class BidService {
             // (Nếu nhóm chưa khai báo publishAuctionExtended thì cứ để tạm comment)
             // eventBus.publishAuctionExtended(auction);
         }
+    }
+
+    public List<BidTransaction> getHistory(String auctionId) {
+        // 1. Kiểm tra phiên đấu giá có tồn tại không thông qua Manager (Cache)
+        Auction auction = manager.getAuction(auctionId);
+        if (auction == null) {
+            // Fallback xuống DB nếu không thấy trong Cache
+            auction = auctionDao.findById(auctionId);
+            if (auction == null) {
+                throw new AuctionException("AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá.");
+            }
+        }
+
+        // 2. Lấy danh sách giao dịch từ DAO
+        // Thông thường danh sách này nên được sắp xếp theo thời gian (ASC) để vẽ biểu đồ
+        List<BidTransaction> history = bidDao.findByAuctionId(auctionId);
+
+        return history != null ? history : new ArrayList<>();
     }
 }

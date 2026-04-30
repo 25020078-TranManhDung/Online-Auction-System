@@ -199,4 +199,36 @@ public class AutoBidService implements AuctionObserver {
     // =================================================================
     // 3. LOGIC LÕI XỬ LÝ ĐUA GIÁ (Giữ nguyên phần code triggerAutoBid của bạn ở dưới đây)
     // =================================================================
+
+    // === 4. NGƯỜI DÙNG HỦY AUTO-BID ===
+    public AutoBidResponse cancel(String auctionId, String token) {
+        // 1. Xác thực người dùng thông qua Token
+        String bidderId = TokenUtil.getUserId(token);
+        if (bidderId == null) {
+            throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ.");
+        }
+
+        // 2. Lấy hàng đợi ưu tiên của phiên đấu giá hiện tại
+        PriorityQueue<AutoBidSetting> queue = queues.get(auctionId);
+
+        if (queue != null) {
+            // TỐI ƯU CONCURRENCY: Khóa queue lại khi xóa để tránh lỗi ConcurrentModificationException
+            // trong trường hợp luồng khác (triggerAutoBid) đang duyệt qua danh sách này.
+            synchronized (queue) {
+                queue.removeIf(setting -> {
+                    // Nếu tìm thấy cấu hình của user này
+                    if (setting.getBidderId().equals(bidderId)) {
+                        // 3. Tắt trạng thái kích hoạt và cập nhật xuống DB
+                        setting.setActive(false);
+                        autoBidDao.update(setting);
+                        return true; // Xóa khỏi bộ nhớ RAM
+                    }
+                    return false;
+                });
+            }
+        }
+
+        // Trả về thông báo thành công
+        return new AutoBidResponse(true, "Đã hủy đăng ký Auto-bid thành công!");
+    }
 }
