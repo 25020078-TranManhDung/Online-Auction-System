@@ -27,11 +27,23 @@ public class MessageRouter {
         Actions.REGISTER
     );
 
-    // Dependency Injection (DI) các Controller nghiệp vụ
-    private final UserController userCtrl;
-    private final AuctionController auctionCtrl;
-    private final BidController bidCtrl;
-    private final ItemController itemCtrl;
+    // Xóa từ khóa 'final' để có thể tiêm (inject) qua hàm Setter
+    private UserController userCtrl;
+    private AuctionController auctionCtrl;
+    private BidController bidCtrl;
+    private ItemController itemCtrl;
+
+    // 1. Constructor rỗng để khởi tạo ban đầu
+    public MessageRouter() {}
+
+    // 2. Hàm Setter Injection để nạp Controller sau khi khởi tạo
+    public void setControllers(UserController userCtrl, AuctionController auctionCtrl,
+                               BidController bidCtrl, ItemController itemCtrl) {
+        this.userCtrl = userCtrl;
+        this.auctionCtrl = auctionCtrl;
+        this.bidCtrl = bidCtrl;
+        this.itemCtrl = itemCtrl;
+    }
 
     public MessageRouter(UserController userCtrl, AuctionController auctionCtrl,
                          BidController bidCtrl, ItemController itemCtrl) {
