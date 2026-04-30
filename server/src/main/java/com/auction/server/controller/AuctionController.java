@@ -1,4 +1,79 @@
 package com.auction.server.controller;
 
+import com.auction.server.network.ClientHandler;
+import com.auction.server.service.AuctionService;
+import com.auction.shared.dto.request.CreateAuctionRequest;
+import com.auction.shared.network.protocol.Message;
+import com.auction.shared.network.protocol.ServerResponse;
+
+import java.util.Map;
+
+/**
+ * Controller xử lý các API Socket liên quan đến Phiên đấu giá.
+ */
 public class AuctionController {
+
+  private final AuctionService auctionService;
+
+  public AuctionController(AuctionService auctionService) {
+    this.auctionService = auctionService;
+  }
+
+  /**
+   * Lấy danh sách các phiên đấu giá (có phân trang và lọc theo trạng thái).
+   */
+  public ServerResponse getList(Message msg) {
+    Map payload = msg.getData(Map.class);
+
+    // Trích xuất tham số an toàn từ payload
+    String status = payload != null ? (String) payload.get("status") : null;
+    int page = payload != null && payload.get("page") != null ? ((Number) payload.get("page")).intValue() : 0;
+    int size = payload != null && payload.get("size") != null ? ((Number) payload.get("size")).intValue() : 20;
+
+    // Gọi thẳng tới AuctionService để lấy dữ liệu thực tế thay vì trả về message giả lập
+    return ServerResponse.ok(msg.getRequestId(), auctionService.getList(status, page, size));
+  }
+
+  /**
+   * Xem chi tiết một phiên đấu giá.
+   * Đồng thời "subscribe" client vào luồng theo dõi để nhận thông báo realtime (Push notification).
+   */
+  public ServerResponse getDetail(Message msg, ClientHandler sender) {
+    Map payload = msg.getData(Map.class);
+    String auctionId = (String) payload.get("auctionId");
+
+    // Đăng ký Client này vào danh sách theo dõi phiên đấu giá để nhận cập nhật (Bid mới, đóng phiên...)
+    sender.setWatchingAuction(auctionId);
+
+    return ServerResponse.ok(msg.getRequestId(), auctionService.getDetail(auctionId));
+  }
+
+  /**
+   * Dành cho Seller tạo một phiên đấu giá mới.
+   */
+  public ServerResponse create(Message msg) {
+    CreateAuctionRequest req = msg.getData(CreateAuctionRequest.class);
+    return ServerResponse.ok(msg.getRequestId(), auctionService.createAuction(req, msg.getToken()));
+  }
+
+  /**
+   * Dành cho Seller bắt đầu phiên đấu giá (Chuyển trạng thái từ OPEN sang RUNNING).
+   */
+  public ServerResponse start(Message msg) {
+    Map payload = msg.getData(Map.class);
+    String auctionId = (String) payload.get("auctionId");
+
+    return ServerResponse.ok(msg.getRequestId(), auctionService.startAuction(auctionId, msg.getToken()));
+  }
+
+  /**
+   * Dành cho Seller hoặc Hệ thống tự động đóng phiên đấu giá.
+   */
+  public ServerResponse close(Message msg) {
+    Map payload = msg.getData(Map.class);
+    String auctionId = (String) payload.get("auctionId");
+
+    auctionService.closeAuction(auctionId);
+    return ServerResponse.ok(msg.getRequestId(), Map.of("message", "Đã đóng phiên đấu giá thành công."));
+  }
 }
