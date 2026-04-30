@@ -8,6 +8,7 @@ public abstract class Item extends Entity {
     private String description;
     private ItemCategory category; // Protocol: "category"
     private String sellerId;       // Protocol: "sellerId"
+    private double startingPrice;
 
     public Item() {
         super();
@@ -31,6 +32,9 @@ public abstract class Item extends Entity {
 
     public String getSellerId() { return sellerId; }
     public void setSellerId(String sellerId) { this.sellerId = sellerId; }
+
+    public double getStartingPrice() { return startingPrice; }
+    public void setStartingPrice(double startingPrice) { this.startingPrice = startingPrice; }
 
     // Phương thức trừu tượng để đảm bảo tính đa hình cơ bản
     public abstract void printInfo();
