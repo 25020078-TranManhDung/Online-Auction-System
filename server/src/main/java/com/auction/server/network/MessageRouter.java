@@ -1,24 +1,33 @@
 package com.auction.server.network;
 
-// Tạm thời comment các Controller vì chưa có
-// import com.auction.server.controller.*;
-import com.auction.shared.exception.*;
+import com.auction.server.controller.AuctionController;
+import com.auction.server.controller.BidController;
+import com.auction.server.controller.ItemController;
+import com.auction.server.controller.UserController;
+import com.auction.server.util.TokenUtil;
+import com.auction.shared.exception.AuctionException;
 import com.auction.shared.network.protocol.Actions;
 import com.auction.shared.network.protocol.Message;
 import com.auction.shared.network.protocol.ServerResponse;
-import com.google.gson.Gson;
+import com.auction.shared.util.JsonUtil;
 import com.google.gson.JsonSyntaxException;
 
 import java.util.Set;
 
+/**
+ * Front Controller (Bộ điều khiển trung tâm) cho hệ thống Socket.
+ * Đóng vai trò như một DispatcherServlet trong Spring Boot:
+ * Tiếp nhận JSON thô -> Deserialize -> Xác thực Token -> Phân phối (Dispatch) -> Serialize kết quả.
+ */
 public class MessageRouter {
 
-    private static final Gson GSON = new Gson();
+    // Cache danh sách các Endpoint công khai (Whitelist) không cần kiểm tra quyền
+    private static final Set<String> PUBLIC_ACTIONS = Set.of(
+        Actions.LOGIN,
+        Actions.REGISTER
+    );
 
-    private static final Set<String> PUBLIC = Set.of(Actions.LOGIN, Actions.REGISTER);
-
-    // BƯỚC 1: TẠM THỜI ĐÓNG BĂNG CONTROLLER
-    /*
+    // Dependency Injection (DI) các Controller nghiệp vụ
     private final UserController userCtrl;
     private final AuctionController auctionCtrl;
     private final BidController bidCtrl;
@@ -31,71 +40,100 @@ public class MessageRouter {
         this.bidCtrl = bidCtrl;
         this.itemCtrl = itemCtrl;
     }
-    */
 
-    // Constructor tạm thời không tham số để SocketServer có thể khởi tạo
-    public MessageRouter() {
-        System.out.println("[MessageRouter] Đã khởi tạo Skeleton Router");
-    }
-
+    /**
+     * Hàm định tuyến trung tâm.
+     * @param rawJson Chuỗi JSON thô từ SocketClient gửi lên.
+     * @param sender  Context của client hiện tại (dùng để push data hoặc quản lý session).
+     * @return Chuỗi JSON chuẩn hóa của ServerResponse để đẩy ngược về Client.
+     */
     public String route(String rawJson, ClientHandler sender) {
         Message msg = null;
         try {
-            // Sử dụng Gson chuẩn để parse JSON
-            msg = GSON.fromJson(rawJson, Message.class);
+            // 1. Tận dụng JsonUtil để Parse dữ liệu một cách an toàn
+            msg = JsonUtil.fromJson(rawJson, Message.class);
 
-            if (msg == null || msg.getAction() == null) {
-                return err(null, "UNKNOWN_ACTION", "Thiếu trường action hoặc JSON rỗng");
+            if (msg == null || msg.getAction() == null || msg.getAction().trim().isEmpty()) {
+                return err(null, "UNKNOWN_ACTION", "Thiếu trường action hoặc payload JSON rỗng.");
             }
 
-            // Validate token với action cần auth
-            if (!PUBLIC.contains(msg.getAction())) {
-                // Tạm thời bỏ qua check Token để Client dễ test, sau này mở ra sau
-                if (msg.getToken() == null) {
-                    return err(msg.getRequestId(), "TOKEN_INVALID", "Token không hợp lệ hoặc đã bị thiếu");
+            // 2. Security Interceptor: Xác thực Token (Authentication)
+            if (!PUBLIC_ACTIONS.contains(msg.getAction())) {
+                String token = msg.getToken();
+
+                // Kiểm tra định dạng đầu vào
+                if (token == null || token.trim().isEmpty()) {
+                    return err(msg.getRequestId(), "UNAUTHORIZED", "Yêu cầu cung cấp Token hợp lệ.");
+                }
+
+                // Tận dụng TokenUtil để kiểm tra Token có tồn tại trong bộ nhớ và còn hạn hay không
+                if (!TokenUtil.isValid(token)) { //
+                    // Sử dụng đúng mã lỗi TOKEN_EXPIRED hoặc TOKEN_INVALID theo PROTOCOL.md
+                    return err(msg.getRequestId(), "TOKEN_EXPIRED", "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
                 }
             }
 
-            // SKELETON - TRẢ VỀ DỮ LIỆU GIẢ THAY VÌ GỌI CONTROLLER
-            Object result = switch (msg.getAction()) {
-                case Actions.LOGIN -> "Đã nhận lệnh LOGIN.";
-                case Actions.PLACE_BID -> "Đã nhận lệnh PLACE_BID.";
-                case Actions.GET_AUCTIONS -> "Đã nhận lệnh GET_AUCTIONS.";
-                // Bắt mọi action khác
-                default -> "Server đã nhận lệnh: [" + msg.getAction() + "].";
+            // 3. Dispatcher: Sử dụng hằng số tĩnh từ class Actions để điều hướng
+            ServerResponse response = switch (msg.getAction()) {
+
+                // --- Auth Operations ---
+                case Actions.LOGIN -> userCtrl.login(msg, sender);
+                case Actions.REGISTER -> userCtrl.register(msg);
+                case Actions.LOGOUT -> userCtrl.logout(msg, sender);
+
+                // --- Auction Operations ---
+                case Actions.GET_AUCTIONS -> auctionCtrl.getList(msg);
+                case Actions.GET_AUCTION_DETAIL -> auctionCtrl.getDetail(msg, sender);
+                case Actions.CREATE_AUCTION -> auctionCtrl.create(msg);
+                case Actions.START_AUCTION -> auctionCtrl.start(msg);
+                case Actions.CLOSE_AUCTION -> auctionCtrl.close(msg);
+
+                // --- Bid Operations ---
+                case Actions.PLACE_BID -> bidCtrl.placeBid(msg);
+                case Actions.SET_AUTO_BID -> bidCtrl.setAutoBid(msg);
+                case Actions.CANCEL_AUTO_BID -> bidCtrl.cancelAutoBid(msg);
+                case Actions.GET_BID_HISTORY -> bidCtrl.getHistory(msg);
+
+                // --- Item Operations ---
+                case Actions.CREATE_ITEM -> itemCtrl.create(msg);
+                case Actions.GET_ITEM -> itemCtrl.get(msg);
+                case Actions.UPDATE_ITEM -> itemCtrl.update(msg);
+                case Actions.DELETE_ITEM -> itemCtrl.delete(msg);
+
+                // Default Fallback
+                default -> ServerResponse.fail(msg.getRequestId(), "NOT_FOUND",
+                    String.format("Server không hỗ trợ API action: [%s]", msg.getAction()));
             };
 
-            // Wrap result thành ServerResponse
-            if (result instanceof ServerResponse r) {
-                if (r.getRequestId() == null) {
-                    r.setRequestId(msg.getRequestId());
-                }
-                return GSON.toJson(r);
+            // 4. Đồng bộ Request ID và Serialize response
+            if (response.getRequestId() == null) {
+                response.setRequestId(msg.getRequestId());
             }
-            return GSON.toJson(ServerResponse.ok(msg.getRequestId(), result));
+            return JsonUtil.toJson(response);
 
-        }
-        catch (JsonSyntaxException e) {
-            // Bắt lỗi rách JSON (VD: Client gửi thiếu dấu ngoặc nhọn)
-            return err(reqId(msg), "BAD_REQUEST", "Định dạng JSON không hợp lệ");
-        }
+        } catch (JsonSyntaxException e) {
+            // Lỗi từ phía Client gửi sai định dạng JSON
+            return err(reqId(msg), "BAD_REQUEST", "Định dạng JSON không hợp lệ. Vui lòng kiểm tra lại cấu trúc.");
 
-        catch (AuctionException e) {
-            // Bắt 1 class cha, xử lý được hàng chục class con!
-            // Dù B ném ra InvalidBidException hay TokenExpiredException, hàm này đều tự lấy ra đúng mã lỗi.
+        } catch (AuctionException e) {
+            // Đa hình xử lý Ngoại lệ: Mọi nghiệp vụ lỗi (VD: Đặt giá thấp, Phiên đóng)
+            // đều sục bọt về đây và được chuyển hóa thành HTTP-like Error Response.
             return err(reqId(msg), e.getCode(), e.getMessage());
-        }
-        catch (Exception e) {
-            // Lỗi hệ thống nghiêm trọng (NullPointer, Mất kết nối DB...)
-            System.err.println("[MessageRouter] Lỗi không xác định: " + e.getMessage());
+
+        } catch (Exception e) {
+            // Xử lý lỗi hệ thống tột cùng (NullPointer, Mất kết nối DB...)
+            System.err.printf("[Router Exception] Hành động %s gây ra lỗi: %s%n",
+                (msg != null ? msg.getAction() : "N/A"), e.getMessage());
             e.printStackTrace();
-            return err(reqId(msg), "INTERNAL_ERROR", "Lỗi server nội bộ");
+            return err(reqId(msg), "INTERNAL_SERVER_ERROR", "Đã xảy ra lỗi nghiêm trọng tại phía máy chủ.");
         }
     }
 
-    // Hàm tiện ích nội bộ
-    private String err(String reqId, String code, String msg) {
-        return GSON.toJson(ServerResponse.fail(reqId, code, msg));
+    /**
+     * Utility method: Đóng gói chuẩn Error Payload
+     */
+    private String err(String reqId, String code, String message) {
+        return JsonUtil.toJson(ServerResponse.fail(reqId, code, message)); //[cite: 6, 16]
     }
 
     private String reqId(Message m) {
