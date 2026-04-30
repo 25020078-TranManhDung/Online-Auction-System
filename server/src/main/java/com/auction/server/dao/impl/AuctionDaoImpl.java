@@ -140,4 +140,28 @@ public class AuctionDaoImpl implements AuctionDAO {
     private LocalDateTime toLdt(Timestamp ts) {
         return ts == null ? null : ts.toLocalDateTime();
     }
+
+    @Override
+    public List<Auction> findAuctions(AuctionStatus status, int offset, int limit) {
+        // Sử dụng LIMIT và OFFSET để hỗ trợ phân trang ở mức Database
+        String sql = "SELECT * FROM auctions WHERE status = ? ORDER BY end_time ASC LIMIT ? OFFSET ?";
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, status.name());
+            ps.setInt(2, limit);
+            ps.setInt(3, offset);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Auction> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(mapToAuction(rs));
+                }
+                return list;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findAuctions (phân trang) thất bại", e);
+        }
+    }
 }
