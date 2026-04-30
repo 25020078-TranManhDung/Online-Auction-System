@@ -13,6 +13,8 @@ public interface AuctionDAO {
 
     List<Auction> findExpiringBefore(LocalDateTime deadline);
 
+    List<Auction> findAuctions(AuctionStatus status, int offset, int limit);
+
     boolean save(Auction auction);
     boolean update(Auction auction);
 }
