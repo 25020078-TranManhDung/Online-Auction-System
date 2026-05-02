@@ -59,20 +59,35 @@ public class AuctionService {
         }
 
         // 2. ÁP DỤNG FACTORY PATTERN: Tạo Item mới từ Request
-        // (Nếu nhóm chưa code ItemFactory, bạn có thể tạo tạm Item thủ công ở đây)
-        String newItemId = UUID.randomUUID().toString();
-        /* GỢI Ý DÙNG FACTORY:
-        Item newItem = ItemFactory.createItem(req.getCategory(), req.getItemAttributes());
-        newItem.setId(newItemId);
-        newItem.setTitle(req.getTitle());
-        newItem.setDescription(req.getDescription());
-        itemDao.save(newItem);
-        */
+        // Tạo Map chứa dữ liệu để ném vào Factory
+        java.util.Map<String, Object> itemData = new java.util.HashMap<>();
+        itemData.put("title", req.getTitle());
+        itemData.put("description", req.getDescription());
+        itemData.put("category", req.getCategory());
+        itemData.put("sellerId", sellerId); // Set luôn người bán để Factory nhét vào Item
+
+        // Gọi Factory đẻ ra đối tượng Item (Đã tự động được cấp UUID bên trong Factory)
+        Item newItem = com.auction.server.pattern.factory.ItemFactory.createItem(req.getCategory(), itemData);
+
+        // Lấy ID vừa được Factory sinh ra
+        String newItemId = newItem.getId();
+
+        // BẮT BUỘC: LƯU SẢN PHẨM VÀO DATABASE TRƯỚC ĐỂ LÀM KHÓA CHÍNH!
+        boolean isItemSaved = itemDao.save(newItem);
+        if (!isItemSaved) {
+            throw new RuntimeException("Lỗi: Không thể lưu thông tin Sản phẩm vào Database!");
+        }
 
         // 3. Khởi tạo phiên đấu giá
         Auction auction = new Auction();
         auction.setId(UUID.randomUUID().toString()); // Tạo ID chuỗi
         auction.setItemId(newItemId); // Sử dụng ID của Item vừa tạo ở trên
+
+        auction.setSellerId(sellerId);
+
+        // 👉 CHỐT THỜI GIAN HIỆN TẠI VÀO BIẾN 'now'
+        LocalDateTime now = java.time.LocalDateTime.now();
+        auction.setStartTime(now);
 
         // Đã sửa lại thành getStartingPrice() cho khớp với DTO
         auction.setStartPrice(req.getStartingPrice());
@@ -82,10 +97,16 @@ public class AuctionService {
         double defaultIncrement = req.getStartingPrice() * 0.05;
         auction.setMinBidIncrement(defaultIncrement);
 
-        auction.setStartTime(req.getStartTime());
-        auction.setEndTime(req.getEndTime());
-        auction.setStatus(AuctionStatus.OPEN);
+        // 👉 ĐOẠN MỚI: TỰ ĐỘNG XỬ LÝ END_TIME (GIỜ KẾT THÚC)
+        if (req.getEndTime() != null) {
+            auction.setEndTime(req.getEndTime()); // Nếu có sẵn thì dùng
+        } else {
+            // Nếu Client gửi lên bị null, Server tự động cộng thêm 60 phút
+            // (Nếu mày đã thêm getDuration() vào Request rồi thì sửa 60 thành req.getDuration())
+            auction.setEndTime(now.plusMinutes(60));
+        }
 
+        auction.setStatus(AuctionStatus.OPEN);
         // 4. Lưu vào Database
         boolean isSaved = auctionDao.save(auction);
         if (!isSaved) {

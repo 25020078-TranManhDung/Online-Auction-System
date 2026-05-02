@@ -9,6 +9,7 @@ CREATE TABLE users (
     role ENUM('BIDDER', 'SELLER', 'ADMIN') NOT NULL,
     admin_level INT DEFAULT 0,          -- Thuộc tính của Admin.java
     reputation_score DOUBLE DEFAULT 5.0 -- Thuộc tính của Seller.java
+    status VARCHAR(20) DEFAULT 'ACTIVE'
 );
 
 -- 2. Bảng Items (Gộp Item.java và subclasses Electronics, Vehicle, Art)

@@ -14,6 +14,7 @@ import com.auction.server.util.TokenUtil;
 import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.Admin;
+import java.util.List;
 
 import java.util.Optional;
 
@@ -101,5 +102,40 @@ public class UserService {
             );
         }
         return user;
+    }
+
+    /**
+     * Lấy danh sách toàn bộ người dùng.
+     */
+    public List<User> getAllUsers() {
+        return userDao.findAll();
+    }
+
+    /**
+     * Khóa hoặc mở khóa tài khoản người dùng.
+     */
+    public void toggleUserStatus(String userId) {
+        // 1. Tìm user trong DB
+        User user = userDao.findById(userId);
+        if (user == null) {
+            throw new ResourceNotFoundException(
+                    "USER_NOT_FOUND",
+                    "Không tìm thấy người dùng với ID: " + userId
+            );
+        }
+
+        // 2. Đảo ngược trạng thái
+        String currentStatus = user.getStatus();
+        if ("ACTIVE".equalsIgnoreCase(currentStatus)) {
+            user.setStatus("LOCKED");
+        } else {
+            user.setStatus("ACTIVE");
+        }
+
+        // 3. Cập nhật lại vào Database
+        boolean isUpdated = userDao.update(user);
+        if (!isUpdated) {
+            throw new RuntimeException("Lỗi khi cập nhật trạng thái người dùng vào cơ sở dữ liệu.");
+        }
     }
 }

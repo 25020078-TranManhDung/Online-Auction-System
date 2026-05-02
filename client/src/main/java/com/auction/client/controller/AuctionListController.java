@@ -41,7 +41,7 @@ public class AuctionListController {
 
     // Phần tử con bên trong mảng auctions trả về
     public static class AuctionItem {
-        public String id;
+        public String auctionId;
         public String title;
         public double currentPrice;
         public String endTime;
@@ -80,7 +80,7 @@ public class AuctionListController {
         new Thread(() -> {
             try {
                 // Tạo Request: Lấy 20 sản phẩm đang ACTIVE
-                GetAuctionsRequest req = new GetAuctionsRequest("ACTIVE", 0, 20);
+                GetAuctionsRequest req = new GetAuctionsRequest("OPEN", 0, 20);
 
                 // Gửi Request
                 GetAuctionsResponse response = SocketClient.getInstance().send(
@@ -166,13 +166,26 @@ public class AuctionListController {
         btnView.setMaxWidth(Double.MAX_VALUE); // Nút trải dài toàn bộ chiều ngang card
 
         // Sự kiện khi bấm vào xem chi tiết (chuyển sang màn AuctionDetailController)
+        // Sự kiện khi bấm vào xem chi tiết (chuyển sang màn AuctionDetailController)
         btnView.setOnAction(e -> {
             try {
-                // Tạm thời chỉ in ra màn hình. Lát mình sẽ tạo màn Detail sau
-                System.out.println("Đang mở chi tiết sản phẩm: " + item.id);
-                // ViewLoader.load(e, "auction-detail.fxml", "Chi tiết đấu giá");
+                // 1. Tải giao diện lên bằng tay thay vì dùng ViewLoader
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/auction/client/fxml/auction-detail.fxml"));
+                javafx.scene.Parent root = loader.load();
+
+                // 2. LẤY CONTROLLER VÀ BƠM ID VÀO (ĐIỂM ĂN TIỀN LÀ ĐÂY!)
+                com.auction.client.controller.AuctionDetailController detailController = loader.getController();
+                detailController.initData(item.auctionId);
+
+                // 3. Đổi cảnh (Chuyển màn hình)
+                javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) e.getSource()).getScene().getWindow();
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("Chi tiết đấu giá");
+                stage.show();
+
             } catch (Exception ex) {
                 ex.printStackTrace();
+                AlertUtil.showError("Lỗi", "Không thể mở chi tiết sản phẩm!");
             }
         });
 

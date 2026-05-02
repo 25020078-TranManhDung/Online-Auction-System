@@ -21,6 +21,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SellerDashboardController implements BidUpdateListener, AuctionUpdateListener {
@@ -37,6 +38,12 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     @FXML private TableColumn<AuctionResponse, Void> colAction;
 
     private final ObservableList<AuctionResponse> sellerAuctions = FXCollections.observableArrayList();
+
+    // Dữ liệu tổng trả về từ Server
+    public static class GetAuctionsResponse {
+        public List<AuctionResponse> auctions;
+        public int total;
+    }
 
     @FXML
     public void initialize() {
@@ -123,22 +130,29 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     private void loadMyAuctions() {
         try {
             Map<String, Object> params = new HashMap<>();
-            params.put("status", "RUNNING");
+            params.put("status", "ALL");
 
-            AuctionResponse[] results = SocketClient.getInstance().send(Actions.GET_AUCTIONS, params, AuctionResponse[].class);
+            // BẮT BẰNG CÁI "HỘP" THAY VÌ MẢNG
+            GetAuctionsResponse response = SocketClient.getInstance().send(Actions.GET_AUCTIONS, params, GetAuctionsResponse.class);
 
-            if (results != null) {
+            if (response != null && response.auctions != null) {
                 String myId = UserSession.getInstance().getUserId();
-                sellerAuctions.clear();
-                for (AuctionResponse a : results) {
-                    if (myId != null && myId.equals(a.getSellerId())) {
-                        sellerAuctions.add(a);
+
+                // Mọi giao diện (như clear bảng, add data) phải chạy trên JavaFX Application Thread
+                Platform.runLater(() -> {
+                    sellerAuctions.clear();
+                    for (AuctionResponse a : response.auctions) {
+                        // Lọc chỉ lấy sản phẩm của người bán này
+                        if (myId != null && myId.equals(a.getSellerId())) {
+                            sellerAuctions.add(a);
+                        }
                     }
-                }
-                tvSellerItems.setItems(sellerAuctions);
+                    tvSellerItems.setItems(sellerAuctions);
+                });
             }
         } catch (Exception e) {
             System.err.println("Lỗi load danh sách: " + e.getMessage());
+            e.printStackTrace(); // Bật cái này lên để lỡ có lỗi nó in đỏ ra console dễ check
         }
     }
 
@@ -170,14 +184,25 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     @FXML
     void goBack(ActionEvent event) {
         try {
+            // 1. Gỡ listener
             MessageHandler handler = getMessageHandlerSecurely();
             if (handler != null) {
                 handler.removeBidListener(this);
                 handler.removeAuctionListener(this);
             }
-            ViewLoader.load(event, "main-app.fxml", "Hệ thống đấu giá - Trang chủ");
+
+            // 2. Xóa phiên đăng nhập (Đăng xuất)
+            UserSession.getInstance().cleanUserSession();
+
+            // 3. FIX LỖI LOCATION IS NOT SET: Chỉ truyền mỗi tên file thôi!
+            // Vì ViewLoader đã tự động ghép "/com/auction/client/fxml/" vào rồi.
+            String loginPath = "login.fxml";
+
+            ViewLoader.load(event, loginPath, "Đăng nhập hệ thống");
+
         } catch (Exception e) {
             System.err.println("Lỗi khi quay lại: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

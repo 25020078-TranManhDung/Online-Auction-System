@@ -6,6 +6,8 @@ import com.auction.shared.dto.request.CreateAuctionRequest;
 import com.auction.shared.network.protocol.Message;
 import com.auction.shared.network.protocol.ServerResponse;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,8 +32,17 @@ public class AuctionController {
     int page = payload != null && payload.get("page") != null ? ((Number) payload.get("page")).intValue() : 0;
     int size = payload != null && payload.get("size") != null ? ((Number) payload.get("size")).intValue() : 20;
 
-    // Gọi thẳng tới AuctionService để lấy dữ liệu thực tế thay vì trả về message giả lập
-    return ServerResponse.ok(msg.getRequestId(), auctionService.getList(status, page, size));
+    // --- FIX GSON ERROR TẠI ĐÂY ---
+    // 1. Lấy dữ liệu dạng mảng (List) từ Service
+    List<?> auctionList = auctionService.getList(status, page, size);
+
+    // 2. Bọc mảng đó vào trong một cái Hộp (Map) để Client hứng bằng Object GetAuctionsResponse
+    Map<String, Object> responseData = new HashMap<>();
+    responseData.put("auctions", auctionList);
+    responseData.put("total", auctionList != null ? auctionList.size() : 0); // Tạm gán số lượng tổng
+
+    // 3. Gửi Hộp dữ liệu về Client
+    return ServerResponse.ok(msg.getRequestId(), responseData);
   }
 
   /**

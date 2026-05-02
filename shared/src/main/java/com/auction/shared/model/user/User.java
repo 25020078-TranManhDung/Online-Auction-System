@@ -9,6 +9,7 @@ public abstract class User extends Entity {
     private String email;
     private UserRole role; // Bắt buộc để map JSON
 
+    private String status = "ACTIVE";
     public User() {
         super();
     }
@@ -37,4 +38,7 @@ public abstract class User extends Entity {
 
     public UserRole getRole() { return role; }
     public void setRole(UserRole role) { this.role = role; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

@@ -50,4 +50,35 @@ public class UserController {
 
         return ServerResponse.ok(msg.getRequestId(), Map.of("message", "Đã đăng xuất và hủy token"));
     }
+
+    public ServerResponse getAllUsers(Message msg) {
+        try {
+            // Gọi tầng Service lấy danh sách User
+            Object userList = userService.getAllUsers();
+            return ServerResponse.ok(msg.getRequestId(), userList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ServerResponse.fail(msg.getRequestId(), "SERVER_ERROR", "Lỗi khi lấy danh sách User");
+        }
+    }
+
+    public ServerResponse toggleStatus(Message msg) {
+        try {
+            // Bắt data Client gửi lên (ví dụ: { "userId": "U001" })
+            Map data = msg.getData(Map.class);
+            String targetUserId = (String) data.get("userId");
+
+            if (targetUserId == null) {
+                return ServerResponse.fail(msg.getRequestId(), "BAD_REQUEST", "Thiếu userId cần khóa/mở");
+            }
+
+            // Gọi tầng Service để xử lý cập nhật trạng thái trong Database
+            userService.toggleUserStatus(targetUserId);
+
+            return ServerResponse.ok(msg.getRequestId(), Map.of("message", "Đã cập nhật trạng thái tài khoản: " + targetUserId));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ServerResponse.fail(msg.getRequestId(), "SERVER_ERROR", "Lỗi khi cập nhật trạng thái User");
+        }
+    }
 }

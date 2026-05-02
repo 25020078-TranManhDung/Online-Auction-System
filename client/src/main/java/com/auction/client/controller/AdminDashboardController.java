@@ -89,37 +89,76 @@ public class AdminDashboardController {
     private void loadUsers() {
         new Thread(() -> {
             try {
-                // Đảm bảo "GET_ALL_USERS" có tồn tại bên Server Protocol
-                JsonObject data = SocketClient.getInstance().send("GET_ALL_USERS", new HashMap<>(), JsonObject.class);
-                if (data != null && data.has("users")) {
-                    JsonArray arr = data.getAsJsonArray("users");
-                    Platform.runLater(() -> {
-                        userList.clear();
-                        arr.forEach(element -> userList.add(element.getAsJsonObject()));
-                    });
+                // Dùng JsonElement để bắt gọn cả Array lẫn Object (không sợ ép kiểu sai nữa)
+                com.google.gson.JsonElement response = SocketClient.getInstance().send("GET_ALL_USERS", new HashMap<>(), com.google.gson.JsonElement.class);
+
+                // IN RAW DATA RA CONSOLE ĐỂ BẮT BỆNH
+                System.out.println(">>> RAW DATA USERS TỪ SERVER: " + response);
+
+                if (response != null) {
+                    JsonArray arr = null;
+
+                    // Nếu Server trả thẳng Mảng
+                    if (response.isJsonArray()) {
+                        arr = response.getAsJsonArray();
+                    }
+                    // Nếu Server giấu Mảng trong một Object
+                    else if (response.isJsonObject()) {
+                        JsonObject obj = response.getAsJsonObject();
+                        if (obj.has("users")) arr = obj.getAsJsonArray("users");
+                        else if (obj.has("data")) arr = obj.getAsJsonArray("data");
+                    }
+
+                    if (arr != null) {
+                        final JsonArray finalArr = arr;
+                        Platform.runLater(() -> {
+                            userList.clear();
+                            finalArr.forEach(element -> userList.add(element.getAsJsonObject()));
+                            System.out.println("✅ ADMIN Đã tải lên bảng " + userList.size() + " người dùng!");
+                        });
+                    } else {
+                        System.err.println("❌ Không tìm thấy mảng dữ liệu Users nào trong cục Response!");
+                    }
                 }
             } catch (Exception e) {
-                System.err.println("Chưa tải được User: " + e.getMessage());
+                System.err.println("❌ Lỗi Admin tải Users: " + e.getMessage());
+                e.printStackTrace();
             }
         }).start();
     }
 
     private void handleToggleUserStatus(JsonObject user) {
-        String userId = getJsonString(user, "id");
-        // Gọi Socket để đổi trạng thái tài khoản (Ví dụ ACTION: TOGGLE_USER_STATUS)
-        // Sau khi thành công thì gọi lại loadUsers();
-        AlertUtil.showInfo("Tính năng", "Gửi lệnh khóa tài khoản " + userId + " lên server...");
-    }
+        String targetUserId = getJsonString(user, "id");
 
+        new Thread(() -> {
+            try {
+                // Đóng gói ID gửi lên Server
+                Map<String, Object> params = new HashMap<>();
+                params.put("userId", targetUserId);
+
+                // Gọi Socket gửi lệnh TOGGLE_USER_STATUS mà lúc nãy anh em mình setup ở Server
+                SocketClient.getInstance().send("TOGGLE_USER_STATUS", params, JsonObject.class);
+
+                // Nếu Server phản hồi OK thì hiển thị thông báo và Tải lại bảng
+                Platform.runLater(() -> {
+                    AlertUtil.showInfo("Thành công", "Đã đảo trạng thái của tài khoản: " + targetUserId);
+                    loadUsers(); // 👈 Gọi lại hàm này để bảng tự động cập nhật chữ ACTIVE/LOCKED mới
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> AlertUtil.showError("Lỗi", "Không thể cập nhật: " + e.getMessage()));
+            }
+        }).start();
+    }
     // =================================================================================
     // 2. XỬ LÝ BẢNG PHIÊN ĐẤU GIÁ
     // =================================================================================
     private void setupAuctionTable() {
+        // SỬA: 'id' -> 'auctionId'
+        colAuctionId.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "auctionId")));
 
-        colAuctionId.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "id")));
+        // SỬA: 'itemId' -> 'title'
+        colAuctionName.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "title")));
 
-        // title hoặc itemId tùy server trả về
-        colAuctionName.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "itemId")));
         colSellerName.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "sellerId")));
 
         colCurrentBid.setCellValueFactory(data -> {
@@ -159,17 +198,41 @@ public class AdminDashboardController {
     private void loadAuctions() {
         new Thread(() -> {
             try {
-                // Đảm bảo "GET_AUCTIONS" tồn tại bên Server Protocol
-                JsonObject data = SocketClient.getInstance().send("GET_AUCTIONS", new HashMap<>(), JsonObject.class);
-                if (data != null && data.has("auctions")) {
-                    JsonArray arr = data.getAsJsonArray("auctions");
-                    Platform.runLater(() -> {
-                        auctionList.clear();
-                        arr.forEach(element -> auctionList.add(element.getAsJsonObject()));
-                    });
+                Map<String, Object> params = new HashMap<>();
+                params.put("status", "ALL");
+
+                // Bắt bằng JsonElement cho an toàn (hứng được cả Hộp lẫn Mảng)
+                com.google.gson.JsonElement response = SocketClient.getInstance().send("GET_AUCTIONS", params, com.google.gson.JsonElement.class);
+
+                if (response != null) {
+                    JsonArray arr = null;
+
+                    // Nếu là Mảng
+                    if (response.isJsonArray()) {
+                        arr = response.getAsJsonArray();
+                    }
+                    // Nếu là Hộp (Đây chính là cái Server đang trả về)
+                    else if (response.isJsonObject()) {
+                        JsonObject obj = response.getAsJsonObject();
+                        if (obj.has("auctions")) {
+                            arr = obj.getAsJsonArray("auctions");
+                        }
+                    }
+
+                    if (arr != null) {
+                        final JsonArray finalArr = arr;
+                        Platform.runLater(() -> {
+                            auctionList.clear();
+                            finalArr.forEach(element -> auctionList.add(element.getAsJsonObject()));
+                            System.out.println("✅ ADMIN Đã tải xong " + auctionList.size() + " phiên đấu giá!");
+                        });
+                    } else {
+                        System.err.println("❌ Không tìm thấy mảng auctions nào trong cục Response!");
+                    }
                 }
             } catch (Exception e) {
-                System.err.println("Chưa tải được Auctions: " + e.getMessage());
+                System.err.println("❌ Lỗi Admin tải Auctions: " + e.getMessage());
+                e.printStackTrace();
             }
         }).start();
     }
@@ -181,7 +244,7 @@ public class AdminDashboardController {
             return;
         }
 
-        String auctionId = getJsonString(selectedAuction, "id");
+        String auctionId = getJsonString(selectedAuction, "auctionId");
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Xác nhận hủy");

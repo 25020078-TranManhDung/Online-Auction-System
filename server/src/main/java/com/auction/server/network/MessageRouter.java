@@ -93,12 +93,16 @@ public class MessageRouter {
                 case Actions.REGISTER -> userCtrl.register(msg);
                 case Actions.LOGOUT -> userCtrl.logout(msg, sender);
 
+
+                case Actions.GET_ALL_USERS -> userCtrl.getAllUsers(msg);
+                case Actions.TOGGLE_USER_STATUS -> userCtrl.toggleStatus(msg);
                 // --- Auction Operations ---
                 case Actions.GET_AUCTIONS -> auctionCtrl.getList(msg);
                 case Actions.GET_AUCTION_DETAIL -> auctionCtrl.getDetail(msg, sender);
                 case Actions.CREATE_AUCTION -> auctionCtrl.create(msg);
                 case Actions.START_AUCTION -> auctionCtrl.start(msg);
                 case Actions.CLOSE_AUCTION -> auctionCtrl.close(msg);
+                case Actions.ADMIN_CLOSE_AUCTION -> auctionCtrl.close(msg);
 
                 // --- Bid Operations ---
                 case Actions.PLACE_BID -> bidCtrl.placeBid(msg);

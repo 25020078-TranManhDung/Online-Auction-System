@@ -1,7 +1,10 @@
 package com.auction.shared.util;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
+
+import java.lang.reflect.Type;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Lớp tiện ích hỗ trợ chuyển đổi dữ liệu giữa Java Object và JSON.
@@ -9,8 +12,22 @@ import com.google.gson.GsonBuilder;
  */
 public class JsonUtil {
 
-    // Khởi tạo một instance Gson duy nhất (Singleton pattern cơ bản) để tái sử dụng
+    // Khởi tạo một instance Gson duy nhất và DẠY NÓ CÁCH ĐỌC LocalDateTime
     private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new JsonSerializer<LocalDateTime>() {
+                @Override
+                public JsonElement serialize(LocalDateTime src, Type typeOfSrc, JsonSerializationContext context) {
+                    // Chuyển LocalDateTime thành chuỗi String chuẩn ISO
+                    return new JsonPrimitive(src.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                }
+            })
+            .registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
+                @Override
+                public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                    // Đọc chuỗi String từ mạng và chuyển ngược lại thành LocalDateTime
+                    return LocalDateTime.parse(json.getAsString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                }
+            })
             .create();
 
     private JsonUtil() {

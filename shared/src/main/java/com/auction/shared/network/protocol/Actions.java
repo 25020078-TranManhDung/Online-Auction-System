@@ -15,6 +15,8 @@ public final class Actions {
     public static final String START_AUCTION       = "START_AUCTION";
     public static final String CLOSE_AUCTION       = "CLOSE_AUCTION";
 
+    public static final String ADMIN_CLOSE_AUCTION =  "ADMIN_CLOSE_AUCTION";
+
     // Bid
     public static final String PLACE_BID        = "PLACE_BID";
     public static final String GET_BID_HISTORY  = "GET_BID_HISTORY";
@@ -26,6 +28,10 @@ public final class Actions {
     public static final String GET_ITEM    = "GET_ITEM";
     public static final String UPDATE_ITEM = "UPDATE_ITEM";
     public static final String DELETE_ITEM = "DELETE_ITEM";
+
+    // Admin / User Management
+    public static final String GET_ALL_USERS = "GET_ALL_USERS";
+    public static final String TOGGLE_USER_STATUS = "TOGGLE_USER_STATUS";
 
     // Push events
     public static final String BID_PLACED        = "BID_PLACED";

@@ -108,23 +108,26 @@ public class UserDaoImpl implements UserDAO {
     public boolean update(User user) {
         String sql = """
             UPDATE users
-            SET username=?, password=?, email=?, admin_level=?, reputation_score=?
+            SET username=?, password=?, email=?, admin_level=?, reputation_score=?, status=?
             WHERE id=?
             """;
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, user.getUsername());
-            ps.setString(2, user.getPassword()); // Đã sửa thành getPassword
+            ps.setString(2, user.getPassword());
             ps.setString(3, user.getEmail());
             ps.setInt(4, (user instanceof Admin) ? ((Admin)user).getAdminLevel() : 0);
             ps.setDouble(5, (user instanceof Seller) ? ((Seller)user).getReputationScore() : 5.0);
-            ps.setString(6, user.getId());
+
+
+            ps.setString(6, user.getStatus());
+            ps.setString(7, user.getId());
+
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("update user thất bại", e);
         }
     }
-
     @Override
     public boolean delete(String id) {
         String sql = "DELETE FROM users WHERE id = ?";
@@ -160,6 +163,12 @@ public class UserDaoImpl implements UserDAO {
         user.setEmail(rs.getString("email"));
         user.setRole(role);
 
+        String status = rs.getString("status");
+        if (status != null) {
+            user.setStatus(status);
+        } else {
+            user.setStatus("ACTIVE");
+        }
         return user;
     }
 }
