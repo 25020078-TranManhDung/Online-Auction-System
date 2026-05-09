@@ -8,12 +8,15 @@ import com.auction.client.observer.AuctionUpdateListener;
 import com.auction.client.util.AlertUtil;
 import com.auction.client.util.ViewLoader;
 import com.auction.shared.dto.response.AuctionResponse;
+import com.auction.shared.enums.AuctionStatus;
 import com.auction.shared.enums.ItemCategory;
 import com.auction.shared.network.protocol.Actions;
 import com.google.gson.JsonObject;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -26,20 +29,43 @@ import java.util.Map;
 
 public class SellerDashboardController implements BidUpdateListener, AuctionUpdateListener {
 
+    // ===== Form đăng sản phẩm (cột trái) =====
     @FXML private TextField txtProductName;
     @FXML private TextArea txtDescription;
     @FXML private TextField txtStartPrice;
+    @FXML private TextField txtMinIncrement; // có trong FXML
     @FXML private TextField txtDuration;
+    @FXML private Button btnAddItem;
+    @FXML private Label lblFormMessage;
 
+    // ===== Header =====
+    @FXML private Label lblUser;
+    @FXML private Label lblRole;
+    @FXML private Button btnLogout;
+
+    // ===== Thống kê nhanh =====
+    @FXML private Label lblTotalItems;
+    @FXML private Label lblActiveItems;
+    @FXML private Label lblClosedItems;
+    @FXML private Label lblTotalRevenue;
+
+    // ===== Danh sách sản phẩm (cột phải) =====
     @FXML private TableView<AuctionResponse> tvSellerItems;
     @FXML private TableColumn<AuctionResponse, String> colName;
     @FXML private TableColumn<AuctionResponse, Double> colPrice;
     @FXML private TableColumn<AuctionResponse, String> colStatus;
     @FXML private TableColumn<AuctionResponse, Void> colAction;
 
-    private final ObservableList<AuctionResponse> sellerAuctions = FXCollections.observableArrayList();
+    @FXML private ComboBox<String> cboStatusFilter;
+    @FXML private Button btnRefresh;
+    @FXML private Label lblItemCount;
+    @FXML private Label lblTableMessage;
 
-    // Dữ liệu tổng trả về từ Server
+    // Data
+    private final ObservableList<AuctionResponse> sellerAuctions = FXCollections.observableArrayList();
+    private FilteredList<AuctionResponse> filteredSellerAuctions;
+
+    // Dữ liệu tổng trả về từ Server (giữ nguyên như cũ)
     public static class GetAuctionsResponse {
         public List<AuctionResponse> auctions;
         public int total;
@@ -47,13 +73,27 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
 
     @FXML
     public void initialize() {
+        // Thiết lập cột
         colName.setCellValueFactory(new PropertyValueFactory<>("title"));
         colPrice.setCellValueFactory(new PropertyValueFactory<>("currentPrice"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
 
         setupActionColumn();
 
-        // LẤY MESSAGE HANDLER MÀ KHÔNG SỬA SOCKETCLIENT (Dùng Reflection)
+        // Wrap list với FilteredList + SortedList để dễ filter/sort
+        filteredSellerAuctions = new FilteredList<>(sellerAuctions, p -> true);
+        SortedList<AuctionResponse> sorted = new SortedList<>(filteredSellerAuctions);
+        sorted.comparatorProperty().bind(tvSellerItems.comparatorProperty());
+        tvSellerItems.setItems(sorted);
+
+        // Populate status filter
+        if (cboStatusFilter != null) {
+            cboStatusFilter.getItems().clear();
+            cboStatusFilter.getItems().addAll("Tất cả", "RUNNING", "CLOSED", "DRAFT");
+            cboStatusFilter.setValue("Tất cả");
+        }
+
+        // Đăng ký listener real-time bằng Reflection (giữ logic cũ)
         try {
             MessageHandler handler = getMessageHandlerSecurely();
             if (handler != null) {
@@ -64,15 +104,16 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
             System.err.println("Cảnh báo: Không thể đăng ký Real-time update do giới hạn truy cập.");
         }
 
+        // Load dữ liệu ban đầu
         loadMyAuctions();
     }
 
     /**
-     * Hàm "lách luật": Dùng Reflection để lấy field private 'messageHandler' từ SocketClient
+     * Lấy messageHandler từ SocketClient bằng Reflection (giữ nguyên logic cũ)
      */
     private MessageHandler getMessageHandlerSecurely() throws Exception {
         Field field = SocketClient.class.getDeclaredField("messageHandler");
-        field.setAccessible(true); // Cấp quyền đọc field private
+        field.setAccessible(true);
         return (MessageHandler) field.get(SocketClient.getInstance());
     }
 
@@ -80,14 +121,21 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     void handleAddItem(ActionEvent event) {
         try {
             String title = txtProductName.getText().trim();
-            double startPrice = Double.parseDouble(txtStartPrice.getText());
-            int duration = Integer.parseInt(txtDuration.getText());
+            double startPrice = Double.parseDouble(txtStartPrice.getText().trim());
+            // Nếu người dùng nhập min increment thủ công, ưu tiên; nếu rỗng, tính mặc định
+            double minIncrement = 0;
+            try {
+                minIncrement = Double.parseDouble(txtMinIncrement.getText().trim());
+            } catch (Exception ex) {
+                minIncrement = Math.max(1, Math.round(startPrice * 0.05));
+            }
+            int duration = Integer.parseInt(txtDuration.getText().trim());
 
             Map<String, Object> data = new HashMap<>();
             data.put("title", title);
             data.put("description", txtDescription.getText());
             data.put("startPrice", startPrice);
-            data.put("minBidIncrement", startPrice * 0.05);
+            data.put("minBidIncrement", minIncrement);
             data.put("durationMinutes", duration);
             data.put("category", ItemCategory.ELECTRONICS.name());
 
@@ -98,6 +146,8 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
                 clearFields();
                 loadMyAuctions();
             }
+        } catch (NumberFormatException nfe) {
+            AlertUtil.showError("Lỗi", "Vui lòng nhập đúng định dạng số cho giá và thời lượng.");
         } catch (Exception e) {
             AlertUtil.showError("Lỗi", e.getMessage());
         }
@@ -118,6 +168,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
                         break;
                     }
                 }
+                updateStats();
             });
         }
     }
@@ -128,32 +179,43 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     }
 
     private void loadMyAuctions() {
-        try {
-            Map<String, Object> params = new HashMap<>();
-            params.put("status", "ALL");
+        // Giữ nguyên logic gọi server, nhưng đảm bảo cập nhật UI trên FX thread
+        new Thread(() -> {
+            try {
+                Map<String, Object> params = new HashMap<>();
+                params.put("status", "ALL");
 
-            // BẮT BẰNG CÁI "HỘP" THAY VÌ MẢNG
-            GetAuctionsResponse response = SocketClient.getInstance().send(Actions.GET_AUCTIONS, params, GetAuctionsResponse.class);
+                GetAuctionsResponse response = SocketClient.getInstance().send(Actions.GET_AUCTIONS, params, GetAuctionsResponse.class);
 
-            if (response != null && response.auctions != null) {
-                String myId = UserSession.getInstance().getUserId();
+                if (response != null && response.auctions != null) {
+                    String myId = UserSession.getInstance().getUserId();
 
-                // Mọi giao diện (như clear bảng, add data) phải chạy trên JavaFX Application Thread
-                Platform.runLater(() -> {
-                    sellerAuctions.clear();
-                    for (AuctionResponse a : response.auctions) {
-                        // Lọc chỉ lấy sản phẩm của người bán này
-                        if (myId != null && myId.equals(a.getSellerId())) {
-                            sellerAuctions.add(a);
+                    Platform.runLater(() -> {
+                        sellerAuctions.clear();
+                        for (AuctionResponse a : response.auctions) {
+                            if (myId != null && myId.equals(a.getSellerId())) {
+                                sellerAuctions.add(a);
+                            }
                         }
-                    }
-                    tvSellerItems.setItems(sellerAuctions);
+                        updateStats();
+                        lblTableMessage.setVisible(sellerAuctions.isEmpty());
+                    });
+                } else {
+                    Platform.runLater(() -> {
+                        sellerAuctions.clear();
+                        updateStats();
+                        lblTableMessage.setText("Không tìm thấy dữ liệu sản phẩm.");
+                        lblTableMessage.setVisible(true);
+                    });
+                }
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    lblTableMessage.setText("Lỗi tải dữ liệu: " + e.getMessage());
+                    lblTableMessage.setVisible(true);
                 });
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            System.err.println("Lỗi load danh sách: " + e.getMessage());
-            e.printStackTrace(); // Bật cái này lên để lỡ có lỗi nó in đỏ ra console dễ check
-        }
+        }).start();
     }
 
     private void setupActionColumn() {
@@ -181,35 +243,91 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         }
     }
 
+    // ===== Handlers được FXML gọi (đã bổ sung để tránh lỗi resolving) =====
     @FXML
-    void goBack(ActionEvent event) {
+    private void handleStatusFilter(ActionEvent event) {
+        applyStatusFilter();
+    }
+
+    @FXML
+    private void handleRefresh(ActionEvent event) {
+        loadMyAuctions();
+    }
+
+    @FXML
+    private void handleLogout(ActionEvent event) {
         try {
-            // 1. Gỡ listener
+            // Gỡ listener trước khi thoát
             MessageHandler handler = getMessageHandlerSecurely();
             if (handler != null) {
                 handler.removeBidListener(this);
                 handler.removeAuctionListener(this);
             }
+        } catch (Exception ignored) {}
 
-            // 2. Xóa phiên đăng nhập (Đăng xuất)
-            UserSession.getInstance().cleanUserSession();
-
-            // 3. FIX LỖI LOCATION IS NOT SET: Chỉ truyền mỗi tên file thôi!
-            // Vì ViewLoader đã tự động ghép "/com/auction/client/fxml/" vào rồi.
-            String loginPath = "login.fxml";
-
-            ViewLoader.load(event, loginPath, "Đăng nhập hệ thống");
-
+        // Xóa session và quay về login
+        UserSession.getInstance().cleanUserSession();
+        try {
+            ViewLoader.load(event, "login.fxml", "Đăng nhập hệ thống");
         } catch (Exception e) {
-            System.err.println("Lỗi khi quay lại: " + e.getMessage());
-            e.printStackTrace();
+            AlertUtil.showError("Lỗi", "Không thể quay lại màn hình đăng nhập.");
         }
     }
+
+    // ===== Helpers =====
+    @FXML
+    private void applyStatusFilter() {
+        String status = (cboStatusFilter == null || cboStatusFilter.getValue() == null) ? "Tất cả" : cboStatusFilter.getValue();
+        filteredSellerAuctions.setPredicate(a -> {
+            if (a == null) return false;
+            if ("Tất cả".equals(status)) return true;
+
+            // Nếu getStatus() trả về AuctionStatus (enum)
+            AuctionStatus st = a.getStatus();
+            String s = (st == null) ? "" : st.name(); // name() trả về "RUNNING", "CLOSED", ...
+            return s.contains(status.toUpperCase());
+        });
+        updateStats();
+    }
+
+
+    private void updateStats() {
+        int total = sellerAuctions.size();
+
+        long active = sellerAuctions.stream()
+                .filter(a -> {
+                    AuctionStatus st = a.getStatus();
+                    return st != null && AuctionStatus.RUNNING.equals(st);
+                })
+                .count();
+
+        long closed = sellerAuctions.stream()
+                .filter(a -> {
+                    AuctionStatus st = a.getStatus();
+                    return st != null && (AuctionStatus.FINISHED.equals(st) || AuctionStatus.PAID.equals(st));
+                })
+                .count();
+
+        long revenue = sellerAuctions.stream()
+                .filter(a -> a.getCurrentPrice() != null)   // nếu currentPrice là Double
+                .mapToLong(a -> Math.round(a.getCurrentPrice()))
+                .sum();
+
+        if (lblTotalItems != null) lblTotalItems.setText(String.valueOf(total));
+        if (lblActiveItems != null) lblActiveItems.setText(String.valueOf(active));
+        if (lblClosedItems != null) lblClosedItems.setText(String.valueOf(closed));
+        if (lblTotalRevenue != null) lblTotalRevenue.setText(String.format("%,d VNĐ", revenue));
+        if (lblItemCount != null) lblItemCount.setText(String.format("%d sản phẩm", filteredSellerAuctions == null ? total : filteredSellerAuctions.size()));
+    }
+
+
 
     private void clearFields() {
         txtProductName.clear();
         txtDescription.clear();
         txtStartPrice.clear();
+        txtMinIncrement.clear();
         txtDuration.clear();
+        lblFormMessage.setVisible(false);
     }
 }

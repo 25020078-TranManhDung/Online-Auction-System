@@ -15,7 +15,6 @@ public class ChartUtil {
      * Khởi tạo biểu đồ với giá khởi điểm
      */
     public static XYChart.Series<String, Number> initPriceChart(LineChart<String, Number> lineChart, long startPrice) {
-        // Tắt animation mặc định để biểu đồ mượt hơn khi giật số liên tục
         lineChart.setAnimated(false);
         lineChart.getXAxis().setLabel("Thời gian");
         lineChart.getYAxis().setLabel("Mức giá (VNĐ)");
@@ -26,24 +25,37 @@ public class ChartUtil {
         lineChart.getData().clear();
         lineChart.getData().add(priceSeries);
 
-        // Thêm điểm giá đầu tiên
+        // Thêm điểm giá đầu tiên (dùng nhãn thời gian hiện tại)
         addDataPoint(priceSeries, startPrice);
 
         return priceSeries;
     }
 
     /**
-     * Thêm một điểm giá mới vào biểu đồ khi có người Bid
+     * Thêm một điểm giá mới vào biểu đồ (mặc định dùng nhãn thời gian hiện tại)
      */
     public static void addDataPoint(XYChart.Series<String, Number> series, long newPrice) {
         String currentTime = LocalTime.now().format(TIME_FORMATTER);
+        addDataPoint(series, currentTime, newPrice);
+    }
+
+    /**
+     * Overload: Thêm một điểm giá mới với nhãn thời điểm do server cung cấp
+     */
+    public static void addDataPoint(XYChart.Series<String, Number> series, String timeLabel, long newPrice) {
+        final String label = (timeLabel == null || timeLabel.isEmpty()) ? LocalTime.now().format(TIME_FORMATTER) : timeLabel;
 
         Platform.runLater(() -> {
-            series.getData().add(new XYChart.Data<>(currentTime, newPrice));
+            try {
+                series.getData().add(new XYChart.Data<>(label, newPrice));
 
-            // Giữ cho biểu đồ không bị quá dày (Chỉ hiển thị 10 lượt bid gần nhất)
-            if (series.getData().size() > 10) {
-                series.getData().remove(0);
+                // Giữ cho biểu đồ không bị quá dày (Chỉ hiển thị 10 lượt bid gần nhất)
+                if (series.getData().size() > 10) {
+                    series.getData().remove(0);
+                }
+            } catch (Exception e) {
+                // tránh crash UI nếu có lỗi khi cập nhật chart
+                e.printStackTrace();
             }
         });
     }

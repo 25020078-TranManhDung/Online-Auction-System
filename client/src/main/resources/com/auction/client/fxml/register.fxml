@@ -1,55 +1,99 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.PasswordField?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
 
-<AnchorPane fx:id="registerPane" prefHeight="600.0" prefWidth="850.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.RegisterController">
+<AnchorPane fx:id="registerPane" prefHeight="800.0" prefWidth="1400.0"
+            styleClass="auction-bg"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.RegisterController">
+
+    <!-- Declare non-Node objects here -->
+    <fx:define>
+        <ToggleGroup fx:id="roleGroup"/>
+    </fx:define>
+
     <children>
-        <VBox alignment="CENTER" layoutX="275.0" layoutY="50.0" prefWidth="300.0" spacing="15.0" styleClass="login-container" style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30;">
-            <children>
-                <Label text="ĐĂNG KÝ" textFill="#2c3e50">
-                    <font>
-                        <Font name="System Bold" size="24.0" />
-                    </font>
-                </Label>
+        <!-- Central column: header + centered register card -->
+        <VBox alignment="TOP_CENTER" spacing="18.0"
+              AnchorPane.topAnchor="50.0"
+              AnchorPane.leftAnchor="0.0"
+              AnchorPane.rightAnchor="0.0">
+            <!-- Banner / header (no image above title) -->
+            <VBox alignment="CENTER" spacing="6.0">
+                <Label text="Online Auction System" styleClass="auction-title"/>
+                <Label text="Đăng ký thành viên – Đấu giá, săn cơ hội" styleClass="auction-subtitle"/>
+            </VBox>
 
-                <VBox spacing="5.0">
-                    <children>
-                        <Label text="Họ và tên" />
-                        <TextField fx:id="regFullname" promptText="Nhập họ tên đầy đủ..." />
-                    </children>
+            <!-- Centered register card -->
+            <!-- Thay thế phần "Centered register card" bằng đoạn này -->
+            <StackPane fx:id="registerCard"
+                       prefWidth="520.0" prefHeight="560.0"
+                       minWidth="420.0" minHeight="420.0"
+                       maxWidth="520.0" maxHeight="560.0"
+                       styleClass="glass-box">
+                <VBox alignment="TOP_CENTER" spacing="14.0" maxWidth="420.0">
+                    <padding>
+                        <Insets top="22" right="20" bottom="18" left="20"/>
+                    </padding>
+
+                    <Label text="TẠO TÀI KHOẢN MỚI" styleClass="login-main-title"/>
+
+                    <VBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="360.0">
+                        <Label text="Họ và tên" styleClass="field-label"/>
+                        <TextField fx:id="txtFullname" promptText="Nhập họ tên đầy đủ" styleClass="input-auction"/>
+
+                        <Label text="Tên đăng nhập" styleClass="field-label"/>
+                        <TextField fx:id="txtUsername" promptText="Tên tài khoản (chỉ chữ, số, không dấu)" styleClass="input-auction"/>
+
+                        <Label text="Email" styleClass="field-label"/>
+                        <TextField fx:id="txtEmail" promptText="Địa chỉ email" styleClass="input-auction"/>
+
+                        <Label text="Mật khẩu" styleClass="field-label"/>
+                        <PasswordField fx:id="txtPassword" promptText="Tạo mật khẩu mới" styleClass="input-auction"/>
+
+                        <Label text="Xác nhận mật khẩu" styleClass="field-label"/>
+                        <PasswordField fx:id="txtConfirmPassword" promptText="Nhập lại mật khẩu" styleClass="input-auction"/>
+                    </VBox>
+
+                    <HBox alignment="CENTER_LEFT" spacing="18.0" maxWidth="360.0">
+                        <Label text="Tôi là:" styleClass="field-label"/>
+                        <RadioButton fx:id="radioBidder" text="Người tham gia" toggleGroup="$roleGroup" selected="true"/>
+                        <RadioButton fx:id="radioSeller" text="Người bán" toggleGroup="$roleGroup"/>
+                    </HBox>
+
+                    <Button fx:id="btnRegister"
+                            text="TẠO TÀI KHOẢN"
+                            maxWidth="260.0"
+                            styleClass="btn-auction-primary"
+                            onAction="#handleRegister"/>
+
+                    <Label fx:id="lblError"
+                           visible="false"
+                           wrapText="true"
+                           alignment="CENTER"
+                           style="-fx-text-fill:#e74c3c; -fx-font-size: 13.2px; -fx-padding:7 0 0 0;"/>
+
+                    <HBox alignment="CENTER" spacing="6.0">
+                        <padding>
+                            <Insets top="8" right="0" bottom="0" left="0"/>
+                        </padding>
+                        <Label text="Đã có tài khoản?"/>
+                        <Hyperlink text="Đăng nhập" onAction="#goBackToLogin" styleClass="hyperlink"/>
+                    </HBox>
                 </VBox>
-
-                <VBox spacing="5.0">
-                    <children>
-                        <Label text="Tên đăng nhập" />
-                        <TextField fx:id="regUsername" promptText="Chọn tên đăng nhập..." />
-                    </children>
-                </VBox>
-
-                <VBox spacing="5.0">
-                    <children>
-                        <Label text="Mật khẩu" />
-                        <PasswordField fx:id="regPassword" promptText="Nhập mật khẩu..." />
-                    </children>
-                </VBox>
-
-                <VBox spacing="5.0">
-                    <children>
-                        <Label text="Xác nhận mật khẩu" />
-                        <PasswordField fx:id="regConfirmPassword" promptText="Nhập lại mật khẩu..." />
-                    </children>
-                </VBox>
-
-                <Button fx:id="btnRegister" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleRegister" styleClass="button-login" text="TẠO TÀI KHOẢN" />
-
-                <Button mnemonicParsing="false" onAction="#goBackToLogin" style="-fx-background-color: transparent; -fx-text-fill: #2c3e50; -fx-cursor: hand;" text="Đã có tài khoản? Đăng nhập" />
-            </children>
+            </StackPane>
         </VBox>
+
+        <!-- Footer -->
+        <HBox alignment="CENTER" AnchorPane.bottomAnchor="20.0"
+              AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+            <Label text="© 2026 Online Auction System - Nơi kết nối người bán và người mua uy tín"
+                   style="-fx-font-size: 13px; -fx-text-fill: #7f8c8d88;"/>
+        </HBox>
     </children>
 </AnchorPane>

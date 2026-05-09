@@ -9,14 +9,18 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyEvent;
 import javafx.util.Callback;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class AdminDashboardController {
 
@@ -28,6 +32,10 @@ public class AdminDashboardController {
     @FXML private TableColumn<JsonObject, String> colUserStatus;
     @FXML private TableColumn<JsonObject, Void> colUserAction; // Cột chứa nút bấm dùng Void
 
+    @FXML private TextField txtUserSearch;
+    @FXML private ComboBox<String> cboRoleFilter;
+    @FXML private Label lblUserCount;
+
     // --- TAB QUẢN LÝ PHIÊN ĐẤU GIÁ ---
     @FXML private TableView<JsonObject> tvAllAuctions;
     @FXML private TableColumn<JsonObject, String> colAuctionId;
@@ -37,15 +45,82 @@ public class AdminDashboardController {
     @FXML private TableColumn<JsonObject, String> colAuctionStatus;
     @FXML private TableColumn<JsonObject, Void> colAuctionAction; // Cột chứa nút bấm dùng Void
 
-    private ObservableList<JsonObject> userList = FXCollections.observableArrayList();
-    private ObservableList<JsonObject> auctionList = FXCollections.observableArrayList();
+    @FXML private TextField txtAuctionSearch;
+    @FXML private ComboBox<String> cboAuctionStatusFilter;
+    @FXML private Label lblAuctionCount;
+
+    // --- TAB LỊCH SỬ ĐẶT GIÁ (nếu cần) ---
+    @FXML private TextField txtBidSearch;
+    @FXML private Label lblBidHistoryCount;
+
+    // Data lists
+    private final ObservableList<JsonObject> userList = FXCollections.observableArrayList();
+    private final ObservableList<JsonObject> auctionList = FXCollections.observableArrayList();
+
+    // Filtered/Sorted wrappers
+    private FilteredList<JsonObject> filteredUsers;
+    private FilteredList<JsonObject> filteredAuctions;
 
     @FXML
     public void initialize() {
         setupUserTable();
         setupAuctionTable();
 
-        // Tải dữ liệu từ Server khi vừa mở giao diện
+        // Wrap lists with FilteredList and SortedList for TableView
+        filteredUsers = new FilteredList<>(userList, p -> true);
+        SortedList<JsonObject> sortedUsers = new SortedList<>(filteredUsers);
+        sortedUsers.comparatorProperty().bind(tvUsers.comparatorProperty());
+        tvUsers.setItems(sortedUsers);
+
+        filteredAuctions = new FilteredList<>(auctionList, p -> true);
+        SortedList<JsonObject> sortedAuctions = new SortedList<>(filteredAuctions);
+        sortedAuctions.comparatorProperty().bind(tvAllAuctions.comparatorProperty());
+        tvAllAuctions.setItems(sortedAuctions);
+
+        // Populate filter comboboxes (optional defaults)
+        if (cboRoleFilter != null) {
+            cboRoleFilter.getItems().clear();
+            cboRoleFilter.getItems().addAll("Tất cả", "BIDDER", "SELLER", "ADMIN");
+            cboRoleFilter.setValue("Tất cả");
+        }
+        if (cboAuctionStatusFilter != null) {
+            cboAuctionStatusFilter.getItems().clear();
+            cboAuctionStatusFilter.getItems().addAll("Tất cả", "RUNNING", "CLOSED", "DRAFT");
+            cboAuctionStatusFilter.setValue("Tất cả");
+        }
+
+        // Listeners for search fields (safer than relying only on onKeyReleased)
+        if (txtUserSearch != null) {
+            txtUserSearch.textProperty().addListener((obs, oldV, newV) -> {
+                String q = newV == null ? "" : newV.trim().toLowerCase();
+                filteredUsers.setPredicate(makeUserPredicate(q, cboRoleFilter == null ? "Tất cả" : cboRoleFilter.getValue()));
+                updateUserCountLabel();
+            });
+        }
+        if (cboRoleFilter != null) {
+            cboRoleFilter.setOnAction(e -> {
+                String q = txtUserSearch == null ? "" : txtUserSearch.getText().trim().toLowerCase();
+                filteredUsers.setPredicate(makeUserPredicate(q, cboRoleFilter.getValue()));
+                updateUserCountLabel();
+            });
+        }
+
+        if (txtAuctionSearch != null) {
+            txtAuctionSearch.textProperty().addListener((obs, oldV, newV) -> {
+                String q = newV == null ? "" : newV.trim().toLowerCase();
+                filteredAuctions.setPredicate(makeAuctionPredicate(q, cboAuctionStatusFilter == null ? "Tất cả" : cboAuctionStatusFilter.getValue()));
+                updateAuctionCountLabel();
+            });
+        }
+        if (cboAuctionStatusFilter != null) {
+            cboAuctionStatusFilter.setOnAction(e -> {
+                String q = txtAuctionSearch == null ? "" : txtAuctionSearch.getText().trim().toLowerCase();
+                filteredAuctions.setPredicate(makeAuctionPredicate(q, cboAuctionStatusFilter.getValue()));
+                updateAuctionCountLabel();
+            });
+        }
+
+        // Load initial data
         loadUsers();
         loadAuctions();
     }
@@ -83,27 +158,22 @@ public class AdminDashboardController {
             }
         });
 
-        tvUsers.setItems(userList);
+        // Do items được set trong initialize() bằng SortedList, không set trực tiếp ở đây
     }
 
     private void loadUsers() {
         new Thread(() -> {
             try {
-                // Dùng JsonElement để bắt gọn cả Array lẫn Object (không sợ ép kiểu sai nữa)
                 com.google.gson.JsonElement response = SocketClient.getInstance().send("GET_ALL_USERS", new HashMap<>(), com.google.gson.JsonElement.class);
 
-                // IN RAW DATA RA CONSOLE ĐỂ BẮT BỆNH
                 System.out.println(">>> RAW DATA USERS TỪ SERVER: " + response);
 
                 if (response != null) {
                     JsonArray arr = null;
 
-                    // Nếu Server trả thẳng Mảng
                     if (response.isJsonArray()) {
                         arr = response.getAsJsonArray();
-                    }
-                    // Nếu Server giấu Mảng trong một Object
-                    else if (response.isJsonObject()) {
+                    } else if (response.isJsonObject()) {
                         JsonObject obj = response.getAsJsonObject();
                         if (obj.has("users")) arr = obj.getAsJsonArray("users");
                         else if (obj.has("data")) arr = obj.getAsJsonArray("data");
@@ -115,6 +185,7 @@ public class AdminDashboardController {
                             userList.clear();
                             finalArr.forEach(element -> userList.add(element.getAsJsonObject()));
                             System.out.println("✅ ADMIN Đã tải lên bảng " + userList.size() + " người dùng!");
+                            updateUserCountLabel();
                         });
                     } else {
                         System.err.println("❌ Không tìm thấy mảng dữ liệu Users nào trong cục Response!");
@@ -132,40 +203,32 @@ public class AdminDashboardController {
 
         new Thread(() -> {
             try {
-                // Đóng gói ID gửi lên Server
                 Map<String, Object> params = new HashMap<>();
                 params.put("userId", targetUserId);
 
-                // Gọi Socket gửi lệnh TOGGLE_USER_STATUS mà lúc nãy anh em mình setup ở Server
                 SocketClient.getInstance().send("TOGGLE_USER_STATUS", params, JsonObject.class);
 
-                // Nếu Server phản hồi OK thì hiển thị thông báo và Tải lại bảng
                 Platform.runLater(() -> {
                     AlertUtil.showInfo("Thành công", "Đã đảo trạng thái của tài khoản: " + targetUserId);
-                    loadUsers(); // 👈 Gọi lại hàm này để bảng tự động cập nhật chữ ACTIVE/LOCKED mới
+                    loadUsers();
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> AlertUtil.showError("Lỗi", "Không thể cập nhật: " + e.getMessage()));
             }
         }).start();
     }
+
     // =================================================================================
     // 2. XỬ LÝ BẢNG PHIÊN ĐẤU GIÁ
     // =================================================================================
     private void setupAuctionTable() {
-        // SỬA: 'id' -> 'auctionId'
         colAuctionId.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "auctionId")));
-
-        // SỬA: 'itemId' -> 'title'
         colAuctionName.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "title")));
-
         colSellerName.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "sellerId")));
-
         colCurrentBid.setCellValueFactory(data -> {
             long price = data.getValue().has("currentPrice") ? data.getValue().get("currentPrice").getAsLong() : 0;
             return new SimpleStringProperty(formatMoney(price));
         });
-
         colAuctionStatus.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "status")));
 
         // Tạo nút Hủy phiên cho từng dòng
@@ -192,7 +255,7 @@ public class AdminDashboardController {
             }
         });
 
-        tvAllAuctions.setItems(auctionList);
+        // Items được set trong initialize() bằng SortedList
     }
 
     private void loadAuctions() {
@@ -201,18 +264,14 @@ public class AdminDashboardController {
                 Map<String, Object> params = new HashMap<>();
                 params.put("status", "ALL");
 
-                // Bắt bằng JsonElement cho an toàn (hứng được cả Hộp lẫn Mảng)
                 com.google.gson.JsonElement response = SocketClient.getInstance().send("GET_AUCTIONS", params, com.google.gson.JsonElement.class);
 
                 if (response != null) {
                     JsonArray arr = null;
 
-                    // Nếu là Mảng
                     if (response.isJsonArray()) {
                         arr = response.getAsJsonArray();
-                    }
-                    // Nếu là Hộp (Đây chính là cái Server đang trả về)
-                    else if (response.isJsonObject()) {
+                    } else if (response.isJsonObject()) {
                         JsonObject obj = response.getAsJsonObject();
                         if (obj.has("auctions")) {
                             arr = obj.getAsJsonArray("auctions");
@@ -225,6 +284,7 @@ public class AdminDashboardController {
                             auctionList.clear();
                             finalArr.forEach(element -> auctionList.add(element.getAsJsonObject()));
                             System.out.println("✅ ADMIN Đã tải xong " + auctionList.size() + " phiên đấu giá!");
+                            updateAuctionCountLabel();
                         });
                     } else {
                         System.err.println("❌ Không tìm thấy mảng auctions nào trong cục Response!");
@@ -257,12 +317,11 @@ public class AdminDashboardController {
                 try {
                     Map<String, Object> params = new HashMap<>();
                     params.put("auctionId", auctionId);
-                    // Lệnh đóng Server (ACTION: ADMIN_CLOSE_AUCTION)
                     SocketClient.getInstance().send("ADMIN_CLOSE_AUCTION", params, JsonObject.class);
 
                     Platform.runLater(() -> {
                         AlertUtil.showInfo("Thành công", "Đã hủy phiên đấu giá!");
-                        loadAuctions(); // Load lại bảng
+                        loadAuctions();
                     });
                 } catch (Exception e) {
                     Platform.runLater(() -> AlertUtil.showError("Lỗi", e.getMessage()));
@@ -272,7 +331,58 @@ public class AdminDashboardController {
     }
 
     // =================================================================================
-    // 3. CÁC HÀM TIỆN ÍCH (HELPER)
+    // 3. HANDLER ĐƯỢC FXML GỌI (đảm bảo không bị lỗi resolving)
+    // =================================================================================
+    @FXML
+    private void handleUserSearch(KeyEvent event) {
+        String q = txtUserSearch == null ? "" : txtUserSearch.getText().trim().toLowerCase();
+        filteredUsers.setPredicate(makeUserPredicate(q, cboRoleFilter == null ? "Tất cả" : cboRoleFilter.getValue()));
+        updateUserCountLabel();
+    }
+
+    @FXML
+    private void handleRoleFilter(ActionEvent event) {
+        String q = txtUserSearch == null ? "" : txtUserSearch.getText().trim().toLowerCase();
+        filteredUsers.setPredicate(makeUserPredicate(q, cboRoleFilter == null ? "Tất cả" : cboRoleFilter.getValue()));
+        updateUserCountLabel();
+    }
+
+    @FXML
+    private void handleRefreshUsers(ActionEvent event) {
+        loadUsers();
+    }
+
+    @FXML
+    private void handleAuctionSearch(KeyEvent event) {
+        String q = txtAuctionSearch == null ? "" : txtAuctionSearch.getText().trim().toLowerCase();
+        filteredAuctions.setPredicate(makeAuctionPredicate(q, cboAuctionStatusFilter == null ? "Tất cả" : cboAuctionStatusFilter.getValue()));
+        updateAuctionCountLabel();
+    }
+
+    @FXML
+    private void handleAuctionStatusFilter(ActionEvent event) {
+        String q = txtAuctionSearch == null ? "" : txtAuctionSearch.getText().trim().toLowerCase();
+        filteredAuctions.setPredicate(makeAuctionPredicate(q, cboAuctionStatusFilter == null ? "Tất cả" : cboAuctionStatusFilter.getValue()));
+        updateAuctionCountLabel();
+    }
+
+    @FXML
+    private void handleRefreshAuctions(ActionEvent event) {
+        loadAuctions();
+    }
+
+    @FXML
+    private void handleBidSearch(KeyEvent event) {
+        // Nếu bạn có danh sách lịch sử đặt giá, áp dụng tương tự filtered list ở đây
+    }
+
+    @FXML
+    private void handleRefreshBids(ActionEvent event) {
+        // Nếu có API load lịch sử đặt giá, gọi ở đây
+    }
+
+    // =================================================================================
+    // 4. CÁC HÀM TIỆN ÍCH (HELPER)
     // =================================================================================
     @FXML
     void handleLogout(ActionEvent event) {
@@ -284,10 +394,51 @@ public class AdminDashboardController {
     }
 
     private String getJsonString(JsonObject obj, String key) {
-        return (obj.has(key) && !obj.get(key).isJsonNull()) ? obj.get(key).getAsString() : "N/A";
+        return (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) ? obj.get(key).getAsString() : "N/A";
     }
 
     private String formatMoney(long amount) {
         return String.format("%,d VNĐ", amount);
+    }
+
+    private Predicate<JsonObject> makeUserPredicate(String q, String roleFilter) {
+        return user -> {
+            if (user == null) return false;
+            if (roleFilter != null && !roleFilter.isEmpty() && !"Tất cả".equals(roleFilter)) {
+                String role = getJsonString(user, "role").toLowerCase();
+                if (!role.contains(roleFilter.toLowerCase())) return false;
+            }
+            if (q == null || q.isEmpty()) return true;
+            String username = getJsonString(user, "username").toLowerCase();
+            String email = getJsonString(user, "email").toLowerCase();
+            String fullname = getJsonString(user, "fullname").toLowerCase();
+            return username.contains(q) || email.contains(q) || fullname.contains(q);
+        };
+    }
+
+    private Predicate<JsonObject> makeAuctionPredicate(String q, String statusFilter) {
+        return auction -> {
+            if (auction == null) return false;
+            if (statusFilter != null && !statusFilter.isEmpty() && !"Tất cả".equals(statusFilter)) {
+                String status = getJsonString(auction, "status").toLowerCase();
+                if (!status.contains(statusFilter.toLowerCase())) return false;
+            }
+            if (q == null || q.isEmpty()) return true;
+            String title = getJsonString(auction, "title").toLowerCase();
+            String seller = getJsonString(auction, "sellerId").toLowerCase();
+            return title.contains(q) || seller.contains(q);
+        };
+    }
+
+    private void updateUserCountLabel() {
+        if (lblUserCount != null) {
+            lblUserCount.setText(String.format("%d người", filteredUsers == null ? userList.size() : filteredUsers.size()));
+        }
+    }
+
+    private void updateAuctionCountLabel() {
+        if (lblAuctionCount != null) {
+            lblAuctionCount.setText(String.format("%d phiên", filteredAuctions == null ? auctionList.size() : filteredAuctions.size()));
+        }
     }
 }

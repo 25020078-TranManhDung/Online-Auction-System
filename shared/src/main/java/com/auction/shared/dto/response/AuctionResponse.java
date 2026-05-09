@@ -10,32 +10,27 @@ import java.time.LocalDateTime;
  */
 public class AuctionResponse implements Serializable {
 
-    //ID phiên bản để đảm bảo tính tương thích trong quá trình Serialization.
     private static final long serialVersionUID = 1L;
 
-    // Thông tin cơ bản về phiên đấu giá
-    private String auctionId; // sửa long -> String
+    private String auctionId;
     private String title;
     private String description;
     private String category;
 
-    // Thông tin về giá
-    private double startingPrice;
-    private double currentPrice;
+    // Thông tin về giá (sử dụng wrapper Double để có thể null)
+    private Double startingPrice;
+    private Double currentPrice;
     private String highestBidderName;
 
-    private String sellerId; // thêm  để client biết chủ là ai
-    // Thông tin thời gian và trạng thái
+    private String sellerId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private AuctionStatus status;
 
-    //Constructor mặc định phục vụ cho quá trình Deserialization.
     public AuctionResponse() {}
 
-    //Constructor đầy đủ để khởi tạo dữ liệu phản hồi từ thực thể Auction trên Server.
     public AuctionResponse(String auctionId, String title, String description, String category,
-                           double startingPrice, double currentPrice, String highestBidderName,
+                           Double startingPrice, Double currentPrice, String highestBidderName,
                            LocalDateTime startTime, LocalDateTime endTime, AuctionStatus status) {
         this.auctionId = auctionId;
         this.title = title;
@@ -61,11 +56,11 @@ public class AuctionResponse implements Serializable {
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
 
-    public double getStartingPrice() { return startingPrice; }
-    public void setStartingPrice(double startingPrice) { this.startingPrice = startingPrice; }
+    public Double getStartingPrice() { return startingPrice; }
+    public void setStartingPrice(Double startingPrice) { this.startingPrice = startingPrice; }
 
-    public double getCurrentPrice() { return currentPrice; }
-    public void setCurrentPrice(double currentPrice) { this.currentPrice = currentPrice; }
+    public Double getCurrentPrice() { return currentPrice; }
+    public void setCurrentPrice(Double currentPrice) { this.currentPrice = currentPrice; }
 
     public String getHighestBidderName() { return highestBidderName; }
     public void setHighestBidderName(String highestBidderName) { this.highestBidderName = highestBidderName; }

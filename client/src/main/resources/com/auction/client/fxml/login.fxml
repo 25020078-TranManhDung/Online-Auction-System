@@ -1,23 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
 <?import javafx.scene.text.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
 
-<AnchorPane fx:id="loginPane" prefHeight="600.0" prefWidth="850.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.LoginController">
+<AnchorPane fx:id="loginPane" prefHeight="800.0" prefWidth="1400.0"
+            styleClass="auction-bg"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.LoginController">
+
     <children>
-        <VBox alignment="CENTER" layoutX="275.0" layoutY="125.0" prefWidth="300.0" spacing="20.0" styleClass="login-container">
-            <children>
-                <Label text="ĐĂNG NHẬP">
-                    <font>
-                        <Font name="System Bold" size="24.0" />
-                    </font>
-                </Label>
-                <TextField fx:id="txtUsername" promptText="Tên đăng nhập" />
-                <PasswordField fx:id="txtPassword" promptText="Mật khẩu" />
-                <Button fx:id="btnLogin" maxWidth="Infinity" onAction="#handleLogin" styleClass="button-login" text="ĐĂNG NHẬP" />
-                <Label onMouseClicked="#goToRegister" text="Chưa có tài khoản? Đăng ký ngay" textFill="#2c3e50" style="-fx-cursor: hand;" />
-            </children>
+        <!-- Header + centered square login card -->
+        <VBox alignment="TOP_CENTER" spacing="20.0"
+              AnchorPane.topAnchor="60.0"
+              AnchorPane.leftAnchor="0.0"
+              AnchorPane.rightAnchor="0.0">
+            <VBox alignment="CENTER" spacing="6.0">
+                <Label text="Online Auction System" styleClass="auction-title"/>
+                <Label text="Sàn đấu giá trực tuyến chuyên nghiệp" styleClass="auction-subtitle"/>
+            </VBox>
+
+            <!-- Square login card: pref == min == max để giữ hình vuông -->
+            <StackPane fx:id="loginSquare"
+                       prefWidth="420.0" prefHeight="420.0"
+                       minWidth="420.0" minHeight="420.0"
+                       maxWidth="420.0" maxHeight="420.0"
+                       styleClass="glass-box">
+                <VBox alignment="CENTER" spacing="16.0" maxWidth="360.0">
+                    <padding>
+                        <Insets top="18" right="18" bottom="18" left="18"/>
+                    </padding>
+
+                    <Label text="ĐĂNG NHẬP TÀI KHOẢN" styleClass="login-main-title"/>
+
+                    <VBox alignment="CENTER_LEFT" spacing="8.0" maxWidth="320.0">
+                        <Label text="Tên đăng nhập" styleClass="field-label"/>
+                        <TextField fx:id="txtUsername" promptText="Nhập tên đăng nhập" styleClass="input-auction"/>
+                    </VBox>
+
+                    <VBox alignment="CENTER_LEFT" spacing="8.0" maxWidth="320.0">
+                        <Label text="Mật khẩu" styleClass="field-label"/>
+                        <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu" styleClass="input-auction"/>
+                    </VBox>
+
+                    <Button fx:id="btnLogin"
+                            text="ĐĂNG NHẬP"
+                            styleClass="btn-auction-primary"
+                            maxWidth="260.0"
+                            onAction="#handleLogin"/>
+
+                    <Label fx:id="lblError"
+                           visible="false"
+                           wrapText="true"
+                           alignment="CENTER"
+                           style="-fx-text-fill: #e74c3c; -fx-font-size: 13px; -fx-padding: 4 0 0 0;"/>
+
+                    <HBox alignment="CENTER" spacing="6.0">
+                        <Label text="Chưa có tài khoản?"/>
+                        <Hyperlink text="Đăng ký ngay" onAction="#goToRegister" styleClass="hyperlink"/>
+                    </HBox>
+                </VBox>
+            </StackPane>
         </VBox>
+
+        <!-- Footer -->
+        <HBox alignment="CENTER" AnchorPane.bottomAnchor="20.0"
+              AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+            <Label text="© 2026 Online Auction System - All rights reserved | Hotline: 1900-8888"
+                   style="-fx-font-size: 13px; -fx-text-fill: #7f8c8d88;"/>
+        </HBox>
     </children>
 </AnchorPane>

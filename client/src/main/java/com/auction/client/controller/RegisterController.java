@@ -3,27 +3,30 @@ package com.auction.client.controller;
 import com.auction.client.network.SocketClient;
 import com.auction.client.util.AlertUtil;
 import com.auction.client.util.ViewLoader;
-import com.auction.shared.network.protocol.Actions; // Import Actions từ gói shared của bạn
-
+import com.auction.shared.network.protocol.Actions;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class RegisterController {
 
-    @FXML private TextField regFullname;
-    @FXML private TextField regUsername;
-    @FXML private PasswordField regPassword;
-    @FXML private PasswordField regConfirmPassword;
+    // ==== Các field phải khớp với register.fxml ====
+    @FXML private TextField txtFullname;
+    @FXML private TextField txtUsername;
+    @FXML private TextField txtEmail;
+    @FXML private PasswordField txtPassword;
+    @FXML private PasswordField txtConfirmPassword;
 
-    // Thêm khai báo nút bấm để đổi text và khóa nút khi đang xử lý
+    @FXML private RadioButton radioBidder;
+    @FXML private RadioButton radioSeller;
+    @FXML private ToggleGroup roleGroup;
+
     @FXML private Button btnRegister;
+    @FXML private Label lblError;
 
     /**
      * DTO: Hứng dữ liệu trả về từ Server cho action REGISTER.
@@ -37,13 +40,21 @@ public class RegisterController {
 
     /**
      * Xử lý khi người dùng nhấn nút "TẠO TÀI KHOẢN"
+     * Giữ nguyên logic gọi SocketClient nhưng đảm bảo UI không NPE và hiển thị thông báo.
      */
     @FXML
     private void handleRegister(ActionEvent event) {
-        String fullname = regFullname.getText().trim();
-        String username = regUsername.getText().trim();
-        String password = regPassword.getText().trim();
-        String confirmPassword = regConfirmPassword.getText().trim();
+        // Kiểm tra các control đã được inject
+        if (txtFullname == null || txtUsername == null || txtPassword == null || txtConfirmPassword == null || btnRegister == null) {
+            AlertUtil.showError("Lỗi", "Form đăng ký chưa được khởi tạo đúng. Vui lòng kiểm tra FXML.");
+            return;
+        }
+
+        String fullname = safeGetText(txtFullname);
+        String username = safeGetText(txtUsername);
+        String email = safeGetText(txtEmail);
+        String password = safeGetText(txtPassword);
+        String confirmPassword = safeGetText(txtConfirmPassword);
 
         // 1. Kiểm tra nhập liệu cơ bản
         if (fullname.isEmpty() || username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
@@ -65,12 +76,24 @@ public class RegisterController {
             try {
                 // Chuẩn bị Request Data chuẩn theo PROTOCOL.md
                 Map<String, String> requestData = new HashMap<>();
+                requestData.put("fullname", fullname);
                 requestData.put("username", username);
                 requestData.put("password", password);
 
-                // Bổ sung các trường Server yêu cầu nhưng giao diện chưa có
-                requestData.put("email", username + "@gmail.com"); // Email giả định
-                requestData.put("role", "BIDDER");                 // Mặc định đăng ký là người mua
+                // Nếu user nhập email thì dùng email đó, nếu không thì tạo giả (như trước)
+                if (email == null || email.isEmpty()) {
+                    requestData.put("email", username + "@example.com");
+                } else {
+                    requestData.put("email", email);
+                }
+
+                // Lấy role từ radio button (mặc định BIDDER)
+                String role = "BIDDER";
+                try {
+                    if (radioSeller != null && radioSeller.isSelected()) role = "SELLER";
+                    else if (radioBidder != null && radioBidder.isSelected()) role = "BIDDER";
+                } catch (Exception ignored) { /* fallback to BIDDER */ }
+                requestData.put("role", role);
 
                 // Gửi Request đồng bộ
                 RegisterResponseData response = SocketClient.getInstance().send(
@@ -81,21 +104,27 @@ public class RegisterController {
 
                 // 4. Thành công -> Về lại luồng chính để báo cáo và chuyển trang
                 Platform.runLater(() -> {
-                    // Dùng thông báo từ Server trả về (nếu có), không thì dùng mặc định
-                    String successMsg = response.message != null ? response.message : "Đăng ký tài khoản thành công!";
-                    AlertUtil.showWarning("Thành công", successMsg); // Tạm dùng Warning hoặc tạo hàm showInfo trong AlertUtil
+                    String successMsg = (response != null && response.message != null) ? response.message : "Đăng ký tài khoản thành công!";
+                    AlertUtil.showInfo("Thành công", successMsg);
 
                     // Chuyển thẳng về trang Login
                     try {
                         ViewLoader.load(event, "login.fxml", "Đăng nhập");
                     } catch (Exception e) {
                         e.printStackTrace();
+                        AlertUtil.showError("Lỗi", "Không thể chuyển về màn hình đăng nhập.");
                     }
                 });
 
             } catch (RuntimeException e) {
                 // 5. Bắt lỗi từ Server (Trùng username, lỗi DB...)
-                Platform.runLater(() -> AlertUtil.showError("Đăng ký thất bại", e.getMessage()));
+                Platform.runLater(() -> {
+                    String msg = e.getMessage() == null ? "Đăng ký thất bại" : e.getMessage();
+                    AlertUtil.showError("Đăng ký thất bại", msg);
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> AlertUtil.showError("Lỗi", "Đã xảy ra lỗi: " + e.getMessage()));
+                e.printStackTrace();
             } finally {
                 // 6. Luôn mở khóa nút bấm
                 Platform.runLater(() -> {
@@ -107,7 +136,7 @@ public class RegisterController {
     }
 
     /**
-     * Xử lý khi nhấn "Đã có tài khoản? Đăng nhập"
+     * Quay về màn hình đăng nhập
      */
     @FXML
     private void goBackToLogin(ActionEvent event) {
@@ -116,6 +145,23 @@ public class RegisterController {
         } catch (Exception e) {
             e.printStackTrace();
             AlertUtil.showError("Lỗi hệ thống", "Không thể tải màn hình đăng nhập.");
+        }
+    }
+
+    // Helper an toàn lấy text (tránh NPE)
+    private String safeGetText(TextField tf) {
+        try {
+            return tf == null || tf.getText() == null ? "" : tf.getText().trim();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String safeGetText(PasswordField pf) {
+        try {
+            return pf == null || pf.getText() == null ? "" : pf.getText().trim();
+        } catch (Exception e) {
+            return "";
         }
     }
 }

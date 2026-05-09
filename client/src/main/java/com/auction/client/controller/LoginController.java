@@ -4,14 +4,12 @@ import com.auction.client.model.UserSession;
 import com.auction.client.network.SocketClient;
 import com.auction.client.util.AlertUtil;
 import com.auction.client.util.ViewLoader;
-import com.auction.shared.network.protocol.Actions; // Đảm bảo import đúng đường dẫn file Actions của bạn
+import com.auction.shared.network.protocol.Actions;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 
 import java.util.HashMap;
@@ -22,11 +20,14 @@ public class LoginController {
     @FXML private TextField txtUsername;
     @FXML private PasswordField txtPassword;
     @FXML private Button btnLogin;
+    @FXML private Label lblError; // Bổ sung để đồng bộ FXML
 
-    /**
-     * DTO: Hứng dữ liệu trả về từ Server cho action LOGIN.
-     * Khớp với trường "data" của ServerResponse.
-     */
+    // Nếu dùng thêm initialize để ẩn lỗi khi vào form
+    @FXML
+    public void initialize() {
+        if (lblError != null) lblError.setVisible(false);
+    }
+
     public static class LoginResponseData {
         public String token;
         public String userId;
@@ -45,32 +46,28 @@ public class LoginController {
 
         // 1. Kiểm tra nhập liệu cơ bản
         if (username.isEmpty() || password.isEmpty()) {
-            AlertUtil.showWarning("Thiếu thông tin", "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!");
+            showError("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!");
             return;
         }
 
-        // 2. Khóa nút bấm, tránh click nhiều lần
+        clearError(); // Ẩn lỗi nếu có
         btnLogin.setDisable(true);
         btnLogin.setText("Đang xử lý...");
 
-        // 3. Mở luồng phụ (Background Thread) để gọi mạng, không làm đơ giao diện
         new Thread(() -> {
             try {
-                // Chuẩn bị dữ liệu gửi đi (Request Data)
                 Map<String, String> requestData = new HashMap<>();
                 requestData.put("username", username);
                 requestData.put("password", password);
 
-                // Gửi Request đồng bộ (Chờ tối đa 10s theo code SocketClient)
                 LoginResponseData response = SocketClient.getInstance().send(
                         Actions.LOGIN,
                         requestData,
                         LoginResponseData.class
                 );
 
-                // 4. Nếu thành công, quay lại luồng chính (UI Thread) để cập nhật giao diện
+                // Đăng nhập thành công
                 Platform.runLater(() -> {
-                    // Lưu phiên đăng nhập
                     UserSession.getInstance().initSession(
                             response.userId,
                             response.username,
@@ -79,7 +76,6 @@ public class LoginController {
                             response.expiresAt
                     );
 
-                    // Điều hướng theo Role
                     try {
                         if ("SELLER".equals(response.role)) {
                             ViewLoader.load(event, "seller-dashboard.fxml", "Bảng điều khiển Người bán");
@@ -90,15 +86,13 @@ public class LoginController {
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
-                        AlertUtil.showError("Lỗi giao diện", "Không thể tải màn hình chính!");
+                        showError("Không thể tải màn hình chính!");
                     }
                 });
 
             } catch (RuntimeException e) {
-                // 5. Bắt lỗi từ Server (Sai pass) hoặc Timeout từ SocketClient
-                Platform.runLater(() -> AlertUtil.showError("Đăng nhập thất bại", e.getMessage()));
+                Platform.runLater(() -> showError(e.getMessage()));
             } finally {
-                // 6. Luôn mở khóa nút bấm dù thành công hay thất bại
                 Platform.runLater(() -> {
                     btnLogin.setDisable(false);
                     btnLogin.setText("ĐĂNG NHẬP");
@@ -108,14 +102,33 @@ public class LoginController {
     }
 
     /**
+     * Hiển thị lỗi trên label trong giao diện thay vì chỉ dùng Alert.
+     */
+    private void showError(String msg) {
+        if (lblError != null) {
+            lblError.setText(msg);
+            lblError.setVisible(true);
+        } else {
+            AlertUtil.showError("Đăng nhập thất bại", msg);
+        }
+    }
+    private void clearError() {
+        if (lblError != null) {
+            lblError.setText("");
+            lblError.setVisible(false);
+        }
+    }
+
+    /**
      * Xử lý khi click vào dòng chữ chuyển sang Đăng ký
      */
     @FXML
-    private void goToRegister(MouseEvent event) {
+    private void goToRegister(ActionEvent event) {
         try {
             ViewLoader.load(event, "register.fxml", "Đăng ký tài khoản");
         } catch (Exception e) {
             e.printStackTrace();
+            // Lỗi load giao diện thì vẫn show popup.
             AlertUtil.showError("Lỗi hệ thống", "Không thể tải màn hình đăng ký.");
         }
     }
