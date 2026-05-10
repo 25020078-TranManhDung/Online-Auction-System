@@ -30,7 +30,7 @@
                        preserveRatio="true"
                        style="-fx-effect: dropshadow(gaussian, #9b59b640, 8, 0, 0, 2);">
                 <image>
-                    <Image url="@/com/auction/client/images/bg_login.jpg"/>
+                    <Image url="@/com/auction/client/images/logo.png"/>
                 </image>
             </ImageView>
 
