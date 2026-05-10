@@ -70,18 +70,32 @@
 
 
 /* ComboBox – danh sách thả xuống */
-.input-auction .list-cell {
-    -fx-padding: 6 12;
+/* 1. Phủ nền trắng đặc cho khung popup để che bảng phía sau */
+.combo-box-popup .list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e8d6f0;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-effect: dropshadow(gaussian, rgba(108, 52, 131, 0.15), 10, 0, 0, 3);
+}
+
+/* 2. Style cho từng dòng bên trong */
+.combo-box-popup .list-cell {
+    -fx-padding: 8 12;
     -fx-font-size: 13.5px;
     -fx-text-fill: #2c3e50;
+    -fx-background-color: transparent; /* Để màu nền list-view hiển thị */
 }
 
-.input-auction .list-cell:filled:hover {
+/* 3. Hiệu ứng hover và selected (Giữ nguyên màu thiết kế cũ của bạn) */
+.combo-box-popup .list-cell:filled:hover {
     -fx-background-color: #f0e6fa;
     -fx-text-fill: #431476;
+    -fx-cursor: hand;
 }
 
-.input-auction .list-cell:filled:selected {
+.combo-box-popup .list-cell:filled:selected {
     -fx-background-color: #9b59b6;
     -fx-text-fill: white;
 }

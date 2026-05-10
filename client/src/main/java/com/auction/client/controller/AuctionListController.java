@@ -15,6 +15,7 @@ import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
@@ -28,39 +29,66 @@ import java.util.function.Predicate;
 public class AuctionListController {
 
     // Header
-    @FXML private ImageView imgAvatar;
-    @FXML private Label lblUser;
-    @FXML private Label lblRole;
-    @FXML private Button btnLogout;
+    @FXML
+    private ImageView imgAvatar;
+    @FXML
+    private Label lblUser;
+    @FXML
+    private Label lblRole;
+    @FXML
+    private Button btnLogout;
 
     // Toolbar / filters
-    @FXML private TextField txtSearch;
-    @FXML private ComboBox<String> cboFilter;
-    @FXML private Button btnRefresh;
-    @FXML private Label lblAuctionCount;
+    @FXML
+    private TextField txtSearch;
+    @FXML
+    private ComboBox<String> cboFilter;
+    @FXML
+    private Button btnRefresh;
+    @FXML
+    private Label lblAuctionCount;
+    @FXML
+    private Label lblMainTitle;
 
     // Table
-    @FXML private TableView<JsonObject> tbAuctions;
-    @FXML private TableColumn<JsonObject, String> colNo;
-    @FXML private TableColumn<JsonObject, String> colName;
-    @FXML private TableColumn<JsonObject, String> colSeller;
-    @FXML private TableColumn<JsonObject, String> colPrice;
-    @FXML private TableColumn<JsonObject, String> colEndTime;
-    @FXML private TableColumn<JsonObject, String> colBidCount;
-    @FXML private TableColumn<JsonObject, String> colStatus;
-    @FXML private TableColumn<JsonObject, Void> colAction;
+    @FXML
+    private TableView<JsonObject> tbAuctions;
+    @FXML
+    private TableColumn<JsonObject, String> colNo;
+    @FXML
+    private TableColumn<JsonObject, String> colName;
+    @FXML
+    private TableColumn<JsonObject, String> colSeller;
+    @FXML
+    private TableColumn<JsonObject, String> colPrice;
+    @FXML
+    private TableColumn<JsonObject, String> colEndTime;
+    @FXML
+    private TableColumn<JsonObject, String> colBidCount;
+    @FXML
+    private TableColumn<JsonObject, String> colStatus;
+    @FXML
+    private TableColumn<JsonObject, Void> colAction;
 
-    @FXML private Label lblMessage;
+    @FXML
+    private Label lblMessage;
 
     // Data
     private final ObservableList<JsonObject> auctionList = FXCollections.observableArrayList();
     private FilteredList<JsonObject> filteredAuctions;
+    private String currentCategory = "ALL";
+    private Node emptyPlaceholder;
 
     @FXML
     public void initialize() {
         setupTableColumns();
 
-        // Wrap with filtered + sorted lists
+        // 1. Lưu lại giao diện thông báo trống từ FXML
+        if (tbAuctions != null) {
+            this.emptyPlaceholder = tbAuctions.getPlaceholder();
+        }
+
+        // Wrap với filtered + sorted lists
         filteredAuctions = new FilteredList<>(auctionList, p -> true);
         SortedList<JsonObject> sorted = new SortedList<>(filteredAuctions);
         sorted.comparatorProperty().bind(tbAuctions.comparatorProperty());
@@ -69,20 +97,15 @@ public class AuctionListController {
         // Populate filter combobox từ Enum
         if (cboFilter != null) {
             cboFilter.getItems().clear();
-
-            // Khởi tạo danh sách với tùy chọn mặc định
             ObservableList<String> statusList = FXCollections.observableArrayList("Tất cả");
-
-            // Lấy tự động toàn bộ trạng thái từ Enum
             for (AuctionStatus status : AuctionStatus.values()) {
                 statusList.add(status.name());
             }
-
             cboFilter.setItems(statusList);
             cboFilter.setValue("Tất cả");
         }
 
-        // Listeners for search and filter
+        // Listeners cho tìm kiếm và lọc
         if (txtSearch != null) {
             txtSearch.textProperty().addListener((obs, oldV, newV) -> applyAuctionFilter());
         }
@@ -90,7 +113,7 @@ public class AuctionListController {
             cboFilter.setOnAction(e -> applyAuctionFilter());
         }
 
-        // Initial load
+        // Tải dữ liệu ban đầu
         loadAuctions();
     }
 
@@ -195,10 +218,24 @@ public class AuctionListController {
     private Predicate<JsonObject> makeAuctionPredicate(String q, String statusFilter) {
         return auction -> {
             if (auction == null) return false;
+
+            // 1. LỌC THEO DANH MỤC (Category) - Đây là phần mới thêm vào
+            // Nếu currentCategory khác "ALL", ta kiểm tra trường "category" trong JSON
+            if (!"ALL".equals(currentCategory)) {
+                String category = getJsonString(auction, "category");
+                // Nếu danh mục của sản phẩm không khớp với danh mục đang chọn thì loại bỏ (return false)
+                if (!currentCategory.equalsIgnoreCase(category)) {
+                    return false;
+                }
+            }
+
+            // 2. LỌC THEO TRẠNG THÁI (Code cũ của bạn)
             if (statusFilter != null && !statusFilter.isEmpty() && !"Tất cả".equals(statusFilter)) {
                 String s = getJsonString(auction, "status").toLowerCase();
                 if (!s.contains(statusFilter.toLowerCase())) return false;
             }
+
+            // 3. LỌC THEO TỪ KHÓA TÌM KIẾM (Code cũ của bạn)
             if (q == null || q.isEmpty()) return true;
             String title = getJsonString(auction, "title").toLowerCase();
             String seller = getJsonString(auction, "sellerId").toLowerCase();
@@ -242,11 +279,11 @@ public class AuctionListController {
     private void loadAuctions() {
         if (lblMessage != null) lblMessage.setVisible(false);
 
-        // 1. XÓA DỮ LIỆU CŨ VÀ KHÓA NÚT
+        // 1. XÓA DỮ LIỆU CŨ VÀ KHÓA NÚT LÀM MỚI
         auctionList.clear();
         if (btnRefresh != null) btnRefresh.setDisable(true);
 
-        // 2. HIỂN THỊ VÒNG TRÒN XOAY CHỜ
+        // 2. HIỂN THỊ VÒNG TRÒN XOAY CHỜ (Loading Spinner)
         ProgressIndicator loadingSpinner = new ProgressIndicator();
         loadingSpinner.setMaxSize(40, 40);
         tbAuctions.setPlaceholder(loadingSpinner);
@@ -256,51 +293,43 @@ public class AuctionListController {
                 Map<String, Object> params = new HashMap<>();
                 params.put("status", "ALL");
 
-                com.google.gson.JsonElement response = SocketClient.getInstance().send("GET_AUCTIONS", params, com.google.gson.JsonElement.class);
+                // Gửi yêu cầu lên Server
+                com.google.gson.JsonElement response = SocketClient.getInstance().send(
+                        "GET_AUCTIONS", params, com.google.gson.JsonElement.class
+                );
 
-                if (response != null) {
+                Platform.runLater(() -> {
+                    if (response != null) {
+                        JsonArray arr = null;
+                        if (response.isJsonArray()) {
+                            arr = response.getAsJsonArray();
+                        } else if (response.isJsonObject()) {
+                            JsonObject obj = response.getAsJsonObject();
+                            if (obj.has("auctions")) arr = obj.getAsJsonArray("auctions");
+                        }
 
-                    // --- ĐÂY CHÍNH LÀ ĐOẠN XỬ LÝ JSON TẠO RA BIẾN 'arr' BỊ THIẾU ---
-                    JsonArray arr = null;
-                    if (response.isJsonArray()) {
-                        arr = response.getAsJsonArray();
-                    } else if (response.isJsonObject()) {
-                        JsonObject obj = response.getAsJsonObject();
-                        if (obj.has("auctions")) arr = obj.getAsJsonArray("auctions");
-                    }
-                    // -----------------------------------------------------------------
-
-                    if (arr != null) {
-                        final JsonArray finalArr = arr;
-                        Platform.runLater(() -> {
-                            // 3. ĐỔ DỮ LIỆU MỚI VÀO
-                            finalArr.forEach(el -> auctionList.add(el.getAsJsonObject()));
+                        if (arr != null) {
+                            arr.forEach(el -> auctionList.add(el.getAsJsonObject()));
                             updateAuctionCount();
-
-                            // Mở khóa nút
-                            if (btnRefresh != null) btnRefresh.setDisable(false);
-
-                            // Set lại placeholder nếu mảng rỗng
-                            if (auctionList.isEmpty()) {
-                                tbAuctions.setPlaceholder(new Label("Không có phiên đấu giá nào."));
-                            }
-                        });
-                    } else {
-                        Platform.runLater(() -> {
-                            if (btnRefresh != null) btnRefresh.setDisable(false);
-                            tbAuctions.setPlaceholder(new Label("Không tìm thấy dữ liệu phiên đấu giá."));
-                        });
+                        }
                     }
-                } else {
-                    Platform.runLater(() -> {
-                        if (btnRefresh != null) btnRefresh.setDisable(false);
-                        tbAuctions.setPlaceholder(new Label("Không nhận được phản hồi từ Server."));
-                    });
-                }
+
+                    // 3. QUAN TRỌNG NHẤT: Trả lại giao diện "Trống" thẩm mỹ đã lưu từ FXML
+                    // Khi gán lại emptyPlaceholder, nếu mảng auctionList rỗng,
+                    // nó sẽ hiện cái hộp 📦 thay vì xoay mãi.
+                    tbAuctions.setPlaceholder(emptyPlaceholder);
+
+                    // Mở khóa lại nút làm mới
+                    if (btnRefresh != null) btnRefresh.setDisable(false);
+                });
             } catch (Exception e) {
                 Platform.runLater(() -> {
                     if (btnRefresh != null) btnRefresh.setDisable(false);
-                    tbAuctions.setPlaceholder(new Label("Lỗi tải dữ liệu: " + e.getMessage()));
+
+                    // Nếu lỗi, hiện thông báo lỗi thay vì spinner
+                    Label errorLbl = new Label("Lỗi tải dữ liệu: " + e.getMessage());
+                    errorLbl.setStyle("-fx-text-fill: #e67e22; -fx-font-style: italic;");
+                    tbAuctions.setPlaceholder(errorLbl);
                 });
                 e.printStackTrace();
             }
@@ -314,5 +343,34 @@ public class AuctionListController {
 
     private String formatMoney(long amount) {
         return String.format("%,d VNĐ", amount);
+    }
+
+    // ================== Menu Category Handlers ==================
+    @FXML
+    public void showAllItems() {
+        currentCategory = "ALL";
+        if (lblMainTitle != null) lblMainTitle.setText("Danh sách phiên đấu giá");
+        applyAuctionFilter();
+    }
+
+    @FXML
+    public void showArts() {
+        currentCategory = "Art";
+        if (lblMainTitle != null) lblMainTitle.setText("Danh sách: Nghệ thuật (Art)");
+        applyAuctionFilter();
+    }
+
+    @FXML
+    public void showElectronics() {
+        currentCategory = "Electronics";
+        if (lblMainTitle != null) lblMainTitle.setText("Danh sách: Đồ điện tử (Electronics)");
+        applyAuctionFilter();
+    }
+
+    @FXML
+    public void showVehicles() {
+        currentCategory = "Vehicle";
+        if (lblMainTitle != null) lblMainTitle.setText("Danh sách: Phương tiện (Vehicle)");
+        applyAuctionFilter();
     }
 }

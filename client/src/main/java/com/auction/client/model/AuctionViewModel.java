@@ -9,15 +9,17 @@ import java.util.Objects;
 
 /**
  * ViewModel cho một phiên đấu giá, dùng JavaFX Properties để binding UI.
- * - Dùng ObjectProperty<Double> cho giá để cho phép giá có thể null (chưa có lượt đặt).
- * - Cung cấp phương thức setFromResponse(AuctionResponse) an toàn với null.
+ * - Đã bổ sung logic chuẩn hóa Category để phục vụ bộ lọc Menu bên trái.
  */
 public class AuctionViewModel {
 
     private final StringProperty auctionId = new SimpleStringProperty();
     private final StringProperty title = new SimpleStringProperty();
     private final StringProperty description = new SimpleStringProperty();
+
+    // Thuộc tính quan trọng phục vụ cho việc chia Menu danh mục
     private final StringProperty category = new SimpleStringProperty();
+
     private final StringProperty sellerId = new SimpleStringProperty();
 
     // Dùng ObjectProperty<Double> để có thể biểu diễn giá null (chưa có lượt đặt)
@@ -34,7 +36,6 @@ public class AuctionViewModel {
 
     /**
      * Nạp dữ liệu an toàn từ DTO server.
-     * Không unbox trực tiếp Double -> double để tránh NPE.
      */
     public void setFromResponse(AuctionResponse response) {
         if (response == null) return;
@@ -42,8 +43,15 @@ public class AuctionViewModel {
         this.auctionId.set(safeString(response.getAuctionId()));
         this.title.set(safeString(response.getTitle()));
         this.description.set(safeString(response.getDescription()));
-        this.category.set(safeString(response.getCategory()));
         this.sellerId.set(safeString(response.getSellerId()));
+
+        // Tối ưu hóa việc lấy Category (đề phòng server trả về Enum hoặc null)
+        if (response.getCategory() != null) {
+            // Chuyển Enum/Object thành String và chuẩn hóa (Ví dụ: "ART", "ELECTRONICS")
+            this.category.set(response.getCategory().toString());
+        } else {
+            this.category.set("OTHER");
+        }
 
         // startingPrice và currentPrice có thể null từ server -> giữ null nếu không có
         this.startingPrice.set(response.getStartingPrice() == null ? null : response.getStartingPrice());
@@ -54,11 +62,9 @@ public class AuctionViewModel {
         this.startTime.set(response.getStartTime());
         this.endTime.set(response.getEndTime());
 
-        // Nếu AuctionResponse có trường bidCount (nếu không có, giữ nguyên hoặc 0)
         try {
-            // Nếu AuctionResponse có getter getBidCount (int/Integer), dùng reflection an toàn
-            // Nếu không có, bạn có thể set bidCount từ nơi khác khi nhận dữ liệu chi tiết
-            // (để tránh phụ thuộc, ta không ép buộc ở đây)
+            // Nếu AuctionResponse có getter getBidCount, ta xử lý ở đây
+            // this.bidCount.set(response.getBidCount());
         } catch (Exception ignored) { }
     }
 
@@ -88,21 +94,16 @@ public class AuctionViewModel {
     public String getDescription() { return description.get(); }
     public void setDescription(String d) { this.description.set(d); }
 
+    // Getter cho Category (Sẽ được gọi bởi hàm lọc bên Controller)
     public String getCategory() { return category.get(); }
     public void setCategory(String c) { this.category.set(c); }
 
     public String getSellerId() { return sellerId.get(); }
     public void setSellerId(String s) { this.sellerId.set(s); }
 
-    /**
-     * Trả về giá khởi điểm; có thể null nếu server không cung cấp.
-     */
     public Double getStartingPrice() { return startingPrice.get(); }
     public void setStartingPrice(Double p) { this.startingPrice.set(p); }
 
-    /**
-     * Trả về giá hiện tại; có thể null nếu chưa có lượt đặt.
-     */
     public Double getCurrentPrice() { return currentPrice.get(); }
     public void setCurrentPrice(Double p) { this.currentPrice.set(p); }
 
@@ -131,6 +132,7 @@ public class AuctionViewModel {
         return "AuctionViewModel{" +
                 "auctionId=" + getAuctionId() +
                 ", title=" + getTitle() +
+                ", category=" + getCategory() +
                 ", currentPrice=" + getCurrentPrice() +
                 ", status=" + getStatus() +
                 '}';
