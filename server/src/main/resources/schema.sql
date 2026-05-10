@@ -47,15 +47,16 @@ CREATE TABLE auctions (
 
 -- 4. Bảng Bid Transactions (Khớp BidTransaction.java)
 CREATE TABLE bid_transactions (
-                                  id VARCHAR(50) PRIMARY KEY,
-                                  auction_id VARCHAR(50) NOT NULL,
-                                  bidder_name VARCHAR(100) NOT NULL,
-                                  amount DOUBLE NOT NULL,
-                                  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                  is_auto_bid BOOLEAN DEFAULT FALSE,
-                                  FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE
+    id VARCHAR(50) PRIMARY KEY,
+    auction_id VARCHAR(50) NOT NULL,
+    bidder_id VARCHAR(50) NOT NULL,      -- ID người đặt giá (FK)
+    bidder_name VARCHAR(100),            -- Tên hiển thị (cache)
+    amount DOUBLE NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_auto_bid BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
+    FOREIGN KEY (bidder_id) REFERENCES users(id)
 );
-
 -- TĂNG TỐC HỆ THỐNG (INDEX)
 
 CREATE INDEX idx_auction_status ON auctions(status); -- Tìm nhanh các phiên đang chạy
