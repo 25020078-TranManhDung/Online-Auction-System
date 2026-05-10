@@ -3,6 +3,7 @@ package com.auction.client.controller;
 import com.auction.client.network.SocketClient;
 import com.auction.client.util.AlertUtil;
 import com.auction.client.util.ViewLoader;
+import com.auction.shared.enums.AuctionStatus;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import javafx.application.Platform;
@@ -65,10 +66,19 @@ public class AuctionListController {
         sorted.comparatorProperty().bind(tbAuctions.comparatorProperty());
         tbAuctions.setItems(sorted);
 
-        // Populate filter combobox
+        // Populate filter combobox từ Enum
         if (cboFilter != null) {
             cboFilter.getItems().clear();
-            cboFilter.getItems().addAll("Tất cả", "RUNNING", "CLOSED", "DRAFT");
+
+            // Khởi tạo danh sách với tùy chọn mặc định
+            ObservableList<String> statusList = FXCollections.observableArrayList("Tất cả");
+
+            // Lấy tự động toàn bộ trạng thái từ Enum
+            for (AuctionStatus status : AuctionStatus.values()) {
+                statusList.add(status.name());
+            }
+
+            cboFilter.setItems(statusList);
             cboFilter.setValue("Tất cả");
         }
 
@@ -215,6 +225,7 @@ public class AuctionListController {
 
     @FXML
     private void handleRefresh(ActionEvent event) {
+        System.out.println("[Client] Đang gửi yêu cầu làm mới dữ liệu lên Server...");
         loadAuctions();
     }
 
@@ -230,6 +241,16 @@ public class AuctionListController {
     // ================== Load data from server ==================
     private void loadAuctions() {
         if (lblMessage != null) lblMessage.setVisible(false);
+
+        // 1. XÓA DỮ LIỆU CŨ VÀ KHÓA NÚT
+        auctionList.clear();
+        if (btnRefresh != null) btnRefresh.setDisable(true);
+
+        // 2. HIỂN THỊ VÒNG TRÒN XOAY CHỜ
+        ProgressIndicator loadingSpinner = new ProgressIndicator();
+        loadingSpinner.setMaxSize(40, 40);
+        tbAuctions.setPlaceholder(loadingSpinner);
+
         new Thread(() -> {
             try {
                 Map<String, Object> params = new HashMap<>();
@@ -238,6 +259,8 @@ public class AuctionListController {
                 com.google.gson.JsonElement response = SocketClient.getInstance().send("GET_AUCTIONS", params, com.google.gson.JsonElement.class);
 
                 if (response != null) {
+
+                    // --- ĐÂY CHÍNH LÀ ĐOẠN XỬ LÝ JSON TẠO RA BIẾN 'arr' BỊ THIẾU ---
                     JsonArray arr = null;
                     if (response.isJsonArray()) {
                         arr = response.getAsJsonArray();
@@ -245,36 +268,39 @@ public class AuctionListController {
                         JsonObject obj = response.getAsJsonObject();
                         if (obj.has("auctions")) arr = obj.getAsJsonArray("auctions");
                     }
+                    // -----------------------------------------------------------------
 
                     if (arr != null) {
                         final JsonArray finalArr = arr;
                         Platform.runLater(() -> {
-                            auctionList.clear();
+                            // 3. ĐỔ DỮ LIỆU MỚI VÀO
                             finalArr.forEach(el -> auctionList.add(el.getAsJsonObject()));
                             updateAuctionCount();
+
+                            // Mở khóa nút
+                            if (btnRefresh != null) btnRefresh.setDisable(false);
+
+                            // Set lại placeholder nếu mảng rỗng
+                            if (auctionList.isEmpty()) {
+                                tbAuctions.setPlaceholder(new Label("Không có phiên đấu giá nào."));
+                            }
                         });
                     } else {
                         Platform.runLater(() -> {
-                            if (lblMessage != null) {
-                                lblMessage.setText("Không tìm thấy dữ liệu phiên đấu giá.");
-                                lblMessage.setVisible(true);
-                            }
+                            if (btnRefresh != null) btnRefresh.setDisable(false);
+                            tbAuctions.setPlaceholder(new Label("Không tìm thấy dữ liệu phiên đấu giá."));
                         });
                     }
                 } else {
                     Platform.runLater(() -> {
-                        if (lblMessage != null) {
-                            lblMessage.setText("Không nhận được phản hồi từ Server.");
-                            lblMessage.setVisible(true);
-                        }
+                        if (btnRefresh != null) btnRefresh.setDisable(false);
+                        tbAuctions.setPlaceholder(new Label("Không nhận được phản hồi từ Server."));
                     });
                 }
             } catch (Exception e) {
                 Platform.runLater(() -> {
-                    if (lblMessage != null) {
-                        lblMessage.setText("Lỗi tải dữ liệu: " + e.getMessage());
-                        lblMessage.setVisible(true);
-                    }
+                    if (btnRefresh != null) btnRefresh.setDisable(false);
+                    tbAuctions.setPlaceholder(new Label("Lỗi tải dữ liệu: " + e.getMessage()));
                 });
                 e.printStackTrace();
             }
