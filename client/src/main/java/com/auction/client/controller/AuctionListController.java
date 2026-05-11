@@ -147,41 +147,31 @@ public class AuctionListController {
 
     private void setupTableColumns() {
         if (colNo != null) {
-            colNo.setCellValueFactory(data ->
-                new SimpleStringProperty(String.valueOf(tbAuctions.getItems().indexOf(data.getValue()) + 1)));
+            colNo.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(tbAuctions.getItems().indexOf(data.getValue()) + 1)));
         }
         if (colName != null) {
-            colName.setCellValueFactory(data ->
-                new SimpleStringProperty(getJsonString(data.getValue(), "title")));
+            colName.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "title")));
         }
         if (colSeller != null) {
-            colSeller.setCellValueFactory(data -> {
-                String seller = getJsonString(data.getValue(), "sellerName");
-                if (seller.isEmpty()) seller = getJsonString(data.getValue(), "sellerId");
-                return new SimpleStringProperty(seller);
-            });
+            colSeller.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "sellerId")));
         }
         if (colPrice != null) {
             colPrice.setCellValueFactory(data -> {
-                long price = data.getValue().has("currentPrice")
-                    ? data.getValue().get("currentPrice").getAsLong() : 0;
+                long price = data.getValue().has("currentPrice") ? data.getValue().get("currentPrice").getAsLong() : 0;
                 return new SimpleStringProperty(formatMoney(price));
             });
         }
         if (colEndTime != null) {
-            colEndTime.setCellValueFactory(data ->
-                new SimpleStringProperty(getJsonString(data.getValue(), "endTime")));
+            colEndTime.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "endTime")));
         }
         if (colBidCount != null) {
-            colBidCount.setCellValueFactory(data ->
-                new SimpleStringProperty(getJsonString(data.getValue(), "bidCount")));
+            colBidCount.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "bidCount")));
         }
         if (colStatus != null) {
-            colStatus.setCellValueFactory(data ->
-                new SimpleStringProperty(getJsonString(data.getValue(), "status")));
+            colStatus.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "status")));
         }
 
-        // ─── Cột hành động: nút "Xem" mở màn hình chi tiết ───
+        // ===== Action column: tạo nút Xem và mở chi tiết (ĐÃ ĐƯỢC CẬP NHẬT) =====
         if (colAction != null) {
             colAction.setCellFactory(new Callback<>() {
                 @Override
@@ -190,10 +180,14 @@ public class AuctionListController {
                         private final Button btn = new Button("Xem");
 
                         {
+                            // Thiết kế giao diện cho nút Xem
                             btn.setStyle("-fx-background-color: #2980b9; -fx-text-fill: white; -fx-cursor: hand;");
+
+                            // Bắt sự kiện khi click vào nút
                             btn.setOnAction(event -> {
                                 JsonObject auction = getTableView().getItems().get(getIndex());
-                                openAuctionDetail(auction);
+                                // Truyền thêm 'event' vào hàm để lấy được Cửa sổ (Stage) hiện tại
+                                openAuctionDetail(auction, event);
                             });
                         }
 
@@ -213,19 +207,18 @@ public class AuctionListController {
     // ==========================================================
 
     /**
-     * Mở màn hình chi tiết phiên đấu giá và truyền auctionId vào controller.
-     * Dùng FXMLLoader trực tiếp để chắc chắn lấy được controller và gọi initData(...)
+     * Mở màn hình chi tiết phiên đấu giá (Chế độ toàn màn hình - SPA).
+     * Đã loại bỏ mainContentArea để giao diện không bị lồng ghép header/menu.
      */
-    private void openAuctionDetail(JsonObject auction) {
+    private void openAuctionDetail(JsonObject auction, javafx.event.ActionEvent event) {
         if (auction == null) {
             AlertUtil.showWarning("Lỗi", "Dữ liệu phiên rỗng.");
             return;
         }
 
         String auctionId = getJsonString(auction, "auctionId");
-        String title     = getJsonString(auction, "title");
+        String title = getJsonString(auction, "title");
 
-        // Debug tạm: in ra console để kiểm tra
         System.out.println("openAuctionDetail -> auctionId=" + auctionId + ", title=" + title);
 
         if (auctionId == null || auctionId.isEmpty()) {
@@ -234,13 +227,25 @@ public class AuctionListController {
         }
 
         try {
-            com.auction.client.controller.AuctionDetailController ctrl =
-                com.auction.client.util.ViewLoader.openInNewWindow(
-                    "auction-detail.fxml",
-                    "Chi tiết phiên đấu giá - " + (title.isEmpty() ? auctionId : title)
-                );
-            if (ctrl != null) {
-                ctrl.initData(auctionId);
+            // 1. Tải Giao diện + Controller từ ViewLoader
+            ViewLoader.ViewResult<com.auction.client.controller.AuctionDetailController> result =
+                    ViewLoader.loadViewWithController("auction-detail.fxml");
+
+            if (result != null) {
+                // 2. Kích hoạt nạp dữ liệu chi tiết từ Server
+                com.auction.client.controller.AuctionDetailController detailController = result.getController();
+                detailController.initData(auctionId);
+
+                // 3. THAY THẾ TOÀN BỘ GIAO DIỆN TRÊN CỬA SỔ HIỆN TẠI
+                // Lấy ra Stage (cửa sổ) đang chạy từ sự kiện click nút "Xem"
+                javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+
+                // Thay thế Root của Scene hiện tại bằng giao diện chi tiết.
+                // Lệnh này giúp màn hình chi tiết chiếm trọn 100% diện tích cửa sổ hiện tại.
+                stage.getScene().setRoot(result.getView());
+
+                // Cập nhật tiêu đề cho chuyên nghiệp
+                stage.setTitle("Chi tiết phiên đấu giá - " + (title.isEmpty() ? auctionId : title));
             }
         } catch (Exception ex) {
             ex.printStackTrace();

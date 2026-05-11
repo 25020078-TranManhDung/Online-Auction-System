@@ -374,19 +374,35 @@ public class AuctionDetailController implements BidUpdateListener {
 
     @FXML
     void handleBack(ActionEvent event) {
-        // cleanup
+        // 1. Dọn dẹp tài nguyên (Timer và Listener) để tránh rò rỉ bộ nhớ
         if (countdownTimer != null) {
             countdownTimer.cancel();
             countdownTimer = null;
         }
         MessageHandler handler = getMessageHandlerByReflection();
-        if (handler != null) handler.removeBidListener(this);
+        if (handler != null) {
+            handler.removeBidListener(this);
+        }
 
         try {
-            ViewLoader.load(event, "auction-list.fxml", "Danh sách phiên đấu giá");
+            // 2. Tải giao diện danh sách dưới dạng một Parent node (không tạo Scene mới)
+            // Hàm loadView này đã được chúng ta bổ sung vào ViewLoader trước đó
+            Parent listView = ViewLoader.loadView("auction-list.fxml");
+
+            if (listView != null) {
+                // 3. Lấy Stage (cửa sổ) hiện tại từ sự kiện click nút
+                javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+
+                // 4. THAY THẾ ROOT: Đây là chìa khóa để giữ nguyên kích thước cửa sổ
+                // Chúng ta chỉ thay đổi nội dung bên trong, không thay đổi đối tượng Scene
+                stage.getScene().setRoot(listView);
+
+                // Cập nhật lại tiêu đề cửa sổ cho đúng ngữ cảnh
+                stage.setTitle("Danh sách phiên đấu giá");
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            AlertUtil.showError("Lỗi", "Không thể quay lại danh sách.");
+            AlertUtil.showError("Lỗi", "Không thể quay lại danh sách: " + e.getMessage());
         }
     }
 
