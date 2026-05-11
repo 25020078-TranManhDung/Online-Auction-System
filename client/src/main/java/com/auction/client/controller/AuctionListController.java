@@ -15,13 +15,7 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-<<<<<<< HEAD
 import javafx.scene.Node;
-=======
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
->>>>>>> main
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.image.ImageView;
@@ -33,11 +27,7 @@ import java.util.function.Predicate;
 
 public class AuctionListController {
 
-<<<<<<< HEAD
     // ─── Header ───────────────────────────────────────────────
-=======
-    // Header
->>>>>>> main
     @FXML
     private ImageView imgAvatar;
     @FXML
@@ -47,11 +37,7 @@ public class AuctionListController {
     @FXML
     private Button btnLogout;
 
-<<<<<<< HEAD
     // ─── Toolbar / filters ────────────────────────────────────
-=======
-    // Toolbar / filters
->>>>>>> main
     @FXML
     private TextField txtSearch;
     @FXML
@@ -61,15 +47,9 @@ public class AuctionListController {
     @FXML
     private Label lblAuctionCount;
     @FXML
-<<<<<<< HEAD
     private Label lblMainTitle;          // Tiêu đề động cập nhật theo danh mục
 
     // ─── Table ────────────────────────────────────────────────
-=======
-    private Label lblMainTitle;
-
-    // Table
->>>>>>> main
     @FXML
     private TableView<JsonObject> tbAuctions;
     @FXML
@@ -95,8 +75,6 @@ public class AuctionListController {
     // ─── Data & state ─────────────────────────────────────────
     private final ObservableList<JsonObject> auctionList = FXCollections.observableArrayList();
     private FilteredList<JsonObject> filteredAuctions;
-    private String currentCategory = "ALL";
-    private Node emptyPlaceholder;
 
     /** Lưu lại placeholder đẹp từ FXML để khôi phục sau khi spinner tải xong */
     private Node emptyPlaceholder;
@@ -113,20 +91,12 @@ public class AuctionListController {
         setupTableColumns();
         loadUserInfo();
 
-<<<<<<< HEAD
         // 1. Lưu lại giao diện thông báo trống từ FXML (trước khi spinner đè lên)
-=======
-        // 1. Lưu lại giao diện thông báo trống từ FXML
->>>>>>> main
         if (tbAuctions != null) {
             this.emptyPlaceholder = tbAuctions.getPlaceholder();
         }
 
-<<<<<<< HEAD
         // 2. Wrap với filtered + sorted lists
-=======
-        // Wrap với filtered + sorted lists
->>>>>>> main
         filteredAuctions = new FilteredList<>(auctionList, p -> true);
         SortedList<JsonObject> sorted = new SortedList<>(filteredAuctions);
         sorted.comparatorProperty().bind(tbAuctions.comparatorProperty());
@@ -143,11 +113,7 @@ public class AuctionListController {
             cboFilter.setValue("Tất cả");
         }
 
-<<<<<<< HEAD
         // 4. Listeners cho tìm kiếm và lọc trạng thái
-=======
-        // Listeners cho tìm kiếm và lọc
->>>>>>> main
         if (txtSearch != null) {
             txtSearch.textProperty().addListener((obs, oldV, newV) -> applyAuctionFilter());
         }
@@ -155,11 +121,7 @@ public class AuctionListController {
             cboFilter.setOnAction(e -> applyAuctionFilter());
         }
 
-<<<<<<< HEAD
         // 5. Tải dữ liệu ban đầu
-=======
-        // Tải dữ liệu ban đầu
->>>>>>> main
         loadAuctions();
     }
 
@@ -301,39 +263,23 @@ public class AuctionListController {
         return auction -> {
             if (auction == null) return false;
 
-<<<<<<< HEAD
             // 1. LỌC THEO DANH MỤC (Category) — logic mới thêm vào
             // Nếu currentCategory khác "ALL", kiểm tra trường "category" trong JSON
             if (!"ALL".equals(currentCategory)) {
                 String category = getJsonString(auction, "category");
                 // Nếu danh mục không khớp thì loại bỏ
-=======
-            // 1. LỌC THEO DANH MỤC (Category) - Đây là phần mới thêm vào
-            // Nếu currentCategory khác "ALL", ta kiểm tra trường "category" trong JSON
-            if (!"ALL".equals(currentCategory)) {
-                String category = getJsonString(auction, "category");
-                // Nếu danh mục của sản phẩm không khớp với danh mục đang chọn thì loại bỏ (return false)
->>>>>>> main
                 if (!currentCategory.equalsIgnoreCase(category)) {
                     return false;
                 }
             }
 
-<<<<<<< HEAD
             // 2. LỌC THEO TRẠNG THÁI (code cũ giữ nguyên)
-=======
-            // 2. LỌC THEO TRẠNG THÁI (Code cũ của bạn)
->>>>>>> main
             if (statusFilter != null && !statusFilter.isEmpty() && !"Tất cả".equals(statusFilter)) {
                 String s = getJsonString(auction, "status").toLowerCase();
                 if (!s.contains(statusFilter.toLowerCase())) return false;
             }
 
-<<<<<<< HEAD
             // 3. LỌC THEO TỪ KHÓA TÌM KIẾM (code cũ giữ nguyên)
-=======
-            // 3. LỌC THEO TỪ KHÓA TÌM KIẾM (Code cũ của bạn)
->>>>>>> main
             if (q == null || q.isEmpty()) return true;
             String title  = getJsonString(auction, "title").toLowerCase();
             String seller = getJsonString(auction, "sellerId").toLowerCase();
@@ -439,19 +385,12 @@ public class AuctionListController {
 
                 // Gửi yêu cầu lên Server
                 com.google.gson.JsonElement response = SocketClient.getInstance().send(
-<<<<<<< HEAD
                     "GET_AUCTIONS", params, com.google.gson.JsonElement.class
-=======
-                        "GET_AUCTIONS", params, com.google.gson.JsonElement.class
->>>>>>> main
                 );
 
                 Platform.runLater(() -> {
                     if (response != null) {
-<<<<<<< HEAD
                         // Xử lý JSON — hỗ trợ cả dạng Array lẫn Object có key "auctions"
-=======
->>>>>>> main
                         JsonArray arr = null;
                         if (response.isJsonArray()) {
                             arr = response.getAsJsonArray();
@@ -461,42 +400,26 @@ public class AuctionListController {
                         }
 
                         if (arr != null) {
-<<<<<<< HEAD
                             // 3. ĐỔ DỮ LIỆU MỚI VÀO
-=======
->>>>>>> main
                             arr.forEach(el -> auctionList.add(el.getAsJsonObject()));
                             updateAuctionCount();
                         }
                     }
 
-<<<<<<< HEAD
                     // 4. QUAN TRỌNG: Trả lại giao diện "Trống" thẩm mỹ đã lưu từ FXML.
                     // Khi gán lại emptyPlaceholder, nếu auctionList rỗng sẽ hiện hộp 📦
                     // đã thiết kế sẵn trong FXML thay vì spinner xoay mãi hoặc Label đơn giản.
-=======
-                    // 3. QUAN TRỌNG NHẤT: Trả lại giao diện "Trống" thẩm mỹ đã lưu từ FXML
-                    // Khi gán lại emptyPlaceholder, nếu mảng auctionList rỗng,
-                    // nó sẽ hiện cái hộp 📦 thay vì xoay mãi.
->>>>>>> main
                     tbAuctions.setPlaceholder(emptyPlaceholder);
 
                     // Mở khóa lại nút làm mới
                     if (btnRefresh != null) btnRefresh.setDisable(false);
                 });
-<<<<<<< HEAD
 
-=======
->>>>>>> main
             } catch (Exception e) {
                 Platform.runLater(() -> {
                     if (btnRefresh != null) btnRefresh.setDisable(false);
 
-<<<<<<< HEAD
                     // Nếu lỗi: hiện thông báo lỗi có style thay vì spinner
-=======
-                    // Nếu lỗi, hiện thông báo lỗi thay vì spinner
->>>>>>> main
                     Label errorLbl = new Label("Lỗi tải dữ liệu: " + e.getMessage());
                     errorLbl.setStyle("-fx-text-fill: #e67e22; -fx-font-style: italic;");
                     tbAuctions.setPlaceholder(errorLbl);
@@ -518,36 +441,4 @@ public class AuctionListController {
     private String formatMoney(long amount) {
         return String.format("%,d VNĐ", amount);
     }
-<<<<<<< HEAD
-=======
-
-    // ================== Menu Category Handlers ==================
-    @FXML
-    public void showAllItems() {
-        currentCategory = "ALL";
-        if (lblMainTitle != null) lblMainTitle.setText("Danh sách phiên đấu giá");
-        applyAuctionFilter();
-    }
-
-    @FXML
-    public void showArts() {
-        currentCategory = "Art";
-        if (lblMainTitle != null) lblMainTitle.setText("Danh sách: Nghệ thuật (Art)");
-        applyAuctionFilter();
-    }
-
-    @FXML
-    public void showElectronics() {
-        currentCategory = "Electronics";
-        if (lblMainTitle != null) lblMainTitle.setText("Danh sách: Đồ điện tử (Electronics)");
-        applyAuctionFilter();
-    }
-
-    @FXML
-    public void showVehicles() {
-        currentCategory = "Vehicle";
-        if (lblMainTitle != null) lblMainTitle.setText("Danh sách: Phương tiện (Vehicle)");
-        applyAuctionFilter();
-    }
->>>>>>> main
 }
