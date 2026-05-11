@@ -229,7 +229,13 @@ public class AuctionDetailController implements BidUpdateListener {
                 priceSeries = new XYChart.Series<>();
                 priceChart.getData().add(priceSeries);
             }
-            if (priceSeries != null) priceSeries.getData().clear();
+            if (priceSeries != null) {
+                priceSeries.getData().clear();
+                // FIX BUG JAVAFX: Ép trục X xóa sạch danh mục cũ để nhãn hiển thị đúng vị trí
+                if (priceChart.getXAxis() instanceof javafx.scene.chart.CategoryAxis) {
+                    ((javafx.scene.chart.CategoryAxis) priceChart.getXAxis()).getCategories().clear();
+                }
+            }
 
             // Recent bids -> ListView (server trả về key "recentBids")
             lvBidHistory.getItems().clear();
@@ -259,8 +265,8 @@ public class AuctionDetailController implements BidUpdateListener {
                             // "timestamp" được serialize bởi JsonUtil thành ISO-8601 string
                             // → ChartUtil.normalizeLabel() cắt lấy HH:mm:ss
                             String raw = getSafe(b, "timestamp",
-                                getSafe(b, "time", getSafe(b, "createdAt", "")));
-                            String timeLabel = ChartUtil.normalizeLabel(raw);
+                                    getSafe(b, "time", getSafe(b, "createdAt", "")));
+                            String timeLabel = formatTimeOnly(raw); // Gọi hàm vừa tạo thay vì dùng ChartUtil
                             if (timeLabel.equals(raw) && raw.isEmpty()) {
                                 timeLabel = "Bid " + (limit - i); // fallback index khi không có timestamp
                             }
@@ -280,7 +286,8 @@ public class AuctionDetailController implements BidUpdateListener {
                         JsonObject b = bids.get(i).getAsJsonObject();
                         String bidder = getSafe(b, "bidderName", getSafe(b, "bidder", "Người dùng"));
                         long amount = getLongSafe(b, "amount", getLongSafe(b, "bidAmount", 0L));
-                        String time = getSafe(b, "time", getSafe(b, "createdAt", ""));
+                        String rawTime = getSafe(b, "timestamp", getSafe(b, "time", getSafe(b, "createdAt", "")));
+                        String time = ChartUtil.normalizeLabel(rawTime);
                         lvBidHistory.getItems().add(String.format("#%d  %s  — %s  (%s)", i + 1, bidder, formatMoney(amount), time));
                     } catch (Exception ignored) {}
                 }
@@ -460,7 +467,7 @@ public class AuctionDetailController implements BidUpdateListener {
                         // BidNotifier gửi timestamp = LocalDateTime.toString() → ISO-8601, length=19
                         // Phải normalize qua ChartUtil.normalizeLabel() để tránh label dài xoay trục X
                         String rawLabel = getSafe(data, "timestamp", getSafe(data, "time", ""));
-                        ChartUtil.addDataPoint(priceSeries, ChartUtil.normalizeLabel(rawLabel), displayPrice);
+                        ChartUtil.addDataPoint(priceSeries, formatTimeOnly(rawLabel), displayPrice); // Thay thế ở đây
                     }
                 });
             }
@@ -538,6 +545,21 @@ public class AuctionDetailController implements BidUpdateListener {
             lblMessage.setVisible(true);
         } else {
             AlertUtil.showWarning("Thông báo", msg);
+        }
+    }
+
+    private String formatTimeOnly(String rawTimestamp) {
+        if (rawTimestamp == null || rawTimestamp.isEmpty()) return "";
+        try {
+            // Thử parse theo chuẩn ISO-8601 (VD: "2026-05-14T14:47:20")
+            java.time.LocalDateTime dateTime = java.time.LocalDateTime.parse(rawTimestamp, java.time.format.DateTimeFormatter.ISO_DATE_TIME);
+            return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
+        } catch (Exception e) {
+            // Fallback: Cắt thủ công lấy 8 ký tự thời gian nếu parse lỗi (hoặc chuỗi không chuẩn)
+            if (rawTimestamp.length() >= 19) {
+                return rawTimestamp.substring(11, 19);
+            }
+            return rawTimestamp;
         }
     }
 }

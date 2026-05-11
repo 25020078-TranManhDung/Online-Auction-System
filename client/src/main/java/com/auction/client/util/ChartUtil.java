@@ -67,7 +67,20 @@ public class ChartUtil {
      */
     public static String normalizeLabel(String raw) {
         if (raw == null || raw.isEmpty()) return LocalTime.now().format(TIME_FORMATTER);
+
+        // 1. Nếu là chuẩn ISO-8601 (có chữ 'T')
         if (raw.contains("T") && raw.length() >= 19) return raw.substring(11, 19);
+
+        // 2. MỚI: Nếu Server trả về Unix Timestamp (toàn chữ số)
+        if (raw.matches("\\d+")) {
+            try {
+                long epochMs = Long.parseLong(raw);
+                return java.time.Instant.ofEpochMilli(epochMs)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalTime()
+                        .format(TIME_FORMATTER);
+            } catch (Exception ignored) {}
+        }
         return raw;
     }
 }

@@ -29,12 +29,20 @@
     -fx-effect: dropshadow(gaussian, rgba(67, 20, 118, 0.10), 18, 0, 0, 6);
 }
 
-/* auction-title (tiêu đề header "Online Auction System") */
+/* auction-title (tiêu đề header "AUCTION HOUSE") */
 .auction-title {
-    -fx-font-size: 22px;
+    -fx-font-size: 24px; /* Tăng nhẹ cỡ chữ để tiêu đề to hơn */
+    -fx-font-weight: 900; /* Làm chữ dày dặn hơn */
+    -fx-text-fill: #4b1a6a; /* Đổi sang màu tím sẫm (đồng bộ với thông báo login) để tương phản mạnh với nền sáng */
+    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.85), 10, 0.6, 0, 0); /* Thêm viền bóng trắng (Glow) để tách biệt hoàn toàn khỏi hình nền */
+}
+
+/* Thêm mới: auction-subtitle (Dòng slogan bên dưới) */
+.auction-subtitle {
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
-    -fx-text-fill: #FFF7EA; /* warm ivory */
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 6, 0, 0, 2);
+    -fx-text-fill: #6c3483; /* Màu tím nhạt hơn một chút để phân cấp thông tin */
+    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.7), 5, 0.5, 0, 0);
 }
 
 /* login-main-title (tiêu đề bên trong card login) */
@@ -368,11 +376,14 @@
     -fx-padding: 4px;
 }
 
+/* Style cho các mốc giá trị trên trục tọa độ (Tick labels) */
 .axis {
     -fx-tick-label-fill: #6c3483;
     -fx-font-size: 11px;
+    -fx-tick-label-rotation: -45; /* Xoay nghiêng chữ 45 độ để không bị chồng chéo */
 }
 
+/* Style cho tên của trục (Ví dụ: "Thời điểm" ở trục X, "Giá (VNĐ)" ở trục Y) */
 .axis-label {
     -fx-text-fill: #8e44ad;
     -fx-font-size: 12px;
