@@ -2,6 +2,7 @@ package com.auction.client.controller;
 
 import com.auction.client.network.MessageHandler;
 import com.auction.client.network.SocketClient;
+import com.auction.client.model.UserSession;
 import com.auction.client.observer.BidUpdateListener;
 import com.auction.client.util.AlertUtil;
 import com.auction.client.util.ChartUtil;
@@ -76,12 +77,37 @@ public class AuctionDetailController implements BidUpdateListener {
     private String currentAuctionId;
     private long secondsRemaining;
     private long currentPriceValue;
+    private long minIncrementValue;    // FIX: lưu thực để tránh parse lỗi từ label
+    private String currentLeaderName = "—"; // FIX: lưu tên người dẫn đầu để truyền sang BiddingController
+    private long   currentLeaderBid  = 0;   // FIX: lưu giá người dẫn đầu
+    // FIX: lưu các field còn thiếu để truyền sang BiddingController
+    private String currentProductName = "—";
+    private String currentSellerId    = "—";
+    private String currentStatus      = "—";
+    private int    currentBidCount    = 0;
+    private com.google.gson.JsonArray currentBidHistory = null;
     private Timer countdownTimer;
+
+    // ----------------- User info -----------------
+
+    private void loadUserInfo() {
+        UserSession session = UserSession.getInstance();
+        if (lblUser != null) {
+            String name = session.getUsername();
+            lblUser.setText(name != null && !name.isEmpty() ? name : "Người dùng");
+        }
+        if (lblRole != null) {
+            String role = session.getRole();
+            lblRole.setText(role != null && !role.isEmpty() ? role : "");
+        }
+    }
 
     // ----------------- Lifecycle -----------------
 
     @FXML
     public void initialize() {
+        loadUserInfo();
+
         // Initialize chart series early to avoid race with realtime updates
         priceSeries = new XYChart.Series<>();
         priceSeries.setName("Giá theo thời gian");
@@ -172,20 +198,32 @@ public class AuctionDetailController implements BidUpdateListener {
             }
 
             // Determine startPrice and currentPrice with multiple key fallbacks
-            long startPrice = getLongSafe(item, "startPrice", getLongSafe(auction, "startingPrice", getLongSafe(auction, "start_price", 0L)));
+            long startPrice = getLongSafe(item, "startPrice",
+                getLongSafe(auction, "startingPrice",
+                    getLongSafe(auction, "start_price", 0L)));
             long currentPrice = getLongSafe(auction, "currentPrice", getLongSafe(auction, "current_price", startPrice));
             this.currentPriceValue = currentPrice;
 
             // Basic fields mapping (try multiple key names)
-            lblProductName.setText(getSafe(item, "title", getSafe(item, "name", "—")));
-            lblSeller.setText(getSafe(auction, "sellerId", getSafe(auction, "seller", "—")));
-            lblStatus.setText(getSafe(auction, "status", "—"));
+            // Server trả AuctionResponse flat (title, description ở root), không có nested "item"
+            // → phải đọc từ auction (root) khi item == null
+            this.currentProductName = getSafe(item, "title",
+                getSafe(item, "name",
+                    getSafe(auction, "title", "—")));
+            this.currentSellerId    = getSafe(auction, "sellerId", getSafe(auction, "seller", "—"));
+            this.currentStatus      = getSafe(auction, "status", "—");
+            this.currentBidCount    = getIntSafe(auction, "bidCount", getIntSafe(data, "bidCount", getIntSafe(auction, "bid_count", 0)));
+
+            lblProductName.setText(this.currentProductName);
+            lblSeller.setText(this.currentSellerId);
+            lblStatus.setText(this.currentStatus);
             lblStartPrice.setText(formatMoney(startPrice));
-            lblMinIncrement.setText(formatMoney(getLongSafe(auction, "minBidIncrement", getLongSafe(auction, "min_increment", 0L))));
+            this.minIncrementValue = getLongSafe(auction, "minBidIncrement", getLongSafe(auction, "min_increment", 0L));
+            lblMinIncrement.setText(formatMoney(this.minIncrementValue));
             lblCurrentPrice.setText(formatMoney(currentPrice));
-            lblBidCount.setText(String.valueOf(getIntSafe(auction, "bidCount", getIntSafe(auction, "bid_count", 0))));
+            lblBidCount.setText(String.valueOf(this.currentBidCount));
             lblEndTime.setText(getSafe(auction, "endTime", getSafe(auction, "end_time", "—")));
-            lblDescription.setText(getSafe(item, "description", "—"));
+            lblDescription.setText(getSafe(item, "description", getSafe(auction, "description", "—")));
 
             // Chart: initialize series if needed and populate
             if (priceChart != null && priceSeries == null) {
@@ -215,12 +253,16 @@ public class AuctionDetailController implements BidUpdateListener {
                 ChartUtil.addDataPoint(priceSeries, "Now", currentPrice);
             }
 
-            // Recent bids -> ListView
+            // Recent bids -> ListView (server trả về key "recentBids")
             lvBidHistory.getItems().clear();
             JsonArray bids = null;
-            if (data.has("recentBids")) bids = data.getAsJsonArray("recentBids");
-            else if (data.has("bids")) bids = data.getAsJsonArray("bids");
-            else if (auction.has("recentBids")) bids = auction.getAsJsonArray("recentBids");
+            if (data.has("recentBids") && data.get("recentBids").isJsonArray()) bids = data.getAsJsonArray("recentBids");
+            else if (auction.has("recentBids") && auction.get("recentBids").isJsonArray()) bids = auction.getAsJsonArray("recentBids");
+            else if (data.has("bids") && data.get("bids").isJsonArray()) bids = data.getAsJsonArray("bids");
+            else if (auction.has("bids") && auction.get("bids").isJsonArray()) bids = auction.getAsJsonArray("bids");
+
+            // Lưu bid history để truyền sang BiddingController (phải gán SAU khi parse xong)
+            this.currentBidHistory = bids;
 
             if (bids != null) {
                 for (int i = 0; i < bids.size(); i++) {
@@ -237,14 +279,22 @@ public class AuctionDetailController implements BidUpdateListener {
             lblBidCount.setText(lblHistoryCount.getText());
 
             // Leader info (last bid)
-            if (lvBidHistory.getItems().size() > 0) {
+            // Leader: ưu tiên highestBidderName từ AuctionResponse, fallback về bid đầu tiên trong list
+            String leaderName = getSafe(auction, "highestBidderName", getSafe(auction, "currentLeader", "—"));
+            if (!"—".equals(leaderName) && !leaderName.isEmpty()) {
+                this.currentLeaderName = leaderName;
+                this.currentLeaderBid  = currentPrice;
+                lblLeaderName.setText(leaderName);
+                lblLeaderBid.setText(formatMoney(currentPrice));
+                if (lblLeaderTime != null) lblLeaderTime.setText("");
+            } else if (bids != null && bids.size() > 0) {
                 try {
-                    JsonObject last = bids != null && bids.size() > 0 ? bids.get(bids.size() - 1).getAsJsonObject() : null;
-                    if (last != null) {
-                        lblLeaderName.setText(getSafe(last, "bidderName", getSafe(last, "bidder", "—")));
-                        lblLeaderBid.setText(formatMoney(getLongSafe(last, "amount", 0L)));
-                        lblLeaderTime.setText(getSafe(last, "time", ""));
-                    }
+                    JsonObject last = bids.get(0).getAsJsonObject(); // index 0 = giá cao nhất (sort DESC)
+                    this.currentLeaderName = getSafe(last, "bidderName", getSafe(last, "bidder", "—"));
+                    this.currentLeaderBid  = getLongSafe(last, "amount", 0L);
+                    lblLeaderName.setText(this.currentLeaderName);
+                    lblLeaderBid.setText(formatMoney(this.currentLeaderBid));
+                    if (lblLeaderTime != null) lblLeaderTime.setText(getSafe(last, "timestamp", getSafe(last, "time", "")));
                 } catch (Exception ignored) {}
             }
 
@@ -275,25 +325,40 @@ public class AuctionDetailController implements BidUpdateListener {
         }
 
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/auction/client/fxml/bidding.fxml"));
-            Parent root = loader.load();
+            // Đọc bước giá từ label hiện tại
+            // FIX: dùng giá trị đã lưu thay vì parse từ label (tránh lỗi format tiền tệ)
+            long minInc = this.minIncrementValue;
 
-            BiddingController controller = loader.getController();
-            long minInc = 0;
-            try {
-                String minStr = lblMinIncrement.getText().replaceAll("[^0-9]", "");
-                minInc = minStr.isEmpty() ? 0 : Long.parseLong(minStr);
-            } catch (Exception ignored) {}
+            // BUG FIX: Dùng ViewLoader.openInNewWindow() thay vì tự tạo Stage thủ công.
+            // ViewLoader tự động load CSS (style.css), tránh lỗi StyleableProperty khi
+            // các styleClass trong bidding.fxml không tìm được định nghĩa trong scene.
+            BiddingController controller = ViewLoader.openInNewWindow("bidding.fxml", "Tham gia đặt giá");
 
-            controller.setAuctionData(currentAuctionId, currentPriceValue, minInc);
+            if (controller == null) {
+                AlertUtil.showError("Lỗi giao diện", "Không thể khởi tạo cửa sổ đặt giá.");
+                return;
+            }
 
-            Stage stage = new Stage();
-            stage.setTitle("Tham gia đặt giá");
-            stage.setScene(new Scene(root));
-            stage.show();
+            // Truyền dữ liệu phiên vào cửa sổ đặt giá
+            controller.setAuctionData(
+                currentAuctionId,
+                currentPriceValue,
+                minInc,
+                currentLeaderName,
+                currentLeaderBid,
+                currentProductName,
+                currentSellerId,
+                currentStatus,
+                currentBidCount,
+                secondsRemaining,
+                currentBidHistory
+            );
+
         } catch (Exception e) {
+            // In lỗi chi tiết ra console để debug
+            System.err.println("❌ Lỗi mở cửa sổ đặt giá: " + e.getClass().getName() + " — " + e.getMessage());
             e.printStackTrace();
-            AlertUtil.showError("Lỗi giao diện", "Không thể mở cửa sổ đặt giá.");
+            AlertUtil.showError("Lỗi giao diện", "Không thể mở cửa sổ đặt giá.\nChi tiết: " + e.getMessage());
         }
     }
 
@@ -327,19 +392,47 @@ public class AuctionDetailController implements BidUpdateListener {
             if (!data.get("auctionId").getAsString().equals(currentAuctionId)) return;
 
             if ("BID_PLACED".equals(eventName) || "BID_UPDATED".equals(eventName)) {
-                long newPrice = getLongSafe(data, "newCurrentPrice", getLongSafe(data, "amount", currentPriceValue));
-                String bidder = getSafe(data, "bidderName", getSafe(data, "bidder", "Người dùng"));
-                this.currentPriceValue = newPrice;
+                // FIX: dùng "amount" (giá của bid này) thay vì "newCurrentPrice" (đã bị cascade)
+                long bidAmount = getLongSafe(data, "amount", getLongSafe(data, "newCurrentPrice", currentPriceValue));
+                String bidder  = getSafe(data, "bidderName", getSafe(data, "bidder", "Người dùng"));
+                boolean isAuto = data.has("isAutoBid") && data.get("isAutoBid").getAsBoolean();
+
+                // Cập nhật state: chỉ cập nhật currentLeader nếu giá này CAO HƠN giá hiện tại
+                if (bidAmount >= this.currentPriceValue) {
+                    this.currentPriceValue = bidAmount;
+                    this.currentLeaderName = bidder;
+                    this.currentLeaderBid  = bidAmount;
+                }
+
+                final long   displayPrice  = bidAmount;
+                final String displayBidder = bidder;
+                final long   leaderPrice   = this.currentPriceValue;
+                final String leaderName    = this.currentLeaderName;
 
                 Platform.runLater(() -> {
-                    lblCurrentPrice.setText(formatMoney(newPrice));
-                    lvBidHistory.getItems().add(0, "[MỚI] " + bidder + ": " + formatMoney(newPrice));
-                    lblBidCount.setText(String.valueOf(lvBidHistory.getItems().size()));
+                    // Cập nhật giá hiện tại (chỉ nếu cao hơn giá đang hiển thị)
+                    lblCurrentPrice.setText(formatMoney(leaderPrice));
                     lblCurrentPrice.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
 
+                    // Thêm dòng [MỚI] vào đầu danh sách — mỗi bid là 1 dòng riêng
+                    String tag = isAuto ? "[AUTO] " : "[MỚI] ";
+                    lvBidHistory.getItems().add(0, tag + displayBidder + ": " + formatMoney(displayPrice));
+
+                    // bidCount tăng 1 mỗi lần có bid
+                    this.currentBidCount++;
+                    try {
+                        lblBidCount.setText(String.valueOf(this.currentBidCount));
+                    } catch (Exception ignored) {}
+
+                    // Cập nhật leader card — luôn hiển thị người có giá cao nhất
+                    lblLeaderName.setText(leaderName);
+                    lblLeaderBid.setText(formatMoney(leaderPrice));
+                    if (lblLeaderTime != null) lblLeaderTime.setText("");
+
+                    // Thêm điểm vào biểu đồ
                     if (priceSeries != null) {
-                        String timeLabel = getSafe(data, "time", String.valueOf(System.currentTimeMillis()));
-                        ChartUtil.addDataPoint(priceSeries, timeLabel, newPrice);
+                        String timeLabel = getSafe(data, "timestamp", getSafe(data, "time", ""));
+                        ChartUtil.addDataPoint(priceSeries, timeLabel, displayPrice);
                     }
                 });
             }

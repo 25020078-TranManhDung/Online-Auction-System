@@ -11,8 +11,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Utility class quản lý Token (In-memory).
- * Tối ưu: Gộp dữ liệu, Lazy Cleanup và Daemon Thread dọn dẹp rác.
+ * Utility class quản lý Token xác thực (In-Memory Store).
+ *
+ * [THIẾT KẾ CỐ Ý] Token được lưu trong ConcurrentHashMap trên RAM, KHÔNG persist xuống DB.
+ * Hệ quả đã biết: Khi server restart, toàn bộ token bị xóa và user phải đăng nhập lại.
+ * Đây là hành vi chấp nhận được cho phạm vi bài tập lớn (demo/học tập).
+ *
+ * [NÂNG CẤP PRODUCTION] Nếu cần token sống qua restart, thay thế bằng stateless JWT
+ * dùng thư viện JJWT (đã có sẵn trong server/pom.xml):
+ *   - generate() → Jwts.builder().subject(userId).claim("role", role).signWith(key).compact()
+ *   - isValid()   → Jwts.parser().verifyWith(key).build().parseSignedClaims(token)
+ * Lợi ích: Không cần lưu trữ, server có thể scale ngang (horizontal scaling).
  */
 public final class TokenUtil {
 
@@ -54,10 +63,10 @@ public final class TokenUtil {
      */
     public static String generate(String userId, String role) {
         String token = UUID.randomUUID().toString().replace("-", "")
-                + UUID.randomUUID().toString().replace("-", ""); // Gọn gàng hơn
+            + UUID.randomUUID().toString().replace("-", ""); // Gọn gàng hơn
 
-        // Lấy thời gian sống từ AppConfig (Hoặc fix cứng ví dụ 24h = 86400000L)
-        long expiryMs = 86400000L; // Tạm dùng số cứng, thay bằng AppConfig.getTokenExpiry() nếu có
+        // Lấy thời gian sống từ AppConfig (token.expiry.ms trong application.properties)
+        long expiryMs = AppConfig.getTokenExpiry();
         LocalDateTime expiry = LocalDateTime.now().plusSeconds(expiryMs / 1000);
 
         tokenStore.put(token, new TokenPayload(userId, role, expiry));

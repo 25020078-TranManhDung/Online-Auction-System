@@ -32,5 +32,26 @@
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Gson: dùng chung với server qua module shared -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!-- JavaFX Maven Plugin: cho phép chạy bằng lệnh "mvn javafx:run" -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <!-- Dùng Launcher thay vì MainApp để tránh lỗi module-path của JavaFX -->
+                    <mainClass>com.auction.client.Launcher</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

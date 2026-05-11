@@ -21,15 +21,24 @@ public class BidNotifier implements AuctionObserver {
 
     @Override
     public void onBidPlaced(Auction auction, BidTransaction bid) {
-        // Cập nhật bám sát PROTOCOL.md
+        // FIX RACE CONDITION: Dùng bid.getAmount() thay vì auction.getCurrentPrice().
+        //
+        // Vấn đề: publishBidPlaced(auction, bid_bidder2) được gọi bên trong synchronized block.
+        // onBidPlaced() kích hoạt AutoBidService → cascade placeSystemBid(bid_bidder1) →
+        // auction.currentPrice bị update lên 6.9M TRƯỚC KHI Map.of() ở đây được thực thi.
+        // → Client nhận push "bidder2: newCurrentPrice=6,900,000" (SAI — đúng phải là 6,800,000).
+        // → Màn hình hiển thị "[MỚI] bidder2: 6,900,000" và "[MỚI] bidder1: 6,900,000" — trùng giá.
+        //
+        // Fix: newCurrentPrice = bid.getAmount() = giá CHÍNH XÁC của bid vừa được xác nhận.
+        // BidTransaction.amount không bao giờ thay đổi sau khi được tạo → thread-safe.
         PushMessage push = new PushMessage("BID_PLACED", Map.of(
-                "auctionId",       auction.getId(),
-                "bidderId",        bid.getBidderId(), // PROTOCOL yêu cầu có bidderId
-                "bidderName",      bid.getBidderName(),
-                "amount",          bid.getAmount(),
-                "newCurrentPrice", auction.getCurrentPrice(),
-                "isAutoBid",       bid.isAutoBid(),
-                "timestamp",    bid.getTimestamp().toString()
+            "auctionId",       auction.getId(),
+            "bidderId",        bid.getBidderId(),
+            "bidderName",      bid.getBidderName(),
+            "amount",          bid.getAmount(),
+            "newCurrentPrice", bid.getAmount(),  // FIX: dùng giá của bid này, không phải auction hiện tại
+            "isAutoBid",       bid.isAutoBid(),
+            "timestamp",       bid.getTimestamp().toString()
         ));
         socketServer.broadcastToAuction(auction.getId(), JsonUtil.toJson(push));
     }
@@ -38,11 +47,11 @@ public class BidNotifier implements AuctionObserver {
     public void onAuctionClosed(Auction auction) {
         // Dùng ternary operator (toán tử 3 ngôi) để tránh NullPointerException trong Map.of
         PushMessage push = new PushMessage("AUCTION_CLOSED", Map.of(
-                "auctionId",  auction.getId(),
-                "winnerId",   auction.getCurrentLeader() != null ? auction.getCurrentLeader() : "",
-                "winnerName", auction.getCurrentLeader() != null ? auction.getCurrentLeader() : "Không có",
-                "finalPrice", auction.getCurrentPrice(),
-                "closedAt",   auction.getEndTime().toString() // Bổ sung theo PROTOCOL.md
+            "auctionId",  auction.getId(),
+            "winnerId",   auction.getCurrentLeader() != null ? auction.getCurrentLeader() : "",
+            "winnerName", auction.getCurrentLeader() != null ? auction.getCurrentLeader() : "Không có",
+            "finalPrice", auction.getCurrentPrice(),
+            "closedAt",   auction.getEndTime().toString() // Bổ sung theo PROTOCOL.md
         ));
         socketServer.broadcastToAuction(auction.getId(), JsonUtil.toJson(push));
     }
@@ -51,10 +60,10 @@ public class BidNotifier implements AuctionObserver {
     public void onAuctionExtended(Auction auction, long extraSeconds) {
         // Dùng extraSeconds động thay vì hardcode 60
         PushMessage push = new PushMessage("AUCTION_EXTENDED", Map.of(
-                "auctionId",  auction.getId(),
-                "newEndTime", auction.getEndTime().toString(),
-                "extendedBy", extraSeconds,
-                "message",    "Phiên đấu giá được gia hạn do có biến động giá phút cuối!"
+            "auctionId",  auction.getId(),
+            "newEndTime", auction.getEndTime().toString(),
+            "extendedBy", extraSeconds,
+            "message",    "Phiên đấu giá được gia hạn do có biến động giá phút cuối!"
         ));
         socketServer.broadcastToAuction(auction.getId(), JsonUtil.toJson(push));
     }
@@ -68,13 +77,12 @@ public class BidNotifier implements AuctionObserver {
     public void onError(Auction auction, String errorCode, String message) {
         // Push các sự kiện lỗi/hệ thống (VD: AUTO_BID_FAILED theo PROTOCOL.md)
         PushMessage push = new PushMessage(errorCode, Map.of(
-                "auctionId",    auction.getId(),
-                "message",      message,
-                "currentPrice", auction.getCurrentPrice()
+            "auctionId",    auction.getId(),
+            "message",      message,
+            "currentPrice", auction.getCurrentPrice()
         ));
         socketServer.broadcastToAuction(auction.getId(), JsonUtil.toJson(push));
     }
 
     // Lưu ý: Lớp PushMessage (hoặc DTO tương đương) cần tự động thiết lập thuộc tính type="PUSH" khi chuyển JSON.
 }
-

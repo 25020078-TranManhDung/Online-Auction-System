@@ -134,9 +134,9 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
             Map<String, Object> data = new HashMap<>();
             data.put("title", title);
             data.put("description", txtDescription.getText());
-            data.put("startPrice", startPrice);
-            data.put("minBidIncrement", minIncrement);
-            data.put("durationMinutes", duration);
+            data.put("startingPrice", startPrice);       // Khớp với field CreateAuctionRequest.startingPrice
+            data.put("minBidIncrement", minIncrement);   // Khớp với field CreateAuctionRequest.minBidIncrement
+            data.put("durationMinutes", duration);       // Khớp với field CreateAuctionRequest.durationMinutes
             data.put("category", ItemCategory.ELECTRONICS.name());
 
             AuctionResponse response = SocketClient.getInstance().send(Actions.CREATE_AUCTION, data, AuctionResponse.class);
@@ -295,23 +295,23 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         int total = sellerAuctions.size();
 
         long active = sellerAuctions.stream()
-                .filter(a -> {
-                    AuctionStatus st = a.getStatus();
-                    return st != null && AuctionStatus.RUNNING.equals(st);
-                })
-                .count();
+            .filter(a -> {
+                AuctionStatus st = a.getStatus();
+                return st != null && AuctionStatus.RUNNING.equals(st);
+            })
+            .count();
 
         long closed = sellerAuctions.stream()
-                .filter(a -> {
-                    AuctionStatus st = a.getStatus();
-                    return st != null && (AuctionStatus.FINISHED.equals(st) || AuctionStatus.PAID.equals(st));
-                })
-                .count();
+            .filter(a -> {
+                AuctionStatus st = a.getStatus();
+                return st != null && (AuctionStatus.FINISHED.equals(st) || AuctionStatus.PAID.equals(st));
+            })
+            .count();
 
         long revenue = sellerAuctions.stream()
-                .filter(a -> a.getCurrentPrice() != null)   // nếu currentPrice là Double
-                .mapToLong(a -> Math.round(a.getCurrentPrice()))
-                .sum();
+            .filter(a -> a.getCurrentPrice() != null)   // nếu currentPrice là Double
+            .mapToLong(a -> Math.round(a.getCurrentPrice()))
+            .sum();
 
         if (lblTotalItems != null) lblTotalItems.setText(String.valueOf(total));
         if (lblActiveItems != null) lblActiveItems.setText(String.valueOf(active));

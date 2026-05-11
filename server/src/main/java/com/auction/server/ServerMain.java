@@ -6,6 +6,7 @@ import com.auction.server.dao.impl.*;
 import com.auction.server.network.MessageRouter;
 import com.auction.server.network.SocketServer;
 import com.auction.server.observer.AuctionEventBus;
+import com.auction.server.observer.BidNotifier;
 import com.auction.server.pattern.singleton.AuctionManager;
 import com.auction.server.pattern.singleton.DatabaseManager;
 import com.auction.server.service.*;
@@ -97,6 +98,10 @@ public class ServerMain {
             // =========================================================
             System.out.print("[5/8] Thiết lập Event Bus & Khôi phục Auto-Bid... ");
             AuctionEventBus.getInstance().subscribe(autoBidService);
+            // FIX: Nạp lại các auto-bid settings đang active từ DB vào in-memory queues.
+            // Nếu bỏ dòng này, sau mỗi lần server restart queues sẽ rỗng
+            // dù DB vẫn còn bản ghi is_active=true → auto-bid không bao giờ kích hoạt.
+            autoBidService.restoreQueuesFromDatabase(runningAuctions);
             System.out.println("✅ OK");
 
             // =========================================================
@@ -111,7 +116,12 @@ public class ServerMain {
             // 6.2 Khởi tạo mạng lưới Socket lắng nghe Client
             socketServer = new SocketServer(PORT, messageRouter);
 
-            // 6.3 Tiêm các Service nghiệp vụ và SocketServer vào các Controller giao tiếp
+            // 6.3 Tạo BidNotifier — Observer gửi push notification qua Socket
+            // (Phải tạo SAU khi socketServer đã được khởi tạo)
+            BidNotifier bidNotifier = new BidNotifier(socketServer);
+            AuctionEventBus.getInstance().subscribe(bidNotifier);
+
+            // 6.4 Tiêm các Service nghiệp vụ và SocketServer vào các Controller giao tiếp
             UserController userCtrl = new UserController(userService, socketServer);
             AuctionController auctionCtrl = new AuctionController(auctionService);
             BidController bidCtrl = new BidController(bidService, autoBidService);

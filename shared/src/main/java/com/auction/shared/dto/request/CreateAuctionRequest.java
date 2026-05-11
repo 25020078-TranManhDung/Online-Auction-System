@@ -11,6 +11,8 @@ public class CreateAuctionRequest implements Serializable {
     private String title;
     private String description;
     private double startingPrice;
+    private double minBidIncrement;   // Bước giá tối thiểu từ Client
+    private int durationMinutes = 60; // Thời lượng phiên (phút), mặc định 60
     private ItemCategory category;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
@@ -43,6 +45,12 @@ public class CreateAuctionRequest implements Serializable {
     public double getStartingPrice() { return startingPrice; }
     public void setStartingPrice(double startingPrice) { this.startingPrice = startingPrice; }
 
+    public double getMinBidIncrement() { return minBidIncrement; }
+    public void setMinBidIncrement(double minBidIncrement) { this.minBidIncrement = minBidIncrement; }
+
+    public int getDurationMinutes() { return durationMinutes > 0 ? durationMinutes : 60; }
+    public void setDurationMinutes(int durationMinutes) { this.durationMinutes = durationMinutes; }
+
     public ItemCategory getCategory() { return category; }
     public void setCategory(ItemCategory category) { this.category = category; }
 
@@ -55,4 +63,3 @@ public class CreateAuctionRequest implements Serializable {
     public Map<String, Object> getItemAttributes() { return itemAttributes; }
     public void setItemAttributes(Map<String, Object> itemAttributes) { this.itemAttributes = itemAttributes; }
 }
-

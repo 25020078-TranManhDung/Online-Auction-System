@@ -26,6 +26,10 @@ public class AuctionResponse implements Serializable {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private AuctionStatus status;
+    private long timeRemaining; // Số giây còn lại — Client dùng để hiển thị đếm ngược
+    private double minBidIncrement; // Bước giá tối thiểu
+    private int bidCount;           // Số lượt đặt giá
+    private java.util.List<Object> recentBids; // Lịch sử đặt giá gần đây
 
     public AuctionResponse() {}
 
@@ -76,4 +80,16 @@ public class AuctionResponse implements Serializable {
 
     public String getSellerId() { return sellerId; }
     public void setSellerId(String sellerId) { this.sellerId = sellerId; }
+
+    public long getTimeRemaining() { return timeRemaining; }
+    public void setTimeRemaining(long timeRemaining) { this.timeRemaining = timeRemaining; }
+
+    public double getMinBidIncrement() { return minBidIncrement; }
+    public void setMinBidIncrement(double minBidIncrement) { this.minBidIncrement = minBidIncrement; }
+
+    public int getBidCount() { return bidCount; }
+    public void setBidCount(int bidCount) { this.bidCount = bidCount; }
+
+    public java.util.List<Object> getRecentBids() { return recentBids; }
+    public void setRecentBids(java.util.List<Object> recentBids) { this.recentBids = recentBids; }
 }

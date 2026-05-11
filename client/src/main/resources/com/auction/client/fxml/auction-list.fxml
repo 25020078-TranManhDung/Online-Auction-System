@@ -5,6 +5,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.text.*?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.Circle?>
 
 <AnchorPane fx:id="auctionListPane" prefWidth="1400.0" prefHeight="800.0"
             styleClass="auction-bg"
@@ -13,9 +14,6 @@
 
     <children>
 
-        <!-- ═══════════════════════════════════════════════════
-             HEADER – đồng bộ style với login/register
-             ═══════════════════════════════════════════════════ -->
         <HBox alignment="CENTER_LEFT" spacing="14.0"
               AnchorPane.topAnchor="24.0"
               AnchorPane.leftAnchor="30.0"
@@ -24,7 +22,6 @@
               styleClass="glass-box"
               style="-fx-background-radius: 20; -fx-padding: 16 36 16 36;">
 
-            <!-- Logo -->
             <ImageView fitHeight="52.0" fitWidth="52.0"
                        pickOnBounds="true"
                        preserveRatio="true"
@@ -34,17 +31,14 @@
                 </image>
             </ImageView>
 
-            <!-- Tên thương hiệu -->
             <VBox alignment="CENTER_LEFT" spacing="2.0">
                 <Label text="Online Auction System" styleClass="auction-title"/>
                 <Label text="Sàn đấu giá trực tuyến – Sôi động · Uy tín · Minh bạch"
                        styleClass="auction-subtitle"/>
             </VBox>
 
-            <!-- Spacer -->
             <Region HBox.hgrow="ALWAYS"/>
 
-            <!-- Khu vực người dùng -->
             <HBox alignment="CENTER" spacing="14.0">
                 <ImageView fx:id="imgAvatar"
                            fitHeight="40.0" fitWidth="40.0"
@@ -68,105 +62,125 @@
             </HBox>
         </HBox>
 
-        <!-- ═══════════════════════════════════════════════════
-             VÙNG NỘI DUNG CHÍNH – glass-box lớn
-             ═══════════════════════════════════════════════════ -->
-        <VBox alignment="TOP_LEFT" spacing="16.0"
+        <HBox spacing="20.0"
               AnchorPane.topAnchor="128.0"
               AnchorPane.leftAnchor="30.0"
               AnchorPane.rightAnchor="30.0"
-              AnchorPane.bottomAnchor="36.0"
-              styleClass="glass-box"
-              style="-fx-background-radius: 22; -fx-padding: 32 40 28 40;">
+              AnchorPane.bottomAnchor="36.0">
 
-            <!-- ─── Thanh tiêu đề + công cụ tìm kiếm / lọc ─── -->
-            <HBox alignment="CENTER_LEFT" spacing="14.0">
+            <VBox prefWidth="260.0" spacing="12.0"
+                  styleClass="glass-box"
+                  style="-fx-background-radius: 22; -fx-padding: 24 20; -fx-background-color: #ffffff99;">
 
-                <!-- Tiêu đề trang -->
-                <VBox alignment="CENTER_LEFT" spacing="2.0">
-                    <Label text="Danh sách phiên đấu giá"
-                           styleClass="login-main-title"/>
-                    <Label fx:id="lblAuctionCount"
-                           text="Đang tải..."
-                           style="-fx-font-size: 13px; -fx-text-fill: #9b59b6;"/>
-                </VBox>
+                <Label text="Danh mục tài sản"
+                       style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #8e44ad; -fx-padding: 0 0 10 0;"/>
 
-                <!-- Spacer -->
-                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="📁  Tất cả sản phẩm" onAction="#showAllItems" prefWidth="Infinity"
+                        style="-fx-background-color: transparent; -fx-font-size: 14.5px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;"/>
+                <Separator/>
+                <Button text="🎨  Nghệ thuật (Art)" onAction="#showArts" prefWidth="Infinity"
+                        style="-fx-background-color: transparent; -fx-font-size: 14.5px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;"/>
+                <Separator/>
+                <Button text="💻  Đồ điện tử (Electronics)" onAction="#showElectronics" prefWidth="Infinity"
+                        style="-fx-background-color: transparent; -fx-font-size: 14.5px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;"/>
+                <Separator/>
+                <Button text="🚗  Phương tiện (Vehicle)" onAction="#showVehicles" prefWidth="Infinity"
+                        style="-fx-background-color: transparent; -fx-font-size: 14.5px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;"/>
+                <Separator/>
+                <Button text="📦  Tài sản khác" onAction="#showOthers" prefWidth="Infinity"
+                        style="-fx-background-color: transparent; -fx-font-size: 14.5px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;"/>
+            </VBox>
 
-                <!-- Ô tìm kiếm -->
-                <VBox alignment="CENTER_LEFT" spacing="4.0">
-                    <Label text="Tìm kiếm" styleClass="field-label"/>
-                    <TextField fx:id="txtSearch"
-                               promptText="Tên sản phẩm, người bán..."
-                               styleClass="input-auction"
-                               prefWidth="230.0"
-                               onKeyReleased="#handleSearch"/>
-                </VBox>
+            <VBox HBox.hgrow="ALWAYS" alignment="TOP_LEFT" spacing="16.0"
+                  styleClass="glass-box"
+                  style="-fx-background-radius: 22; -fx-padding: 32 40 28 40;">
 
-                <!-- Lọc trạng thái -->
-                <VBox alignment="CENTER_LEFT" spacing="4.0">
-                    <Label text="Trạng thái" styleClass="field-label"/>
-                    <ComboBox fx:id="cboFilter"
-                              promptText="Tất cả"
-                              prefWidth="160.0"
-                              styleClass="input-auction"
-                              onAction="#handleFilter"/>
-                </VBox>
-
-                <!-- Nút làm mới -->
-                <VBox alignment="BOTTOM_LEFT" spacing="4.0">
-                    <Label text=" " styleClass="field-label"/>
-                    <Button fx:id="btnRefresh"
-                            text="⟳  Làm mới"
-                            onAction="#handleRefresh"
-                            styleClass="btn-auction-primary"
-                            style="-fx-font-size: 13px; -fx-padding: 8 22;"/>
-                </VBox>
-            </HBox>
-
-            <!-- ─── Separator ─── -->
-            <Separator style="-fx-background-color: #9b59b630;"/>
-
-            <!-- ─── Bảng danh sách phiên đấu giá ─── -->
-            <TableView fx:id="tbAuctions"
-                       VBox.vgrow="ALWAYS"
-                       style="-fx-background-radius: 14; -fx-font-size: 14.5px;
-                              -fx-background-color: transparent;">
-                <columns>
-                    <TableColumn fx:id="colNo"       text="#"              prefWidth="50.0"  style="-fx-alignment: CENTER;"/>
-                    <TableColumn fx:id="colName"     text="Tên Sản Phẩm"   prefWidth="250.0"/>
-                    <TableColumn fx:id="colSeller"   text="Người Bán"      prefWidth="155.0"/>
-                    <TableColumn fx:id="colPrice"    text="Giá Hiện Tại"   prefWidth="145.0" style="-fx-alignment: CENTER_RIGHT;"/>
-                    <TableColumn fx:id="colEndTime"  text="Kết Thúc Lúc"   prefWidth="155.0" style="-fx-alignment: CENTER;"/>
-                    <TableColumn fx:id="colBidCount" text="Lượt Đặt"       prefWidth="100.0" style="-fx-alignment: CENTER;"/>
-                    <TableColumn fx:id="colStatus"   text="Trạng Thái"     prefWidth="120.0" style="-fx-alignment: CENTER;"/>
-                    <TableColumn fx:id="colAction"   text="Thao Tác"       prefWidth="130.0" style="-fx-alignment: CENTER;"/>
-                </columns>
-
-                <!-- Placeholder khi bảng rỗng -->
-                <placeholder>
-                    <VBox alignment="CENTER" spacing="10.0">
-                        <Label text="Không có phiên đấu giá nào"
-                               style="-fx-font-size: 15px; -fx-text-fill: #9b59b6; -fx-font-style: italic;"/>
-                        <Label text="Hãy thử thay đổi bộ lọc hoặc tìm kiếm từ khoá khác"
-                               style="-fx-font-size: 13px; -fx-text-fill: #bdc3c7;"/>
+                <HBox alignment="CENTER_LEFT" spacing="14.0">
+                    <VBox alignment="CENTER_LEFT" spacing="2.0">
+                        <Label fx:id="lblMainTitle" text="Danh sách phiên đấu giá"
+                               styleClass="login-main-title"/>
+                        <Label fx:id="lblAuctionCount"
+                               text="Đang tải..."
+                               style="-fx-font-size: 13px; -fx-text-fill: #9b59b6;"/>
                     </VBox>
-                </placeholder>
-            </TableView>
 
-            <!-- ─── Thông báo lỗi / hướng dẫn ─── -->
-            <Label fx:id="lblMessage"
-                   visible="false"
-                   wrapText="true"
-                   alignment="CENTER"
-                   style="-fx-font-size: 14px; -fx-text-fill: #e67e22; -fx-padding: 8 0 0 0;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
 
-        </VBox>
+                    <VBox alignment="CENTER_LEFT" spacing="4.0">
+                        <Label text="Tìm kiếm" styleClass="field-label"/>
+                        <TextField fx:id="txtSearch"
+                                   promptText="Tên sản phẩm, người bán..."
+                                   styleClass="input-auction"
+                                   prefWidth="230.0"
+                                   onKeyReleased="#handleSearch"/>
+                    </VBox>
 
-        <!-- ═══════════════════════════════════════════════════
-             FOOTER – đồng bộ với login / register
-             ═══════════════════════════════════════════════════ -->
+                    <VBox alignment="CENTER_LEFT" spacing="4.0">
+                        <Label text="Trạng thái" styleClass="field-label"/>
+                        <ComboBox fx:id="cboFilter"
+                                  promptText="Tất cả"
+                                  prefWidth="160.0"
+                                  styleClass="input-auction"
+                                  onAction="#handleFilter"/>
+                    </VBox>
+
+                    <VBox alignment="BOTTOM_LEFT" spacing="4.0">
+                        <Label text=" " styleClass="field-label"/>
+                        <Button fx:id="btnRefresh"
+                                text="⟳  Làm mới"
+                                onAction="#handleRefresh"
+                                styleClass="btn-auction-primary"
+                                style="-fx-font-size: 13px; -fx-padding: 8 22;"/>
+                    </VBox>
+                </HBox>
+
+                <Separator style="-fx-background-color: #9b59b630;"/>
+
+                <TableView fx:id="tbAuctions"
+                           VBox.vgrow="ALWAYS"
+                           style="-fx-background-radius: 14; -fx-font-size: 14.5px;
+                                  -fx-background-color: transparent;">
+                    <columns>
+                        <TableColumn fx:id="colNo"       text="#"              prefWidth="50.0"  style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colName"     text="Tên Sản Phẩm"   prefWidth="250.0"/>
+                        <TableColumn fx:id="colSeller"   text="Người Bán"      prefWidth="155.0"/>
+                        <TableColumn fx:id="colPrice"    text="Giá Hiện Tại"   prefWidth="145.0" style="-fx-alignment: CENTER_RIGHT;"/>
+                        <TableColumn fx:id="colEndTime"  text="Kết Thúc Lúc"   prefWidth="155.0" style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colBidCount" text="Lượt Đặt"       prefWidth="100.0" style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colStatus"   text="Trạng Thái"     prefWidth="120.0" style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colAction"   text="Thao Tác"       prefWidth="130.0" style="-fx-alignment: CENTER;"/>
+                    </columns>
+
+                    <placeholder>
+                        <VBox alignment="CENTER" spacing="20.0" style="-fx-padding: 40;">
+                            <StackPane>
+                                <Circle radius="40" fill="#f3e5f5" stroke="#9b59b6" strokeType="INSIDE" strokeWidth="0.5" />
+                                <Label text="📦" style="-fx-font-size: 40px;"/>
+                            </StackPane>
+
+                            <VBox alignment="CENTER" spacing="8.0">
+                                <Label text="Chưa có sản phẩm nào!"
+                                       style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
+                                <Label text="Danh mục này hiện chưa có phiên đấu giá nào diễn ra."
+                                       style="-fx-font-size: 14px; -fx-text-fill: #7f8c8d;"/>
+                                <Label text="Hãy thử khám phá các danh mục khác hoặc quay lại sau nhé."
+                                       style="-fx-font-size: 13px; -fx-text-fill: #bdc3c7; -fx-font-style: italic;"/>
+                            </VBox>
+
+                            <Button text="Thử làm mới dữ liệu" onAction="#handleRefresh"
+                                    style="-fx-background-color: transparent; -fx-text-fill: #9b59b6; -fx-cursor: hand; -fx-underline: true;"/>
+                        </VBox>
+                    </placeholder>
+                </TableView>
+
+                <Label fx:id="lblMessage"
+                       visible="false"
+                       wrapText="true"
+                       alignment="CENTER"
+                       style="-fx-font-size: 14px; -fx-text-fill: #e67e22; -fx-padding: 8 0 0 0;"/>
+            </VBox>
+        </HBox>
+
         <HBox alignment="CENTER"
               AnchorPane.bottomAnchor="8.0"
               AnchorPane.leftAnchor="0.0"

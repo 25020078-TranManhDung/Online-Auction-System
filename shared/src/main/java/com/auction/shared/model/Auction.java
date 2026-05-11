@@ -26,6 +26,11 @@ public class Auction extends Entity {
 
     public Auction() {
         super();
+        // CRITICAL FIX: Phải khởi tạo bidHistory ở đây.
+        // AuctionDaoImpl.mapToAuction() dùng constructor này khi load Auction từ DB,
+        // nhưng không gọi setBidHistory() → bidHistory = null → NPE khi gọi addBidTransaction()
+        this.bidHistory = new ArrayList<>();
+        this.bidCount   = 0;
     }
     public Auction(String id, String itemId, String sellerId, double startPrice, double minBidIncrement, LocalDateTime startTime, LocalDateTime endTime) {
         super(id);
