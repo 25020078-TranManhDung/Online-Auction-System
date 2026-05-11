@@ -134,5 +134,7 @@ public class ViewLoader {
         stage.setTitle(title);
         stage.setScene(scene);
         stage.show();
+
+        stage.centerOnScreen();
     }
 }
