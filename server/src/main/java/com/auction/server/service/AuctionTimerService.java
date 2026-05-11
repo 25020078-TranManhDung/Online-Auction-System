@@ -38,8 +38,8 @@ public class AuctionTimerService {
 
         // TỐI ƯU 2: Quét mỗi 1 giây vì chúng ta thao tác trên RAM, cực kỳ nhẹ và chính xác tuyệt đối
         scheduler.scheduleAtFixedRate(
-                this::checkExpiredAuctions,
-                0, 1, TimeUnit.SECONDS
+            this::checkExpiredAuctions,
+            0, 1, TimeUnit.SECONDS
         );
 
         System.out.println("✅ AuctionTimerService đã khởi động (Chế độ Real-time: 1s/lần).");
@@ -56,11 +56,28 @@ public class AuctionTimerService {
         try {
             LocalDateTime now = LocalDateTime.now();
 
+            // === FIX: Tự động chuyển OPEN -> RUNNING khi startTime đã đến ===
+            // Phiên tạo ra với startTime = now nên sẽ RUNNING trong vòng 1 giây
+            List<Auction> pendingAuctions = manager.getAll().stream()
+                .filter(a -> a.getStatus() == AuctionStatus.OPEN)
+                .filter(a -> a.getStartTime() != null &&
+                    (a.getStartTime().isBefore(now) || a.getStartTime().isEqual(now)))
+                .collect(Collectors.toList());
+
+            for (Auction auction : pendingAuctions) {
+                try {
+                    auctionService.startAuction(auction.getId(), null);
+                    System.out.println("▶ Tự động bắt đầu phiên: " + auction.getId());
+                } catch (Exception e) {
+                    System.err.println("❌ Lỗi khi start phiên [" + auction.getId() + "]: " + e.getMessage());
+                }
+            }
+
             // 1. Lọc các phiên đang chạy và đã qua thời gian kết thúc (từ RAM)
             List<Auction> expiredAuctions = manager.getAll().stream()
-                    .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
-                    .filter(a -> a.getEndTime().isBefore(now) || a.getEndTime().isEqual(now))
-                    .collect(Collectors.toList());
+                .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
+                .filter(a -> a.getEndTime().isBefore(now) || a.getEndTime().isEqual(now))
+                .collect(Collectors.toList());
 
             if (!expiredAuctions.isEmpty()) {
                 System.out.println("⏳ Phát hiện " + expiredAuctions.size() + " phiên đấu giá hết hạn lúc " + now);

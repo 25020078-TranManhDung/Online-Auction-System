@@ -93,17 +93,18 @@ public class AuctionService {
         auction.setStartPrice(req.getStartingPrice());
         auction.setCurrentPrice(req.getStartingPrice());
 
-        // Xử lý MinBidIncrement bị thiếu trong DTO (Ví dụ: Set mặc định bước giá là 5% giá khởi điểm)
-        double defaultIncrement = req.getStartingPrice() * 0.05;
-        auction.setMinBidIncrement(defaultIncrement);
+        // BUG FIX: Dùng minBidIncrement từ Client thay vì tính mặc định 5%
+        // Nếu Client không gửi (= 0), fallback về 5% giá khởi điểm
+        double increment = req.getMinBidIncrement() > 0
+            ? req.getMinBidIncrement()
+            : Math.max(1, req.getStartingPrice() * 0.05);
+        auction.setMinBidIncrement(increment);
 
-        // 👉 ĐOẠN MỚI: TỰ ĐỘNG XỬ LÝ END_TIME (GIỜ KẾT THÚC)
+        // BUG FIX: Dùng durationMinutes từ Client để tính endTime chính xác
         if (req.getEndTime() != null) {
-            auction.setEndTime(req.getEndTime()); // Nếu có sẵn thì dùng
+            auction.setEndTime(req.getEndTime());
         } else {
-            // Nếu Client gửi lên bị null, Server tự động cộng thêm 60 phút
-            // (Nếu mày đã thêm getDuration() vào Request rồi thì sửa 60 thành req.getDuration())
-            auction.setEndTime(now.plusMinutes(60));
+            auction.setEndTime(now.plusMinutes(req.getDurationMinutes()));
         }
 
         auction.setStatus(AuctionStatus.OPEN);
@@ -112,6 +113,9 @@ public class AuctionService {
         if (!isSaved) {
             throw new RuntimeException("Đã xảy ra lỗi hệ thống khi lưu phiên đấu giá.");
         }
+
+        // FIX: Thêm vào AuctionManager để AuctionTimerService scan được và tự động OPEN→RUNNING
+        manager.addAuction(auction);
 
         // Khởi tạo DTO phản hồi
         AuctionResponse response = new AuctionResponse();
@@ -127,6 +131,7 @@ public class AuctionService {
         response.setStartTime(auction.getStartTime());
         response.setEndTime(auction.getEndTime());
         response.setStatus(auction.getStatus());
+        response.setTimeRemaining(calcTimeRemaining(auction)); // BUG FIX: client cần để đếm ngược
 
         // Thêm sellerId (lấy từ biến sellerId đã xác thực ở đầu hàm createAuction)
         response.setSellerId(sellerId);
@@ -135,8 +140,8 @@ public class AuctionService {
     }
 
     public AuctionResponse startAuction(String auctionId, String token) {
-        // Kiểm tra token cơ bản
-        if (!TokenUtil.isValid(token)) {
+        // Cho phép gọi nội bộ (từ AuctionTimerService) với token = null
+        if (token != null && !TokenUtil.isValid(token)) {
             throw new AuctionException("UNAUTHORIZED", "Bạn cần đăng nhập để thực hiện thao tác này.");
         }
 
@@ -168,13 +173,8 @@ public class AuctionService {
         response.setTitle(item != null ? item.getTitle() : "Không xác định");
         response.setDescription(item != null ? item.getDescription() : "Không xác định");
 
-        if (item instanceof com.auction.shared.model.item.Art) {
-            response.setCategory("Art");
-        } else if (item instanceof com.auction.shared.model.item.Electronics) {
-            response.setCategory("Electronics");
-        } else if (item instanceof com.auction.shared.model.item.Vehicle) {
-            response.setCategory("Vehicle");
-        } else if (item != null && item.getCategory() != null) {
+        // Kiểm tra enum category để tránh lỗi NullPointerException
+        if (item != null && item.getCategory() != null) {
             response.setCategory(item.getCategory().name());
         } else {
             response.setCategory("N/A");
@@ -234,28 +234,38 @@ public class AuctionService {
         response.setDescription(item != null ? item.getDescription() : "Không xác định");
         response.setCategory((item != null && item.getCategory() != null) ? item.getCategory().name() : "N/A");
 
-        if (item instanceof com.auction.shared.model.item.Art) {
-            response.setCategory("Art");
-        } else if (item instanceof com.auction.shared.model.item.Electronics) {
-            response.setCategory("Electronics");
-        } else if (item instanceof com.auction.shared.model.item.Vehicle) {
-            response.setCategory("Vehicle");
-        } else if (item != null && item.getCategory() != null) {
-            response.setCategory(item.getCategory().name());
-        } else {
-            response.setCategory("N/A");
-        }
-
         response.setStartingPrice(auction.getStartPrice());
         response.setCurrentPrice(auction.getCurrentPrice());
-        response.setHighestBidderName(auction.getCurrentLeader()); // Lấy tên người đang dẫn đầu
+        response.setHighestBidderName(auction.getCurrentLeader());
         response.setSellerId(auction.getSellerId());
 
         response.setStartTime(auction.getStartTime());
         response.setEndTime(auction.getEndTime());
         response.setStatus(auction.getStatus());
+        response.setTimeRemaining(calcTimeRemaining(auction));
+
+        // FIX: Thêm các trường bị thiếu khiến client không hiển thị được
+        response.setMinBidIncrement(auction.getMinBidIncrement()); // bước giá tối thiểu
+        response.setBidCount(auction.getBidCount());               // số lượt đặt giá
+
+        // Load lịch sử đặt giá từ DB để hiển thị trên client
+        try {
+            List<com.auction.shared.model.BidTransaction> bids = bidDao.findByAuctionId(auctionId);
+            if (bids != null) {
+                response.setRecentBids(new java.util.ArrayList<>(bids));
+            }
+        } catch (Exception e) {
+            System.err.println("[AuctionService.getDetail] Không load được bid history: " + e.getMessage());
+        }
 
         return response;
+    }
+
+    // Hàm tiện ích: Tính số giây còn lại của phiên đấu giá
+    private long calcTimeRemaining(Auction auction) {
+        if (auction.getEndTime() == null) return 0;
+        long seconds = java.time.Duration.between(LocalDateTime.now(), auction.getEndTime()).toSeconds();
+        return Math.max(0, seconds);
     }
 
     // Hàm tiện ích: Tối ưu truy xuất dữ liệu
@@ -314,21 +324,7 @@ public class AuctionService {
         response.setAuctionId(auction.getId());
         response.setTitle(item != null ? item.getTitle() : "Không xác định");
         response.setDescription(item != null ? item.getDescription() : "Không xác định");
-
-        // ======================= THAY ĐỔI Ở ĐÂY =======================
-        // Áp dụng Đa hình (Polymorphism) để xác định danh mục an toàn 100%
-        if (item instanceof com.auction.shared.model.item.Art) {
-            response.setCategory("Art");
-        } else if (item instanceof com.auction.shared.model.item.Electronics) {
-            response.setCategory("Electronics");
-        } else if (item instanceof com.auction.shared.model.item.Vehicle) {
-            response.setCategory("Vehicle");
-        } else if (item != null && item.getCategory() != null) {
-            response.setCategory(item.getCategory().name());
-        } else {
-            response.setCategory("N/A");
-        }
-        // ==============================================================
+        response.setCategory((item != null && item.getCategory() != null) ? item.getCategory().name() : "N/A");
 
         response.setStartingPrice(auction.getStartPrice());
         response.setCurrentPrice(auction.getCurrentPrice());
@@ -338,6 +334,8 @@ public class AuctionService {
         response.setStartTime(auction.getStartTime());
         response.setEndTime(auction.getEndTime());
         response.setStatus(auction.getStatus());
+        response.setTimeRemaining(calcTimeRemaining(auction)); // BUG FIX
+        response.setBidCount(auction.getBidCount());           // BUG FIX: thiếu dòng này khiến bidCount luôn = 0 trong danh sách
 
         return response;
     }

@@ -15,8 +15,8 @@ import com.auction.shared.model.user.Bidder;
 import com.auction.shared.model.user.Seller;
 import com.auction.shared.model.user.Admin;
 import java.util.List;
-
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * UserService xử lý logic nghiệp vụ liên quan đến người dùng.
@@ -36,17 +36,20 @@ public class UserService {
             throw new UserAlreadyExistsException("Tên đăng nhập '" + request.getUsername() + "' đã tồn tại.");
         }
 
-        // 2. Tạo đối tượng User mới
+        // 2. Tạo đối tượng User mới, gán UUID ngay sau khi khởi tạo
         User user;
         switch (request.getRole()) {
             case BIDDER:
                 user = new Bidder();
+                user.setId(UUID.randomUUID().toString());
                 break;
             case SELLER:
                 user = new Seller();
+                user.setId(UUID.randomUUID().toString());
                 break;
             case ADMIN:
                 user = new Admin();
+                user.setId(UUID.randomUUID().toString());
                 break;
             default:
                 throw new IllegalArgumentException("Vai trò không hợp lệ!");
@@ -64,12 +67,10 @@ public class UserService {
         // 4. Lưu vào Database
         boolean isSaved = userDao.save(user);
         if (!isSaved) {
-            // Ném ngoại lệ nếu lưu DB thất bại
             throw new RuntimeException("Đã xảy ra lỗi khi lưu người dùng vào cơ sở dữ liệu.");
         }
 
-        // 5. Tạo JWT Token (Sử dụng luôn đối tượng 'user' thay vì 'savedUser')
-        // Lưu ý: Đảm bảo biến 'user' lúc này đã có ID (do DAO gán vào hoặc bạn tự sinh UUID từ trước).
+        // 5. Tạo JWT Token (user.getId() lúc này chắc chắn không null)
         String token = TokenUtil.generate(user.getId(), user.getRole().name());
 
         return new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
@@ -97,8 +98,8 @@ public class UserService {
         User user = userDao.findById(userId);
         if (user == null) {
             throw new ResourceNotFoundException(
-                    "USER_NOT_FOUND",
-                    "Không tìm thấy người dùng với ID: " + userId
+                "USER_NOT_FOUND",
+                "Không tìm thấy người dùng với ID: " + userId
             );
         }
         return user;
@@ -119,8 +120,8 @@ public class UserService {
         User user = userDao.findById(userId);
         if (user == null) {
             throw new ResourceNotFoundException(
-                    "USER_NOT_FOUND",
-                    "Không tìm thấy người dùng với ID: " + userId
+                "USER_NOT_FOUND",
+                "Không tìm thấy người dùng với ID: " + userId
             );
         }
 

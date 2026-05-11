@@ -87,7 +87,7 @@
                 <Button text="🚗  Phương tiện (Vehicle)" onAction="#showVehicles" prefWidth="Infinity"
                         style="-fx-background-color: transparent; -fx-font-size: 14.5px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;"/>
                 <Separator/>
-                <Button text="📦  Tài sản khác" prefWidth="Infinity"
+                <Button text="📦  Tài sản khác" onAction="#showOthers" prefWidth="Infinity"
                         style="-fx-background-color: transparent; -fx-font-size: 14.5px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;"/>
             </VBox>
 

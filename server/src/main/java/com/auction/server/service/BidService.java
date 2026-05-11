@@ -52,6 +52,16 @@ public class BidService {
             throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ hoặc đã hết hạn.");
         }
 
+        return placeBidInternal(req, bidderId);
+    }
+
+    // Dành riêng cho hệ thống Auto-Bid (bỏ qua token, lấy bidderId từ request)
+    public void placeSystemBid(BidRequest req) {
+        placeBidInternal(req, req.getBidderId());
+    }
+
+    // Hàm lõi dùng chung — chứa toàn bộ logic đặt giá
+    private BidResponse placeBidInternal(BidRequest req, String bidderId) {
         String auctionId = req.getAuctionId();
         double amount = req.getAmount();
 
@@ -89,13 +99,13 @@ public class BidService {
 
             // 6. Xây dựng đối tượng Transaction
             BidTransaction newBid = new BidTransaction(
-                    UUID.randomUUID().toString(),
-                    auctionId,
-                    bidderId,
-                    bidder.getUsername(),
-                    amount,
-                    LocalDateTime.now(),
-                    req.isAutoBid() // Dựa vào yêu cầu nếu nhóm có tích hợp auto-bid
+                UUID.randomUUID().toString(),
+                auctionId,
+                bidderId,
+                bidder.getUsername(),
+                amount,
+                LocalDateTime.now(),
+                req.isAutoBid()
             );
 
             // 7. Gọi hàm xử lý logic kinh tế đã định nghĩa sẵn trong class Auction
@@ -103,7 +113,7 @@ public class BidService {
 
             if (!isValidBid) {
                 throw new AuctionException("INSUFFICIENT_BID",
-                        "Mức giá phải lớn hơn hoặc bằng Giá hiện tại (" + auction.getCurrentPrice() + ") + Bước giá tối thiểu (" + auction.getMinBidIncrement() + ")");
+                    "Mức giá phải lớn hơn hoặc bằng Giá hiện tại (" + auction.getCurrentPrice() + ") + Bước giá tối thiểu (" + auction.getMinBidIncrement() + ")");
             }
 
             // 8. Cập nhật vào Cơ sở dữ liệu
@@ -121,23 +131,12 @@ public class BidService {
             response.setAuctionId(auctionId);
             response.setBidderId(bidderId);
             response.setBidderName(bidder.getUsername());
-            response.setAmount(amount); // Mức giá user vừa đặt
-
-            // Sửa thành setNewCurrentPrice cho đúng với thiết kế của DTO
+            response.setAmount(amount);
             response.setNewCurrentPrice(auction.getCurrentPrice());
 
             return response;
 
         } // Kết thúc đồng bộ hóa (Unlock)
-    }
-
-    // Dành riêng cho hệ thống Auto-Bid (Bỏ qua khâu check token)
-    public void placeSystemBid(BidRequest req) {
-        // Tái sử dụng logic kiểm tra bằng cách truyền giả một chuỗi token (nếu bạn tự thiết kế Token đặc biệt cho Admin)
-        // HOẶC tách toàn bộ logic từ dòng số 2 của placeBid cũ ra một hàm private placeBidInternal(req, bidderId)
-        // rồi cả 2 hàm đều gọi vào đó.
-
-        // (Đây là bài tập nhỏ về Refactoring cho nhóm, bạn hãy tách code để tránh lặp code nhé!)
     }
 
     /**
@@ -146,16 +145,14 @@ public class BidService {
      */
     private void checkAndExtend(Auction auction) {
         long remainingSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
-                LocalDateTime.now(), auction.getEndTime()
+            LocalDateTime.now(), auction.getEndTime()
         );
 
         if (remainingSeconds > 0 && remainingSeconds <= 30) {
             auction.setEndTime(auction.getEndTime().plusSeconds(60));
             auctionDao.update(auction); // Cập nhật DB
 
-            // Bắn sự kiện cập nhật thời gian
-            // (Nếu nhóm chưa khai báo publishAuctionExtended thì cứ để tạm comment)
-            // eventBus.publishAuctionExtended(auction);
+            eventBus.publishAuctionExtended(auction, 60L); // Broadcast gia hạn cho client
         }
     }
 

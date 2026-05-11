@@ -26,8 +26,12 @@
 
             <ImageView fitHeight="52.0" fitWidth="52.0"
                        pickOnBounds="true"
-                       image="@../images/bg_login.jpg"
-                       style="-fx-effect: dropshadow(gaussian, #9b59b640, 8, 0, 0, 2);"/>
+                       preserveRatio="true"
+                       style="-fx-effect: dropshadow(gaussian, #9b59b640, 8, 0, 0, 2);">
+                <image>
+                    <Image url="@/com/auction/client/images/bg_login.jpg"/>
+                </image>
+            </ImageView>
 
             <VBox alignment="CENTER_LEFT" spacing="2.0">
                 <Label text="AUCTION HOUSE" styleClass="auction-title"/>
@@ -40,9 +44,13 @@
             <HBox alignment="CENTER" spacing="14.0">
                 <ImageView fx:id="imgAvatar"
                            fitHeight="40.0" fitWidth="40.0"
-                           image="@../images/default_avatar.png"
+                           preserveRatio="true"
                            style="-fx-border-radius: 50; -fx-background-radius: 50;
-                                  -fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);"/>
+                                  -fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
+                    <image>
+                        <Image url="@/com/auction/client/images/default_avatar.png"/>
+                    </image>
+                </ImageView>
                 <VBox alignment="CENTER_LEFT" spacing="1.0">
                     <Label fx:id="lblUser"
                            style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
@@ -174,109 +182,159 @@
             </VBox>
 
             <!-- ══════════════════════════════
-                 CỘT PHẢI – Form đặt giá
+                 CỘT PHẢI – Form đặt giá (bọc ScrollPane để lướt khi nội dung dài)
                  ══════════════════════════════ -->
-            <VBox spacing="18.0" prefWidth="400.0">
+            <ScrollPane fitToWidth="true"
+                        hbarPolicy="NEVER"
+                        vbarPolicy="AS_NEEDED"
+                        prefWidth="420.0"
+                        VBox.vgrow="ALWAYS"
+                        style="-fx-background-color: transparent; -fx-background: transparent;">
+                <VBox spacing="18.0" prefWidth="400.0"
+                      style="-fx-padding: 0 4 8 0;">
 
-                <!-- ─── Form đặt giá ─── -->
-                <VBox spacing="20.0"
-                      styleClass="glass-box"
-                      style="-fx-background-radius: 20; -fx-padding: 32 36 28 36;">
+                    <!-- ─── Form đặt giá ─── -->
+                    <VBox spacing="20.0"
+                          styleClass="glass-box"
+                          style="-fx-background-radius: 20; -fx-padding: 32 36 28 36;">
 
-                    <Label text="Đặt giá của bạn"
-                           styleClass="login-main-title"/>
+                        <Label text="Đặt giá của bạn"
+                               styleClass="login-main-title"/>
 
-                    <Separator style="-fx-background-color: #9b59b630;"/>
+                        <Separator style="-fx-background-color: #9b59b630;"/>
 
-                    <!-- Nhập số tiền -->
-                    <VBox alignment="CENTER_LEFT" spacing="6.0">
-                        <Label text="Số tiền muốn đặt (VNĐ)" styleClass="field-label"/>
-                        <TextField fx:id="txtBidAmount"
-                                   promptText="Nhập số tiền đặt giá"
-                                   styleClass="input-auction"
-                                   style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
-                        <Label fx:id="lblBidHint"
-                               text="Tối thiểu: giá hiện tại + bước giá"
-                               style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
+                        <!-- Nhập số tiền -->
+                        <VBox alignment="CENTER_LEFT" spacing="6.0">
+                            <Label text="Số tiền muốn đặt (VNĐ)" styleClass="field-label"/>
+                            <TextField fx:id="txtBidAmount"
+                                       promptText="Nhập số tiền đặt giá"
+                                       styleClass="input-auction"
+                                       style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblBidHint"
+                                   text="Tối thiểu: giá hiện tại + bước giá"
+                                   style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
+                        </VBox>
+
+                        <!-- Các mức giá nhanh -->
+                        <VBox spacing="8.0">
+                            <Label text="Chọn nhanh" styleClass="field-label"/>
+                            <HBox spacing="8.0">
+                                <Button fx:id="btnQuick1" text="+1 bước"
+                                        onAction="#handleQuickBid1"
+                                        styleClass="btn-auction-primary"
+                                        style="-fx-font-size: 12px; -fx-padding: 7 14;"
+                                        HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                                <Button fx:id="btnQuick2" text="+3 bước"
+                                        onAction="#handleQuickBid2"
+                                        styleClass="btn-auction-primary"
+                                        style="-fx-font-size: 12px; -fx-padding: 7 14;"
+                                        HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                                <Button fx:id="btnQuick3" text="+5 bước"
+                                        onAction="#handleQuickBid3"
+                                        styleClass="btn-auction-primary"
+                                        style="-fx-font-size: 12px; -fx-padding: 7 14;"
+                                        HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                            </HBox>
+                        </VBox>
+
+                        <!-- Xác nhận đặt giá -->
+                        <Button fx:id="btnConfirmBid"
+                                text="XÁC NHẬN ĐẶT GIÁ"
+                                onAction="#handleConfirmBid"
+                                styleClass="btn-auction-primary"
+                                maxWidth="Infinity"
+                                style="-fx-font-size: 15px; -fx-padding: 13 0;
+                                   -fx-font-weight: bold;"/>
+
+                        <!-- Thông báo kết quả -->
+                        <Label fx:id="lblMessage"
+                               visible="false"
+                               wrapText="true"
+                               alignment="CENTER"
+                               style="-fx-font-size: 13.5px; -fx-text-fill: #e74c3c;
+                                  -fx-padding: 4 0 0 0;"/>
                     </VBox>
 
-                    <!-- Các mức giá nhanh -->
-                    <VBox spacing="8.0">
-                        <Label text="Chọn nhanh" styleClass="field-label"/>
-                        <HBox spacing="8.0">
-                            <Button fx:id="btnQuick1" text="+1 bước"
-                                    onAction="#handleQuickBid1"
-                                    styleClass="btn-auction-primary"
-                                    style="-fx-font-size: 12px; -fx-padding: 7 14;"
-                                    HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-                            <Button fx:id="btnQuick2" text="+3 bước"
-                                    onAction="#handleQuickBid2"
-                                    styleClass="btn-auction-primary"
-                                    style="-fx-font-size: 12px; -fx-padding: 7 14;"
-                                    HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-                            <Button fx:id="btnQuick3" text="+5 bước"
-                                    onAction="#handleQuickBid3"
-                                    styleClass="btn-auction-primary"
-                                    style="-fx-font-size: 12px; -fx-padding: 7 14;"
-                                    HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <!-- ─── Thẻ người đang dẫn đầu ─── -->
+                    <VBox spacing="12.0"
+                          styleClass="glass-box"
+                          style="-fx-background-radius: 20; -fx-padding: 24 36 20 36;">
+
+                        <Label text="Người dẫn đầu hiện tại"
+                               styleClass="login-main-title"/>
+
+                        <Separator style="-fx-background-color: #9b59b630;"/>
+
+                        <HBox alignment="CENTER_LEFT" spacing="14.0">
+                            <ImageView fx:id="imgLeaderAvatar"
+                                       fitHeight="46.0" fitWidth="46.0"
+                                       preserveRatio="true"
+                                       style="-fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
+                                <image>
+                                    <Image url="@/com/auction/client/images/default_avatar.png"/>
+                                </image>
+                            </ImageView>
+                            <VBox spacing="3.0">
+                                <Label fx:id="lblLeaderName" text="—"
+                                       style="-fx-font-size: 16px; -fx-font-weight: bold;
+                                          -fx-text-fill: #431476;"/>
+                                <Label fx:id="lblLeaderBid" text="—"
+                                       style="-fx-font-size: 14px; -fx-text-fill: #c0392b;
+                                          -fx-font-weight: bold;"/>
+                            </VBox>
                         </HBox>
                     </VBox>
 
-                    <!-- Xác nhận đặt giá -->
-                    <Button fx:id="btnConfirmBid"
-                            text="XÁC NHẬN ĐẶT GIÁ"
-                            onAction="#handleConfirmBid"
-                            styleClass="btn-auction-primary"
-                            maxWidth="Infinity"
-                            style="-fx-font-size: 15px; -fx-padding: 13 0;
-                                   -fx-font-weight: bold;"/>
 
-                    <!-- Thông báo kết quả -->
-                    <Label fx:id="lblMessage"
-                           visible="false"
-                           wrapText="true"
-                           alignment="CENTER"
-                           style="-fx-font-size: 13.5px; -fx-text-fill: #e74c3c;
-                                  -fx-padding: 4 0 0 0;"/>
-                </VBox>
+                    <!-- ─── Đặt giá tự động ─── -->
+                    <TitledPane text="Đặt giá tự động" collapsible="true" animated="true"
+                                style="-fx-background-radius: 20; -fx-font-size: 14px;
+                                   -fx-font-weight: bold; -fx-text-fill: #431476;">
+                        <VBox spacing="12.0"
+                              style="-fx-padding: 16 20 16 20; -fx-background-color: transparent;">
 
-                <!-- ─── Thẻ người đang dẫn đầu ─── -->
-                <VBox spacing="12.0"
-                      styleClass="glass-box"
-                      style="-fx-background-radius: 20; -fx-padding: 24 36 20 36;">
+                            <Label text="Giá tối đa (VNĐ)" styleClass="field-label"/>
+                            <TextField fx:id="txtMaxBid"
+                                       promptText="Giá tối đa (maxBid)"
+                                       styleClass="input-auction"
+                                       style="-fx-font-size: 14px;"/>
 
-                    <Label text="Người dẫn đầu hiện tại"
-                           styleClass="login-main-title"/>
+                            <Label text="Bước giá tự động (VNĐ)" styleClass="field-label"/>
+                            <TextField fx:id="txtIncrement"
+                                       promptText="Bước giá (increment)"
+                                       styleClass="input-auction"
+                                       style="-fx-font-size: 14px;"/>
 
-                    <Separator style="-fx-background-color: #9b59b630;"/>
-
-                    <HBox alignment="CENTER_LEFT" spacing="14.0">
-                        <ImageView fx:id="imgLeaderAvatar"
-                                   fitHeight="46.0" fitWidth="46.0"
-                                   image="@../images/default_avatar.png"
-                                   style="-fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);"/>
-                        <VBox spacing="3.0">
-                            <Label fx:id="lblLeaderName" text="—"
-                                   style="-fx-font-size: 16px; -fx-font-weight: bold;
-                                          -fx-text-fill: #431476;"/>
-                            <Label fx:id="lblLeaderBid" text="—"
-                                   style="-fx-font-size: 14px; -fx-text-fill: #c0392b;
-                                          -fx-font-weight: bold;"/>
+                            <HBox spacing="10.0">
+                                <Button fx:id="btnSetAutoBid"
+                                        text="Kích hoạt Auto-Bid"
+                                        onAction="#handleSetAutoBid"
+                                        styleClass="btn-auction-primary"
+                                        style="-fx-font-size: 13px; -fx-padding: 9 0; -fx-font-weight: bold;"
+                                        HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                                <Button fx:id="btnCancelAutoBid"
+                                        text="Huỷ Auto-Bid"
+                                        onAction="#handleCancelAutoBid"
+                                        styleClass="btn-auction-primary"
+                                        style="-fx-font-size: 13px; -fx-padding: 9 0;
+                                           -fx-background-color: #e74c3c;"
+                                        HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                            </HBox>
                         </VBox>
-                    </HBox>
-                </VBox>
+                    </TitledPane>
 
-                <!-- ─── Ghi chú / điều khoản ─── -->
-                <VBox spacing="8.0"
-                      styleClass="glass-box"
-                      style="-fx-background-radius: 20; -fx-padding: 18 28 16 28;">
-                    <Label text="Lưu ý quan trọng" styleClass="field-label"/>
-                    <Label wrapText="true"
-                           text="• Giá đặt phải cao hơn giá hiện tại ít nhất một bước giá.&#10;• Sau khi xác nhận, lệnh đặt giá không thể huỷ.&#10;• Người thắng cuộc sẽ được thông báo qua hệ thống."
-                           style="-fx-font-size: 12.5px; -fx-text-fill: #7f8c8d; -fx-line-spacing: 3;"/>
-                </VBox>
+                    <!-- ─── Ghi chú / điều khoản ─── -->
+                    <VBox spacing="8.0"
+                          styleClass="glass-box"
+                          style="-fx-background-radius: 20; -fx-padding: 18 28 16 28;">
+                        <Label text="Lưu ý quan trọng" styleClass="field-label"/>
+                        <Label wrapText="true"
+                               text="• Giá đặt phải cao hơn giá hiện tại ít nhất một bước giá.&#10;• Sau khi xác nhận, lệnh đặt giá không thể huỷ.&#10;• Người thắng cuộc sẽ được thông báo qua hệ thống."
+                               style="-fx-font-size: 12.5px; -fx-text-fill: #7f8c8d; -fx-line-spacing: 3;"/>
+                    </VBox>
 
-            </VBox>
+                </VBox>
+            </ScrollPane>
         </HBox>
 
         <!-- ═══════════════════════════════════════════════════

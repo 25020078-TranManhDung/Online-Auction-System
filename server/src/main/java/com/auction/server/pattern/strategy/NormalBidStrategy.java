@@ -3,13 +3,14 @@ package com.auction.server.pattern.strategy;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.user.User;
 import com.auction.shared.exception.InvalidBidException;
+import com.auction.shared.enums.AuctionStatus;
 
 public class NormalBidStrategy implements BidStrategy {
 
     @Override
     public void validateBid(Auction auction, User bidder, double amount) throws InvalidBidException {
         // 1. Kiểm tra trạng thái phiên đấu giá
-        if (!auction.getStatus().equals("RUNNING")) {
+        if (auction.getStatus() != AuctionStatus.RUNNING) {
             throw new InvalidBidException("Lỗi: Phiên đấu giá hiện không trong trạng thái mở bán.");
         }
 
@@ -33,7 +34,7 @@ public class NormalBidStrategy implements BidStrategy {
         // Kiểm tra tính hợp lệ
         if (amount < minRequiredBid) {
             throw new InvalidBidException(
-                    String.format("Giá đặt không hợp lệ. Bạn phải đặt ít nhất %.2f (Bao gồm bước giá tối thiểu).", minRequiredBid)
+                String.format("Giá đặt không hợp lệ. Bạn phải đặt ít nhất %.2f (Bao gồm bước giá tối thiểu).", minRequiredBid)
             );
         }
     }

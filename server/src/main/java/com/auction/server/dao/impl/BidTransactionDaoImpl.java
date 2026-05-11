@@ -11,7 +11,11 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
 
     @Override
     public boolean save(BidTransaction bid) {
-        String insertBid = "INSERT INTO bid_transactions (id, auction_id, bidder_name, amount, is_auto_bid, timestamp) VALUES (?, ?, ?, ?, ?, ?)";
+        // BUG FIX: SQL trước thiếu cột bidder_id (NOT NULL, FK → users.id) → MySQL throw SQLException
+        // BUG FIX: bidder_name phải lưu username (display name), không phải bidderId (UUID)
+        String insertBid = "INSERT INTO bid_transactions (id, auction_id, bidder_id, bidder_name, amount, is_auto_bid, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        // BUG FIX: current_leader trong auctions lưu username (display name), không phải bidderId
         String updateAuction = "UPDATE auctions SET current_price = ?, current_leader = ?, bid_count = bid_count + 1 WHERE id = ? AND current_price < ?";
 
         Connection conn = null;
@@ -22,16 +26,17 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
             try (PreparedStatement ps = conn.prepareStatement(insertBid)) {
                 ps.setString   (1, bid.getId());
                 ps.setString   (2, bid.getAuctionId());
-                ps.setString   (3, bid.getBidderId());
-                ps.setDouble   (4, bid.getAmount());
-                ps.setBoolean  (5, bid.isAutoBid());
-                ps.setTimestamp(6, Timestamp.valueOf(bid.getTimestamp() != null ? bid.getTimestamp() : LocalDateTime.now()));
+                ps.setString   (3, bid.getBidderId());           // bidder_id = UUID (FK)
+                ps.setString   (4, bid.getBidderName());         // bidder_name = username (display)
+                ps.setDouble   (5, bid.getAmount());
+                ps.setBoolean  (6, bid.isAutoBid());
+                ps.setTimestamp(7, Timestamp.valueOf(bid.getTimestamp() != null ? bid.getTimestamp() : LocalDateTime.now()));
                 ps.executeUpdate();
             }
 
             try (PreparedStatement ps = conn.prepareStatement(updateAuction)) {
                 ps.setDouble(1, bid.getAmount());
-                ps.setString(2, bid.getBidderId());
+                ps.setString(2, bid.getBidderName());            // BUG FIX: lưu username, không phải bidderId
                 ps.setString(3, bid.getAuctionId());
                 ps.setDouble(4, bid.getAmount());
                 ps.executeUpdate();
@@ -44,7 +49,7 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
             if (conn != null) {
                 try { conn.rollback(); } catch (SQLException ignored) {}
             }
-            throw new RuntimeException("save bid thất bại", e);
+            throw new RuntimeException("save bid thất bại: " + e.getMessage(), e);
         } finally {
             if (conn != null) {
                 try {
@@ -57,12 +62,13 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
 
     @Override
     public List<BidTransaction> findByAuctionId(String auctionId) {
+        // BUG FIX: JOIN phải dùng bt.bidder_id = u.id (không phải bt.bidder_name = u.id)
         String sql = """
             SELECT bt.*, u.username as real_bidder_name
             FROM bid_transactions bt
-            LEFT JOIN users u ON bt.bidder_name = u.id
+            LEFT JOIN users u ON bt.bidder_id = u.id
             WHERE bt.auction_id = ?
-            ORDER BY bt.amount DESC, bt.timestamp DESC
+            ORDER BY bt.amount DESC, bt.timestamp ASC
             """;
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -79,11 +85,12 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
 
     @Override
     public List<BidTransaction> findByBidderId(String bidderId) {
+        // BUG FIX: WHERE và JOIN phải dùng bidder_id (UUID), không phải bidder_name
         String sql = """
             SELECT bt.*, u.username as real_bidder_name
             FROM bid_transactions bt
-            LEFT JOIN users u ON bt.bidder_name = u.id
-            WHERE bt.bidder_name = ?
+            LEFT JOIN users u ON bt.bidder_id = u.id
+            WHERE bt.bidder_id = ?
             ORDER BY bt.timestamp DESC
             """;
         try (Connection conn = db.getConnection();
@@ -101,12 +108,14 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
 
     @Override
     public Optional<BidTransaction> findHighestBid(String auctionId) {
+        // FIX: Thêm tiebreaker bt.timestamp ASC → người đặt SỚM HƠN thắng khi cùng giá
+        // Đây là quy tắc chuẩn của Proxy Bidding: "first bidder wins on tie"
         String sql = """
             SELECT bt.*, u.username as real_bidder_name
             FROM bid_transactions bt
-            LEFT JOIN users u ON bt.bidder_name = u.id
+            LEFT JOIN users u ON bt.bidder_id = u.id
             WHERE bt.auction_id = ?
-            ORDER BY bt.amount DESC
+            ORDER BY bt.amount DESC, bt.timestamp ASC
             LIMIT 1
             """;
         try (Connection conn = db.getConnection();
@@ -139,14 +148,18 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
         BidTransaction bid = new BidTransaction();
         bid.setId        (rs.getString  ("id"));
         bid.setAuctionId (rs.getString  ("auction_id"));
-        bid.setBidderId  (rs.getString  ("bidder_name"));
+        bid.setBidderId  (rs.getString  ("bidder_id"));          // BUG FIX: đọc đúng cột bidder_id
         bid.setAmount    (rs.getDouble  ("amount"));
         bid.setAutoBid   (rs.getBoolean ("is_auto_bid"));
-        bid.setTimestamp   (rs.getTimestamp("timestamp").toLocalDateTime());
+        bid.setTimestamp (rs.getTimestamp("timestamp").toLocalDateTime());
 
-        try {
-            bid.setBidderName(rs.getString("real_bidder_name"));
-        } catch (SQLException ignored) {}
+        // bidder_name: ưu tiên username từ JOIN, fallback về cột bidder_name trong bảng
+        String realName = null;
+        try { realName = rs.getString("real_bidder_name"); } catch (SQLException ignored) {}
+        if (realName == null || realName.isBlank()) {
+            try { realName = rs.getString("bidder_name"); } catch (SQLException ignored) {}
+        }
+        bid.setBidderName(realName);
 
         return bid;
     }

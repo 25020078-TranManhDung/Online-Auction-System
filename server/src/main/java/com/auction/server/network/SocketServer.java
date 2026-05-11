@@ -9,13 +9,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class SocketServer {
     private final int port;
     private final MessageRouter router;
     private ServerSocket serverSocket;
-    private final ExecutorService pool = Executors.newCachedThreadPool();
+    // Giới hạn tối đa 100 client đồng thời để tránh OOM (OutOfMemoryError).
+    // - corePoolSize=10: Luôn giữ sẵn 10 thread chờ việc
+    // - maximumPoolSize=100: Tối đa 100 thread khi tải cao
+    // - Queue=200: Cho phép 200 client xếp hàng chờ khi pool đầy
+    // - CallerRunsPolicy: Khi queue đầy, từ chối kết nối mới thay vì crash server
+    private final ExecutorService pool = new ThreadPoolExecutor(
+        10, 100,
+        60L, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<>(200),
+        new ThreadPoolExecutor.CallerRunsPolicy()
+    );
 
     // Map auctionId -> Tập hợp các ClientHandler đang xem auction đó
     // Dùng để broadcast thông báo BID_PLACED, AUCTION_CLOSED
@@ -55,8 +67,8 @@ public class SocketServer {
     // Đăng ký một client vào danh sách theo dõi phiên đấu giá cụ thể.
     public void subscribeAuction(String auctionId, ClientHandler handler) {
         auctionSubscribers
-                .computeIfAbsent(auctionId, k -> ConcurrentHashMap.newKeySet())
-                .add(handler);
+            .computeIfAbsent(auctionId, k -> ConcurrentHashMap.newKeySet())
+            .add(handler);
         System.out.println("[SERVER] Client đăng ký xem Auction: " + auctionId);
     }
 

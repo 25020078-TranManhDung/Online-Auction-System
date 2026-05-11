@@ -65,16 +65,14 @@ public class AutoBidService implements AuctionObserver {
             throw new AuctionException("INVALID_BID", "Giá tối đa phải cao hơn giá hiện tại của sản phẩm.");
         }
 
-        // Tạo cấu hình Auto-Bid
-        // Tạo cấu hình Auto-Bid
         AutoBidSetting setting = new AutoBidSetting(
-                UUID.randomUUID().toString(),
-                bidderId,
-                req.getAuctionId(),
-                req.getMaxBidAmount(),     // Sửa dòng này
-                req.getIncrementAmount(),  // Sửa dòng này
-                true,
-                LocalDateTime.now()
+            UUID.randomUUID().toString(),
+            bidderId,
+            req.getAuctionId(),
+            req.getMaxBidAmount(),
+            req.getIncrementAmount(),
+            true,
+            LocalDateTime.now()
         );
 
         autoBidDao.save(setting);
@@ -95,81 +93,142 @@ public class AutoBidService implements AuctionObserver {
         return new AutoBidResponse(true, "Đăng ký Auto-Bid thành công. Hệ thống sẽ tự động đặt giá giúp bạn!");
     }
 
-    // === 2. EVENT LISTENER: ĐƯỢC GỌI KHI CÓ NGƯỜI ĐẶT GIÁ MỚI ===
-    public void onBidPlaced(String auctionId, double currentPrice, boolean isAutoBid) {
-        // TỐI ƯU CỰC MẠNH: Nếu lượt bid vừa rồi CŨNG LÀ auto-bid -> BỎ QUA để chống vòng lặp vô hạn
-        if (isAutoBid) return;
-
-        // Nếu là bid thủ công, đánh thức các Auto-bidder khác
-        triggerAutoBid(auctionId, currentPrice);
-    }
-
-    // === 3. LOGIC LÕI XỬ LÝ ĐUA GIÁ ===
+    // === 2. LOGIC LÕI XỬ LÝ ĐUA GIÁ ===
     private void triggerAutoBid(String auctionId, double currentPrice) {
         // KHÓA MỀM (Soft Lock): Đảm bảo tại 1 thời điểm chỉ có 1 luồng xử lý auto-bid cho phiên này
         if (!processing.add(auctionId)) return;
 
         try {
-            PriorityQueue<AutoBidSetting> queue = queues.get(auctionId);
-            if (queue == null || queue.isEmpty()) return;
-
-            Auction auction = manager.getAuction(auctionId);
-            if (auction == null) return;
-
-            // Xác định ai đang dẫn đầu thực sự trong DB
-            Optional<BidTransaction> topBid = bidDao.findHighestBid(auctionId);
-            String currentLeaderId = topBid.map(BidTransaction::getBidderId).orElse(null);
-
-            for (AutoBidSetting s : queue) {
-                if (!s.isActive()) continue;
-
-                // Nếu auto-bidder này ĐÃ dẫn đầu rồi -> Không tự đẩy giá lên nữa (Tránh tự chém vào chân)
-                if (s.getBidderId().equals(currentLeaderId)) continue;
-
-                double nextPrice = currentPrice + s.getIncrement();
-
-                // Nếu giá tiếp theo vượt quá ngân sách -> Tắt auto-bid của user này
-                if (nextPrice > s.getMaxBid()) {
-                    s.setActive(false);
-                    autoBidDao.update(s);
-                    // (Tùy chọn) Gọi Socket gửi Push Notification thông báo cho user "Bạn đã hết tiền"
-                    continue;
-                }
-
-                // CHUẨN BỊ ĐẶT GIÁ
-                BidRequest systemBid = new BidRequest(auctionId, s.getBidderId(), nextPrice, true);
-
-                try {
-                    // Gọi BidService để đặt giá tự động (System Bypass Token)
-                    bidService.placeSystemBid(systemBid);
-                    break; // CHÚ Ý: Chỉ xử lý 1 lượt bid cho 1 người, sau đó nhường CPU/vòng lặp cho Request khác
-                } catch (Exception e) {
-                    s.setActive(false);
-                    autoBidDao.update(s);
-                }
-            }
+            runAutoBidCycle(auctionId);
         } finally {
             // LUÔN LUÔN NHẢ KHÓA dù có lỗi xảy ra
             processing.remove(auctionId);
         }
     }
 
-    // Cleanup khi đóng phiên
-    public void onAuctionClosed(String auctionId) {
-        queues.remove(auctionId);
-        processing.remove(auctionId);
+    /**
+     * Chạy vòng lặp cascade auto-bid:
+     * Mỗi vòng: tìm auto-bidder chưa dẫn đầu + còn trong ngân sách → đặt giá → lặp lại.
+     * Dừng khi: không có ai cần phản ứng, hoặc tất cả đã cạn ngân sách.
+     *
+     * Đây là Proxy Bidding đúng chuẩn:
+     * - bidder1 maxBid=7M, bidder2 maxBid=6.5M, increment=100k
+     * - bidder2 đặt 6.5M → bidder1 auto đặt 6.6M → bidder2 hết ngân sách → dừng
+     * - bidder1 thắng với 6.6M (không phải 7M — chỉ đủ để vượt qua đối thủ)
+     */
+    private void runAutoBidCycle(String auctionId) {
+        // Giới hạn số vòng để chống vòng lặp vô hạn trong trường hợp dữ liệu bất thường
+        int maxRounds = 200;
+
+        for (int round = 0; round < maxRounds; round++) {
+            PriorityQueue<AutoBidSetting> queue = queues.get(auctionId);
+            if (queue == null || queue.isEmpty()) break;
+
+            Auction auction = manager.getAuction(auctionId);
+            if (auction == null) break;
+
+            double price = auction.getCurrentPrice();
+
+            // Xác định ai đang dẫn đầu thực sự (theo DB)
+            Optional<BidTransaction> topBid = bidDao.findHighestBid(auctionId);
+            String currentLeaderId = topBid.map(BidTransaction::getBidderId).orElse(null);
+
+            // Tìm auto-bidder có thể phản ứng (chưa dẫn đầu, còn ngân sách, đăng ký sớm nhất)
+            AutoBidSetting candidate = null;
+            for (AutoBidSetting s : queue) {  // PriorityQueue duyệt theo thứ tự đăng ký sớm nhất
+                if (!s.isActive()) continue;
+                if (s.getBidderId().equals(currentLeaderId)) continue; // Đã dẫn đầu rồi
+
+                double nextPrice = price + s.getIncrement();
+                if (nextPrice > s.getMaxBid()) {
+                    // Hết ngân sách → vô hiệu hóa
+                    s.setActive(false);
+                    autoBidDao.update(s);
+                    continue;
+                }
+
+                candidate = s;
+                break; // Chọn người đăng ký sớm nhất có thể đặt giá
+            }
+
+            if (candidate == null) break; // Không còn ai cần phản ứng → kết thúc cascade
+
+            // Đặt giá cho candidate
+            double nextPrice = price + candidate.getIncrement();
+            BidRequest systemBid = new BidRequest(auctionId, candidate.getBidderId(), nextPrice, true);
+
+            try {
+                bidService.placeSystemBid(systemBid);
+                // Tiếp tục vòng lặp: kiểm tra xem có ai phản ứng lại không
+            } catch (Exception e) {
+                // Giá không hợp lệ hoặc lỗi khác → vô hiệu hóa setting này
+                candidate.setActive(false);
+                autoBidDao.update(candidate);
+            }
+        }
+    }
+
+    // === 3. KHÔI PHỤC QUEUE TỪ DATABASE SAU KHI SERVER RESTART ===
+    /**
+     * Được gọi một lần duy nhất từ ServerMain khi khởi động.
+     * Nạp lại toàn bộ auto-bid đang active từ DB vào in-memory queues
+     * để các phiên RUNNING không bị mất trạng thái auto-bid sau restart.
+     */
+    public void restoreQueuesFromDatabase(List<Auction> runningAuctions) {
+        for (Auction auction : runningAuctions) {
+            List<AutoBidSetting> activeSettings = autoBidDao.findActiveByAuction(auction.getId());
+            if (!activeSettings.isEmpty()) {
+                PriorityQueue<AutoBidSetting> queue =
+                    queues.computeIfAbsent(auction.getId(), k -> new PriorityQueue<>(BY_TIME));
+                queue.addAll(activeSettings);
+                System.out.println("  → Khôi phục " + activeSettings.size()
+                    + " auto-bid setting cho phiên: " + auction.getId());
+            }
+        }
+    }
+
+    // === 4. NGƯỜI DÙNG HỦY AUTO-BID ===
+    public AutoBidResponse cancel(String auctionId, String token) {
+        String bidderId = TokenUtil.getUserId(token);
+        if (bidderId == null) {
+            throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ.");
+        }
+
+        PriorityQueue<AutoBidSetting> queue = queues.get(auctionId);
+
+        if (queue != null) {
+            // Khóa queue lại khi xóa để tránh ConcurrentModificationException
+            synchronized (queue) {
+                queue.removeIf(setting -> {
+                    if (setting.getBidderId().equals(bidderId)) {
+                        setting.setActive(false);
+                        autoBidDao.update(setting);
+                        return true;
+                    }
+                    return false;
+                });
+            }
+        }
+
+        return new AutoBidResponse(true, "Đã hủy đăng ký Auto-bid thành công!");
     }
 
     // =================================================================
-    // 2. EVENT LISTENER (Tuân thủ hợp đồng AuctionObserver)
+    // EVENT LISTENER (Tuân thủ hợp đồng AuctionObserver)
     // =================================================================
 
     @Override
     public void onBidPlaced(Auction auction, BidTransaction bid) {
-        // TỐI ƯU CỰC MẠNH: Nếu lượt bid vừa rồi CŨNG LÀ auto-bid -> BỎ QUA để chống vòng lặp vô hạn
-        if (bid.isAutoBid()) return;
-
-        // Nếu là bid thủ công, đánh thức các Auto-bidder khác
+        // FIX: Không chặn auto-bid cascade ở đây nữa.
+        // Trước đây: `if (bid.isAutoBid()) return` → Chặn hoàn toàn cascade giữa 2 auto-bidder.
+        // Kết quả sai: bidder1 và bidder2 đứng bằng giá nhau thay vì đẩy lên đến khi 1 người hết ngân sách.
+        //
+        // Soft-lock `processing.add(auctionId)` trong triggerAutoBid đã đủ để:
+        // - Chống vòng lặp đệ quy vô hạn (chỉ 1 luồng xử lý tại 1 thời điểm)
+        // - runAutoBidCycle() giới hạn maxRounds=200 để an toàn tuyệt đối
+        //
+        // Nếu bid vừa rồi đang trong quá trình xử lý (processing set còn giữ lock),
+        // triggerAutoBid() sẽ tự return ngay → không có double-processing.
         triggerAutoBid(auction.getId(), auction.getCurrentPrice());
     }
 
@@ -192,43 +251,6 @@ public class AutoBidService implements AuctionObserver {
 
     @Override
     public void onError(Auction auction, String errorCode, String message) {
-        // Có thể in ra log để debug nếu cần
         System.err.println("AutoBidService nhận được lỗi từ phiên " + auction.getId() + ": " + message);
-    }
-
-    // =================================================================
-    // 3. LOGIC LÕI XỬ LÝ ĐUA GIÁ (Giữ nguyên phần code triggerAutoBid của bạn ở dưới đây)
-    // =================================================================
-
-    // === 4. NGƯỜI DÙNG HỦY AUTO-BID ===
-    public AutoBidResponse cancel(String auctionId, String token) {
-        // 1. Xác thực người dùng thông qua Token
-        String bidderId = TokenUtil.getUserId(token);
-        if (bidderId == null) {
-            throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ.");
-        }
-
-        // 2. Lấy hàng đợi ưu tiên của phiên đấu giá hiện tại
-        PriorityQueue<AutoBidSetting> queue = queues.get(auctionId);
-
-        if (queue != null) {
-            // TỐI ƯU CONCURRENCY: Khóa queue lại khi xóa để tránh lỗi ConcurrentModificationException
-            // trong trường hợp luồng khác (triggerAutoBid) đang duyệt qua danh sách này.
-            synchronized (queue) {
-                queue.removeIf(setting -> {
-                    // Nếu tìm thấy cấu hình của user này
-                    if (setting.getBidderId().equals(bidderId)) {
-                        // 3. Tắt trạng thái kích hoạt và cập nhật xuống DB
-                        setting.setActive(false);
-                        autoBidDao.update(setting);
-                        return true; // Xóa khỏi bộ nhớ RAM
-                    }
-                    return false;
-                });
-            }
-        }
-
-        // Trả về thông báo thành công
-        return new AutoBidResponse(true, "Đã hủy đăng ký Auto-bid thành công!");
     }
 }

@@ -131,6 +131,7 @@ public class AuctionDaoImpl implements AuctionDAO {
         a.setEndTime(toLdt(rs.getTimestamp("end_time")));
         a.setStatus(AuctionStatus.valueOf(rs.getString("status")));
         a.setCurrentLeader(rs.getString("current_leader"));
+        a.setBidCount(rs.getInt("bid_count"));   // BUG FIX: thiếu dòng này khiến bidCount luôn = 0
         return a;
     }
 

@@ -40,23 +40,34 @@ public class ChartUtil {
     }
 
     /**
-     * Overload: Thêm một điểm giá mới với nhãn thời điểm do server cung cấp
+     * Overload: Thêm một điểm giá mới với nhãn thời điểm do server cung cấp.
+     * Tự động chuẩn hoá chuỗi ISO-8601 (vd "2026-05-09T09:36:23") → "HH:mm:ss"
+     * để tránh label dài làm trục X bị xoay và chồng đè (phần thừa ở góc dưới trái).
      */
     public static void addDataPoint(XYChart.Series<String, Number> series, String timeLabel, long newPrice) {
-        final String label = (timeLabel == null || timeLabel.isEmpty()) ? LocalTime.now().format(TIME_FORMATTER) : timeLabel;
-
+        final String label = normalizeLabel(timeLabel);
         Platform.runLater(() -> {
             try {
                 series.getData().add(new XYChart.Data<>(label, newPrice));
-
                 // Giữ cho biểu đồ không bị quá dày (Chỉ hiển thị 10 lượt bid gần nhất)
                 if (series.getData().size() > 10) {
                     series.getData().remove(0);
                 }
             } catch (Exception e) {
-                // tránh crash UI nếu có lỗi khi cập nhật chart
                 e.printStackTrace();
             }
         });
+    }
+
+    /**
+     * Chuẩn hoá nhãn thời gian:
+     *  - null / rỗng          → giờ hiện tại "HH:mm:ss"
+     *  - ISO datetime (có 'T', độ dài ≥ 19) → chỉ lấy phần giờ "HH:mm:ss" (ký tự 11–18)
+     *  - Chuỗi khác           → giữ nguyên
+     */
+    public static String normalizeLabel(String raw) {
+        if (raw == null || raw.isEmpty()) return LocalTime.now().format(TIME_FORMATTER);
+        if (raw.contains("T") && raw.length() >= 19) return raw.substring(11, 19);
+        return raw;
     }
 }

@@ -130,12 +130,12 @@ public class AuctionViewModel {
     @Override
     public String toString() {
         return "AuctionViewModel{" +
-                "auctionId=" + getAuctionId() +
-                ", title=" + getTitle() +
-                ", category=" + getCategory() +
-                ", currentPrice=" + getCurrentPrice() +
-                ", status=" + getStatus() +
-                '}';
+            "auctionId=" + getAuctionId() +
+            ", title=" + getTitle() +
+            ", category=" + getCategory() +
+            ", currentPrice=" + getCurrentPrice() +
+            ", status=" + getStatus() +
+            '}';
     }
 
     @Override
