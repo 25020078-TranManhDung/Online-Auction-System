@@ -9,7 +9,6 @@ import com.auction.client.util.ChartUtil;
 import com.auction.client.util.ViewLoader;
 import com.auction.shared.network.protocol.Actions;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -225,33 +224,12 @@ public class AuctionDetailController implements BidUpdateListener {
             lblEndTime.setText(getSafe(auction, "endTime", getSafe(auction, "end_time", "—")));
             lblDescription.setText(getSafe(item, "description", getSafe(auction, "description", "—")));
 
-            // Chart: initialize series if needed and populate
+            // Chart: initialize series if needed — dữ liệu sẽ được populate sau khi parse bids
             if (priceChart != null && priceSeries == null) {
                 priceSeries = new XYChart.Series<>();
                 priceChart.getData().add(priceSeries);
             }
             if (priceSeries != null) priceSeries.getData().clear();
-
-            JsonArray history = null;
-            if (data.has("priceHistory")) history = data.getAsJsonArray("priceHistory");
-            else if (data.has("history")) history = data.getAsJsonArray("history");
-            else if (auction.has("priceHistory")) history = auction.getAsJsonArray("priceHistory");
-
-            if (history != null && history.size() > 0) {
-                for (int i = 0; i < history.size(); i++) {
-                    try {
-                        JsonElement el = history.get(i);
-                        if (!el.isJsonObject()) continue;
-                        JsonObject p = el.getAsJsonObject();
-                        String timeLabel = getSafe(p, "time", getSafe(p, "createdAt", String.valueOf(i + 1)));
-                        long price = getLongSafe(p, "price", getLongSafe(p, "amount", 0L));
-                        ChartUtil.addDataPoint(priceSeries, timeLabel, price);
-                    } catch (Exception ignored) {}
-                }
-            } else {
-                // fallback: add current price as single point
-                ChartUtil.addDataPoint(priceSeries, "Now", currentPrice);
-            }
 
             // Recent bids -> ListView (server trả về key "recentBids")
             lvBidHistory.getItems().clear();
@@ -263,6 +241,38 @@ public class AuctionDetailController implements BidUpdateListener {
 
             // Lưu bid history để truyền sang BiddingController (phải gán SAU khi parse xong)
             this.currentBidHistory = bids;
+
+            // Populate chart từ recentBids.
+            // Yêu cầu kỹ thuật:
+            //  1. Đã ở trên FX thread (gọi từ Platform.runLater) → add trực tiếp, KHÔNG qua
+            //     ChartUtil.addDataPoint() để tránh tạo thêm Platform.runLater lồng nhau
+            //     (gây race condition nếu onBidUpdated() xen vào giữa các task đang xếp hàng).
+            //  2. Pre-limit 10 bid gần nhất ngay tại đây (không để ChartUtil remove lần lượt).
+            //  3. recentBids sort DESC: index 0 = bid mới nhất → duyệt ngược để chart
+            //     vẽ từ trái sang phải theo thứ tự thời gian (cũ → mới).
+            if (priceSeries != null) {
+                if (bids != null && bids.size() > 0) {
+                    int limit = Math.min(bids.size(), 10); // 10 bid gần nhất
+                    for (int i = limit - 1; i >= 0; i--) {
+                        try {
+                            JsonObject b = bids.get(i).getAsJsonObject();
+                            // "timestamp" được serialize bởi JsonUtil thành ISO-8601 string
+                            // → ChartUtil.normalizeLabel() cắt lấy HH:mm:ss
+                            String raw = getSafe(b, "timestamp",
+                                getSafe(b, "time", getSafe(b, "createdAt", "")));
+                            String timeLabel = ChartUtil.normalizeLabel(raw);
+                            if (timeLabel.equals(raw) && raw.isEmpty()) {
+                                timeLabel = "Bid " + (limit - i); // fallback index khi không có timestamp
+                            }
+                            long amount = getLongSafe(b, "amount", getLongSafe(b, "bidAmount", 0L));
+                            priceSeries.getData().add(new XYChart.Data<>(timeLabel, amount));
+                        } catch (Exception ignored) {}
+                    }
+                } else {
+                    // Chưa có bid nào → vẽ điểm giá khởi điểm
+                    priceSeries.getData().add(new XYChart.Data<>("Bắt đầu", startPrice));
+                }
+            }
 
             if (bids != null) {
                 for (int i = 0; i < bids.size(); i++) {
@@ -431,8 +441,10 @@ public class AuctionDetailController implements BidUpdateListener {
 
                     // Thêm điểm vào biểu đồ
                     if (priceSeries != null) {
-                        String timeLabel = getSafe(data, "timestamp", getSafe(data, "time", ""));
-                        ChartUtil.addDataPoint(priceSeries, timeLabel, displayPrice);
+                        // BidNotifier gửi timestamp = LocalDateTime.toString() → ISO-8601, length=19
+                        // Phải normalize qua ChartUtil.normalizeLabel() để tránh label dài xoay trục X
+                        String rawLabel = getSafe(data, "timestamp", getSafe(data, "time", ""));
+                        ChartUtil.addDataPoint(priceSeries, ChartUtil.normalizeLabel(rawLabel), displayPrice);
                     }
                 });
             }

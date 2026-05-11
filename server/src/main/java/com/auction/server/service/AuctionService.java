@@ -335,6 +335,7 @@ public class AuctionService {
         response.setEndTime(auction.getEndTime());
         response.setStatus(auction.getStatus());
         response.setTimeRemaining(calcTimeRemaining(auction)); // BUG FIX
+        response.setBidCount(auction.getBidCount());           // BUG FIX: thiếu dòng này khiến bidCount luôn = 0 trong danh sách
 
         return response;
     }
