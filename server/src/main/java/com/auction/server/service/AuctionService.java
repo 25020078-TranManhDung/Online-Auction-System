@@ -173,8 +173,13 @@ public class AuctionService {
         response.setTitle(item != null ? item.getTitle() : "Không xác định");
         response.setDescription(item != null ? item.getDescription() : "Không xác định");
 
-        // Kiểm tra enum category để tránh lỗi NullPointerException
-        if (item != null && item.getCategory() != null) {
+        if (item instanceof com.auction.shared.model.item.Art) {
+            response.setCategory("Art");
+        } else if (item instanceof com.auction.shared.model.item.Electronics) {
+            response.setCategory("Electronics");
+        } else if (item instanceof com.auction.shared.model.item.Vehicle) {
+            response.setCategory("Vehicle");
+        } else if (item != null && item.getCategory() != null) {
             response.setCategory(item.getCategory().name());
         } else {
             response.setCategory("N/A");
@@ -233,6 +238,18 @@ public class AuctionService {
         response.setTitle(item != null ? item.getTitle() : "Không xác định");
         response.setDescription(item != null ? item.getDescription() : "Không xác định");
         response.setCategory((item != null && item.getCategory() != null) ? item.getCategory().name() : "N/A");
+
+        if (item instanceof com.auction.shared.model.item.Art) {
+            response.setCategory("Art");
+        } else if (item instanceof com.auction.shared.model.item.Electronics) {
+            response.setCategory("Electronics");
+        } else if (item instanceof com.auction.shared.model.item.Vehicle) {
+            response.setCategory("Vehicle");
+        } else if (item != null && item.getCategory() != null) {
+            response.setCategory(item.getCategory().name());
+        } else {
+            response.setCategory("N/A");
+        }
 
         response.setStartingPrice(auction.getStartPrice());
         response.setCurrentPrice(auction.getCurrentPrice());
@@ -324,7 +341,21 @@ public class AuctionService {
         response.setAuctionId(auction.getId());
         response.setTitle(item != null ? item.getTitle() : "Không xác định");
         response.setDescription(item != null ? item.getDescription() : "Không xác định");
-        response.setCategory((item != null && item.getCategory() != null) ? item.getCategory().name() : "N/A");
+
+        // ======================= THAY ĐỔI Ở ĐÂY =======================
+        // Áp dụng Đa hình (Polymorphism) để xác định danh mục an toàn 100%
+        if (item instanceof com.auction.shared.model.item.Art) {
+            response.setCategory("Art");
+        } else if (item instanceof com.auction.shared.model.item.Electronics) {
+            response.setCategory("Electronics");
+        } else if (item instanceof com.auction.shared.model.item.Vehicle) {
+            response.setCategory("Vehicle");
+        } else if (item != null && item.getCategory() != null) {
+            response.setCategory(item.getCategory().name());
+        } else {
+            response.setCategory("N/A");
+        }
+        // ==============================================================
 
         response.setStartingPrice(auction.getStartPrice());
         response.setCurrentPrice(auction.getCurrentPrice());
