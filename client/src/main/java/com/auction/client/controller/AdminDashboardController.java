@@ -393,6 +393,15 @@ public class AdminDashboardController {
         }
     }
 
+    @FXML
+    void handleOpenWallet(ActionEvent event) {
+        try {
+            ViewLoader.openInNewWindow("admin-wallet.fxml", "💼 Ví Quản Trị – Hoa Hồng Hệ Thống");
+        } catch (Exception e) {
+            AlertUtil.showError("Lỗi", "Không thể mở ví: " + e.getMessage());
+        }
+    }
+
     private String getJsonString(JsonObject obj, String key) {
         return (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) ? obj.get(key).getAsString() : "N/A";
     }

@@ -8,13 +8,15 @@ TRUNCATE TABLE users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- 1. USERS (giữ nguyên, không có gì sai)
-INSERT INTO users (id, username, password, email, role, admin_level, reputation_score) VALUES
-                                                                                           ('u-admin',  'admin',   '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'admin@auction.com',   'ADMIN',  1,   NULL),
-                                                                                           ('u-sel-01', 'seller1', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'seller1@auction.com', 'SELLER', 0,   4.8),
-                                                                                           ('u-sel-02', 'seller2', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'seller2@auction.com', 'SELLER', 0,   5.0),
-                                                                                           ('u-bid-01', 'bidder1', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'bidder1@auction.com', 'BIDDER', 0,   NULL),
-                                                                                           ('u-bid-02', 'bidder2', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'bidder2@auction.com', 'BIDDER', 0,   NULL),
-                                                                                           ('u-bid-03', 'bidder3', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'bidder3@auction.com', 'BIDDER', 0,   NULL);
+
+INSERT INTO users (id, username, password, email, role, admin_level, reputation_score, wallet_balance) VALUES
+('u-admin',  'admin',   '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'admin@auction.com',   'ADMIN',  1,   NULL, 0),
+('u-sel-01', 'seller1', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'seller1@auction.com', 'SELLER', 0,   4.8, 0),
+('u-sel-02', 'seller2', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'seller2@auction.com', 'SELLER', 0,   5.0, 0),
+('u-bid-01', 'bidder1', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'bidder1@auction.com', 'BIDDER', 0,   NULL, 100000000),
+('u-bid-02', 'bidder2', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'bidder2@auction.com', 'BIDDER', 0,   NULL, 100000000),
+('u-bid-03', 'bidder3', '$2a$12$V8YmL9W5SlpC51tkc2EuG.YABiHmuhHyOaABfYErr0DLuNxUapsTC', 'bidder3@auction.com', 'BIDDER', 0,   NULL, 100000000);
+
 
 -- 2. ITEMS — Sửa: Vehicle dùng đúng cột make/vehicle_model/year/mileage
 INSERT INTO items (id, title, description, category, seller_id,

@@ -36,15 +36,18 @@ public class AuctionService {
     private final BidTransactionDAO bidDao;
     private final UserDAO userDao;
 
+    private final WalletService walletService;
+
     // Tích hợp Design Pattern (Singleton & Observer)
     private final AuctionEventBus eventBus = AuctionEventBus.getInstance();
     private final AuctionManager manager = AuctionManager.getInstance();
 
-    public AuctionService(AuctionDAO auctionDao, ItemDAO itemDao, BidTransactionDAO bidDao, UserDAO userDao) {
+    public AuctionService(AuctionDAO auctionDao, ItemDAO itemDao, BidTransactionDAO bidDao, UserDAO userDao, WalletService walletService) {
         this.auctionDao = auctionDao;
         this.itemDao = itemDao;
         this.bidDao = bidDao;
         this.userDao = userDao;
+        this.walletService = walletService;
     }
 
     public AuctionResponse createAuction(CreateAuctionRequest req, String token) {
@@ -213,6 +216,22 @@ public class AuctionService {
             auction.setWinnerId(topBid.getBidderId()); // ID lưu vào database để tham chiếu
             auction.setCurrentLeader(topBid.getBidderName()); // Tên hiển thị ra giao diện cho đẹp
             auction.setCurrentPrice(topBid.getAmount());
+            // --- [TÍCH HỢP VÍ - SETTLE AUCTION CHÍNH XÁC] ---
+            try {
+                // 1. Tìm ID của Admin để nhận 5% hoa hồng
+                String adminId = walletService.findAdminId();
+
+                // 2. Gọi hàm thanh toán phân bổ tiền
+                walletService.settleAuction(
+                        topBid.getBidderId(),    // winnerId
+                        topBid.getAmount(),      // winnerAmount
+                        auction.getSellerId(),   // sellerId
+                        auctionId,               // auctionId
+                        adminId                  // adminId
+                );
+            } catch (Exception e) {
+                System.err.println("[AuctionService.closeAuction] Lỗi chia tiền sau khi kết thúc phiên: " + e.getMessage());
+            }
         }
 
         auction.setStatus(AuctionStatus.FINISHED);

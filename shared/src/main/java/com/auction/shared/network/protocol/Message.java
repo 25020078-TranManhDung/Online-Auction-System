@@ -7,17 +7,21 @@ public class Message {
     private String action;
     private String token;
     private String requestId;
+    private String payLoad;
     private Object data;
 
     public Message() {}
 
-    public Message(String action, String token, String requestId, Object data) {
+    public Message(String action, String token, String requestId, String payLoad, Object data) {
         this.action = action;
         this.token = token;
         this.requestId = requestId;
+        this.payLoad = payLoad;
         this.data = data;
     }
-
+    public Message(String action, String token, String requestId, Object data) {
+        this(action, token, requestId, null, data);
+    }
     public <T> T getData(Class<T> clazz) {
         return JsonUtil.convertData(this.data, clazz);
     }
@@ -29,6 +33,8 @@ public class Message {
     public void setToken(String token) { this.token = token; }
     public String getRequestId() { return requestId; }
     public void setRequestId(String requestId) { this.requestId = requestId; }
+    public String getPayload() {return payLoad;}
+    public void setPayload() {this.payLoad = payLoad;}
     public Object getData() { return data; }
     public void setData(Object data) { this.data = data; }
 }

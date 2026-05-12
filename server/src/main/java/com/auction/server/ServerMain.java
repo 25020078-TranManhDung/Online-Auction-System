@@ -12,7 +12,10 @@ import com.auction.server.pattern.singleton.DatabaseManager;
 import com.auction.server.service.*;
 import com.auction.shared.enums.AuctionStatus;
 import com.auction.shared.model.Auction;
-
+import com.auction.server.controller.WalletController;
+import com.auction.server.dao.WalletDAO;
+import com.auction.server.dao.impl.WalletDaoImpl;
+import com.auction.server.service.WalletService;
 import java.util.List;
 
 /**
@@ -59,6 +62,7 @@ public class ServerMain {
             AuctionDAO auctionDao = new AuctionDaoImpl();
             BidTransactionDAO bidDao = new BidTransactionDaoImpl();
             AutoBidDAO autoBidDao = new AutoBidDaoImpl();
+            WalletDAO     walletDao     = new WalletDaoImpl();
             System.out.println("✅ OK");
 
             // =========================================================
@@ -84,11 +88,12 @@ public class ServerMain {
 
             // ItemService cần giao tiếp với cả bảng items và users (để check quyền)
             ItemService itemService = new ItemService(itemDao, userDao);
-
+            WalletService walletService = new WalletService(walletDao, userDao);
             // BidService là trung tâm xử lý concurrency, cần nhiều DAO để check logic chéo
-            BidService bidService = new BidService(bidDao, auctionDao, userDao);
+            BidService bidService = new BidService(bidDao, auctionDao, userDao, walletService);
             AutoBidService autoBidService = new AutoBidService(bidService, autoBidDao, bidDao);
-            AuctionService auctionService = new AuctionService(auctionDao, itemDao, bidDao, userDao);
+            AuctionService auctionService = new AuctionService(auctionDao, itemDao, bidDao, userDao, walletService);
+
             System.out.println("✅ OK");
 
             // =========================================================
@@ -126,6 +131,7 @@ public class ServerMain {
             AuctionController auctionCtrl = new AuctionController(auctionService);
             BidController bidCtrl = new BidController(bidService, autoBidService);
             ItemController itemCtrl = new ItemController(itemService);
+            WalletController walletCtrl = new WalletController(walletService);
             System.out.println("✅ OK");
 
             // =========================================================
@@ -133,7 +139,7 @@ public class ServerMain {
             // Hoàn tất việc nối vòng tròn phụ thuộc một cách an toàn luồng.
             // =========================================================
             System.out.print("[7/8] Liên kết Controllers vào MessageRouter... ");
-            messageRouter.setControllers(userCtrl, auctionCtrl, bidCtrl, itemCtrl);
+            messageRouter.setControllers(userCtrl, auctionCtrl, bidCtrl, itemCtrl, walletCtrl);
             System.out.println("✅ OK");
 
             // =========================================================

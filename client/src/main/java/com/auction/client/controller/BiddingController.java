@@ -5,6 +5,8 @@ import com.auction.client.network.SocketClient;
 import com.auction.client.model.UserSession;
 import com.auction.client.observer.BidUpdateListener;
 import com.auction.client.util.AlertUtil;
+import com.auction.client.util.ViewLoader;
+import com.auction.shared.dto.response.WalletResponse;
 import com.auction.shared.network.protocol.Actions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -87,6 +89,9 @@ public class BiddingController implements BidUpdateListener {
     private long   secondsLeft   = 0;
     private Timer  countdownTimer;
 
+    // Wallet state
+    private double walletBalance = -1; // -1 = chưa tải
+
     private final DecimalFormat currencyFormat = new DecimalFormat("#,### VNĐ");
 
     @FXML
@@ -98,6 +103,9 @@ public class BiddingController implements BidUpdateListener {
         if (handler != null) {
             handler.addBidListener(this);
         }
+
+        // Tải số dư ví ngầm
+        loadWalletBalance();
     }
 
     /**
@@ -160,7 +168,7 @@ public class BiddingController implements BidUpdateListener {
                 colBidder.setCellValueFactory(param -> {
                     JsonObject obj = param.getValue();
                     String name = obj.has("bidderName") ? obj.get("bidderName").getAsString()
-                        : obj.has("bidder")     ? obj.get("bidder").getAsString() : "—";
+                            : obj.has("bidder")     ? obj.get("bidder").getAsString() : "—";
                     return new SimpleStringProperty(name);
                 });
                 colBidAmount.setCellValueFactory(param -> {
@@ -171,7 +179,7 @@ public class BiddingController implements BidUpdateListener {
                 colBidTime.setCellValueFactory(param -> {
                     JsonObject obj = param.getValue();
                     String ts = obj.has("timestamp") ? obj.get("timestamp").getAsString()
-                        : obj.has("time")      ? obj.get("time").getAsString() : "";
+                            : obj.has("time")      ? obj.get("time").getAsString() : "";
                     if (ts.contains("T")) ts = ts.replace("T", " ");
                     if (ts.length() > 19) ts = ts.substring(0, 19);
                     return new SimpleStringProperty(ts);
@@ -265,7 +273,14 @@ public class BiddingController implements BidUpdateListener {
         double minAllowed = currentPrice + minIncrement;
         if (bidAmount < minAllowed) {
             AlertUtil.showWarning("Giá quá thấp",
-                "Bạn phải đặt ít nhất: " + formatCurrency(minAllowed));
+                    "Bạn phải đặt ít nhất: " + formatCurrency(minAllowed));
+            return;
+        }
+
+        // === KIỂM TRA SỐ DƯ VÍ ===
+        if (walletBalance >= 0 && walletBalance < bidAmount) {
+            // Số dư không đủ → mở ví để nạp thêm
+            openWalletInsufficientMode(bidAmount);
             return;
         }
 
@@ -277,9 +292,7 @@ public class BiddingController implements BidUpdateListener {
         final String capturedAuctionId = this.auctionId;
         final double capturedBidAmount = bidAmount;
 
-        // === Gửi request trên BACKGROUND THREAD — KHÔNG được block JavaFX Application Thread ===
-        // Lý do: SocketClient.send() gọi future.get() sẽ block thread gọi nó.
-        // Nếu block JavaFX thread → UI đóng băng → Platform.runLater không chạy được → deadlock.
+        // === Gửi request trên BACKGROUND THREAD ===
         Thread networkThread = new Thread(() -> {
             try {
                 Map<String, Object> payload = new HashMap<>();
@@ -288,11 +301,12 @@ public class BiddingController implements BidUpdateListener {
 
                 // Gọi blocking send() an toàn trên background thread
                 JsonObject response = SocketClient.getInstance().send(
-                    Actions.PLACE_BID, payload, JsonObject.class);
+                        Actions.PLACE_BID, payload, JsonObject.class);
 
                 // Quay về JavaFX thread để update UI
                 Platform.runLater(() -> {
                     if (response != null) {
+                        walletBalance -= capturedBidAmount; // Cập nhật số dư tạm
                         AlertUtil.showInfo("Chúc mừng", "Đặt giá thành công!");
                         closeWindow();
                     } else {
@@ -304,7 +318,12 @@ public class BiddingController implements BidUpdateListener {
             } catch (Exception e) {
                 String errorMsg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định.";
                 Platform.runLater(() -> {
-                    AlertUtil.showError("Lỗi đặt giá", errorMsg);
+                    // Nếu lỗi là INSUFFICIENT_BALANCE → mở ví
+                    if (errorMsg.contains("INSUFFICIENT_BALANCE") || errorMsg.contains("Số dư")) {
+                        openWalletInsufficientMode(capturedBidAmount);
+                    } else {
+                        AlertUtil.showError("Lỗi đặt giá", errorMsg);
+                    }
                     resetConfirmButton();
                 });
             }
@@ -312,6 +331,45 @@ public class BiddingController implements BidUpdateListener {
 
         networkThread.setDaemon(true);
         networkThread.start();
+    }
+
+    /** Mở cửa sổ ví ở chế độ "số dư không đủ" để nhắc nạp tiền */
+    private void openWalletInsufficientMode(double requiredAmount) {
+        try {
+            BidderWalletController walletCtrl =
+                    ViewLoader.openInNewWindow("bidder-wallet.fxml", "💰 Ví Điện Tử – Nạp Tiền");
+            if (walletCtrl != null) {
+                walletCtrl.setInsufficientMode(requiredAmount);
+            }
+        } catch (Exception ex) {
+            AlertUtil.showWarning("Số dư không đủ",
+                    String.format("Số dư ví không đủ để đặt %s.\nVui lòng nạp thêm tiền trước khi đặt giá.",
+                            formatCurrency(requiredAmount)));
+        }
+    }
+
+    /** Tải số dư ví ngầm khi mở màn hình đặt giá */
+    private void loadWalletBalance() {
+        new Thread(() -> {
+            try {
+                WalletResponse resp = SocketClient.getInstance()
+                        .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
+                if (resp != null) {
+                    walletBalance = resp.getBalance();
+                    Platform.runLater(() -> {
+                        if (lblMessage != null) {
+                            lblMessage.setText("Số dư ví: " + formatCurrency(walletBalance));
+                            lblMessage.setStyle(walletBalance < currentPrice + minIncrement
+                                    ? "-fx-text-fill: #e74c3c;"
+                                    : "-fx-text-fill: #27ae60;");
+                            lblMessage.setVisible(true);
+                        }
+                    });
+                }
+            } catch (Exception ignored) {
+                // Không crash nếu không tải được ví
+            }
+        }, "wallet-preload-thread").start();
     }
 
     /** Phục hồi trạng thái nút Xác nhận sau khi thất bại */
@@ -328,7 +386,7 @@ public class BiddingController implements BidUpdateListener {
         String incrementInput = txtIncrement.getText();
 
         if (maxBidInput == null || maxBidInput.trim().isEmpty()
-            || incrementInput == null || incrementInput.trim().isEmpty()) {
+                || incrementInput == null || incrementInput.trim().isEmpty()) {
             AlertUtil.showWarning("Thiếu thông tin", "Vui lòng nhập đầy đủ Giá tối đa và Bước giá tự động!");
             return;
         }
@@ -346,7 +404,7 @@ public class BiddingController implements BidUpdateListener {
         double minAllowed = currentPrice + minIncrement;
         if (maxBid < minAllowed) {
             AlertUtil.showWarning("Giá tối đa quá thấp",
-                "Giá tối đa phải ít nhất bằng: " + formatCurrency(minAllowed));
+                    "Giá tối đa phải ít nhất bằng: " + formatCurrency(minAllowed));
             return;
         }
 
@@ -370,7 +428,7 @@ public class BiddingController implements BidUpdateListener {
                 payload.put("incrementAmount",  capturedIncrement);
 
                 JsonObject response = SocketClient.getInstance()
-                    .send(Actions.SET_AUTO_BID, payload, JsonObject.class);
+                        .send(Actions.SET_AUTO_BID, payload, JsonObject.class);
 
                 Platform.runLater(() -> {
                     btnSetAutoBid.setDisable(false);
@@ -407,7 +465,7 @@ public class BiddingController implements BidUpdateListener {
                 payload.put("auctionId", capturedAuctionId);
 
                 JsonObject response = SocketClient.getInstance()
-                    .send(Actions.CANCEL_AUTO_BID, payload, JsonObject.class);
+                        .send(Actions.CANCEL_AUTO_BID, payload, JsonObject.class);
 
                 Platform.runLater(() -> {
                     btnCancelAutoBid.setDisable(false);
@@ -436,6 +494,15 @@ public class BiddingController implements BidUpdateListener {
     @FXML
     void handleBack(ActionEvent event) {
         closeWindow();
+    }
+
+    @FXML
+    void handleOpenWallet(ActionEvent event) {
+        try {
+            ViewLoader.openInNewWindow("bidder-wallet.fxml", "💰 Ví Điện Tử");
+        } catch (Exception e) {
+            AlertUtil.showError("Lỗi", "Không thể mở ví: " + e.getMessage());
+        }
     }
 
     // ===== Real-time update =====

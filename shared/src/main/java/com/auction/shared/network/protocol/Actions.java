@@ -36,6 +36,7 @@ public final class Actions {
     public static final String TOGGLE_USER_STATUS = "TOGGLE_USER_STATUS";
 
     // Push events
+
     public static final String BID_PLACED              = "BID_PLACED";
     public static final String AUCTION_CLOSED          = "AUCTION_CLOSED";
     public static final String AUCTION_EXTENDED        = "AUCTION_EXTENDED";
@@ -43,4 +44,9 @@ public final class Actions {
     public static final String AUTO_BID_FAILED         = "AUTO_BID_FAILED";
     // FIX REQ-3: Push event khi phiên chuyển sang PAID hoặc CANCELED
     public static final String AUCTION_STATUS_CHANGED  = "AUCTION_STATUS_CHANGED";
+
+    // Wallet
+    public static final String GET_WALLET = "GET_WALLET"; // Xem số dư & lịch sử
+    public static final String TOP_UP     = "TOP_UP";     // Bidder nạp tiền
+    public static final String WITHDRAW   = "WITHDRAW";   // Seller rút tiền
 }

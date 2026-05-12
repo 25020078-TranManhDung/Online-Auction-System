@@ -274,6 +274,15 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         }
     }
 
+    @FXML
+    private void handleOpenWallet(ActionEvent event) {
+        try {
+            ViewLoader.openInNewWindow("seller-wallet.fxml", "💵 Ví Doanh Thu – Seller");
+        } catch (Exception e) {
+            AlertUtil.showError("Lỗi", "Không thể mở ví: " + e.getMessage());
+        }
+    }
+
     // ===== Helpers =====
     @FXML
     private void applyStatusFilter() {
@@ -295,23 +304,23 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         int total = sellerAuctions.size();
 
         long active = sellerAuctions.stream()
-            .filter(a -> {
-                AuctionStatus st = a.getStatus();
-                return st != null && AuctionStatus.RUNNING.equals(st);
-            })
-            .count();
+                .filter(a -> {
+                    AuctionStatus st = a.getStatus();
+                    return st != null && AuctionStatus.RUNNING.equals(st);
+                })
+                .count();
 
         long closed = sellerAuctions.stream()
-            .filter(a -> {
-                AuctionStatus st = a.getStatus();
-                return st != null && (AuctionStatus.FINISHED.equals(st) || AuctionStatus.PAID.equals(st));
-            })
-            .count();
+                .filter(a -> {
+                    AuctionStatus st = a.getStatus();
+                    return st != null && (AuctionStatus.FINISHED.equals(st) || AuctionStatus.PAID.equals(st));
+                })
+                .count();
 
         long revenue = sellerAuctions.stream()
-            .filter(a -> a.getCurrentPrice() != null)   // nếu currentPrice là Double
-            .mapToLong(a -> Math.round(a.getCurrentPrice()))
-            .sum();
+                .filter(a -> a.getCurrentPrice() != null)   // nếu currentPrice là Double
+                .mapToLong(a -> Math.round(a.getCurrentPrice()))
+                .sum();
 
         if (lblTotalItems != null) lblTotalItems.setText(String.valueOf(total));
         if (lblActiveItems != null) lblActiveItems.setText(String.valueOf(active));

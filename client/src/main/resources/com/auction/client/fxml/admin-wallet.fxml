@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane prefWidth="860.0" prefHeight="620.0"
+            styleClass="auction-bg"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.client.controller.AdminWalletController">
+
+    <children>
+
+        <!-- HEADER -->
+        <HBox alignment="CENTER_LEFT" spacing="14.0"
+              AnchorPane.topAnchor="20.0"
+              AnchorPane.leftAnchor="24.0"
+              AnchorPane.rightAnchor="24.0"
+              prefHeight="70.0"
+              styleClass="glass-box"
+              style="-fx-background-radius: 16; -fx-padding: 12 28 12 28;">
+
+            <ImageView fitHeight="40.0" fitWidth="40.0" preserveRatio="true">
+                <image><Image url="@/com/auction/client/images/logo.png"/></image>
+            </ImageView>
+
+            <VBox alignment="CENTER_LEFT" spacing="2.0">
+                <Label text="💼 Ví Quản Trị – Hoa Hồng Hệ Thống" styleClass="auction-title"
+                       style="-fx-font-size: 17px;"/>
+                <Label text="Thu 5% hoa hồng từ mỗi phiên đấu giá thành công" styleClass="auction-subtitle"/>
+            </VBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <VBox alignment="CENTER_RIGHT" spacing="2.0">
+                <Label fx:id="lblUser" text="Admin"
+                       style="-fx-text-fill: #2c3e50; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+                <Label fx:id="lblRole" text="Quản trị viên"
+                       style="-fx-text-fill: #7f8c8d; -fx-font-size: 12px;"/>
+            </VBox>
+
+            <Button fx:id="btnClose" text="✕ Đóng" onAction="#handleClose"
+                    style="-fx-background-color: #e74c3c; -fx-text-fill: white;
+                           -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;"/>
+        </HBox>
+
+        <!-- BODY -->
+        <VBox spacing="14.0"
+              AnchorPane.topAnchor="106.0"
+              AnchorPane.leftAnchor="24.0"
+              AnchorPane.rightAnchor="24.0"
+              AnchorPane.bottomAnchor="24.0">
+
+            <!-- Thẻ thống kê top -->
+            <HBox spacing="14.0">
+                <!-- Tổng số dư -->
+                <VBox styleClass="glass-box" HBox.hgrow="ALWAYS"
+                      style="-fx-background-radius: 16; -fx-padding: 24; -fx-alignment: center;"
+                      spacing="6.0">
+                    <Label text="TỔNG SỐ DƯ VÍ"
+                           style="-fx-text-fill: #7f8c8d; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                    <Label fx:id="lblBalance" text="0 VNĐ"
+                           style="-fx-text-fill: #8e44ad; -fx-font-weight: bold; -fx-font-size: 28px;"/>
+                </VBox>
+
+                <!-- Tổng hoa hồng -->
+                <VBox styleClass="glass-box" HBox.hgrow="ALWAYS"
+                      style="-fx-background-radius: 16; -fx-padding: 24; -fx-alignment: center;"
+                      spacing="6.0">
+                    <Label text="TỔNG HOA HỒNG ĐÃ NHẬN"
+                           style="-fx-text-fill: #7f8c8d; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                    <Label fx:id="lblTotalCommission" text="0 VNĐ"
+                           style="-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 22px;"/>
+                </VBox>
+
+                <!-- Số phiên -->
+                <VBox styleClass="glass-box"
+                      style="-fx-background-radius: 16; -fx-padding: 24; -fx-alignment: center;
+                             -fx-min-width: 160.0;" spacing="6.0">
+                    <Label text="SỐ PHIÊN ĐẤU GIÁ"
+                           style="-fx-text-fill: #7f8c8d; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                    <Label fx:id="lblAuctionCount" text="0 phiên"
+                           style="-fx-text-fill: #3498db; -fx-font-weight: bold; -fx-font-size: 22px;"/>
+                </VBox>
+            </HBox>
+
+            <!-- Ghi chú -->
+            <HBox styleClass="glass-box"
+                  style="-fx-background-color: rgba(142,68,173,0.10); -fx-background-radius: 12;
+                         -fx-border-color: #8e44ad40; -fx-border-width: 1; -fx-border-radius: 12;
+                         -fx-padding: 14;" spacing="10.0" alignment="CENTER_LEFT">
+                <Label text="ℹ️" style="-fx-font-size: 16px;"/>
+                <Label text="Mỗi khi một phiên đấu giá kết thúc thành công, hệ thống tự động chuyển 5% giá trị thắng cuộc vào ví này. Admin không thể rút tiền thủ công."
+                       wrapText="true" style="-fx-text-fill: #6c3483; -fx-font-size: 12px;"/>
+            </HBox>
+
+            <!-- Lịch sử hoa hồng -->
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                <Label text="📋 Chi tiết hoa hồng từng phiên đấu giá"
+                       style="-fx-text-fill: #2c3e50; -fx-font-weight: bold; -fx-font-size: 15px;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="lblTxCount" text="0 giao dịch"
+                       style="-fx-text-fill: #7f8c8d; -fx-font-size: 12px;"/>
+                <Button fx:id="btnRefresh" text="🔄 Làm mới" onAction="#handleRefresh"
+                        style="-fx-background-color: #8e44ad; -fx-text-fill: white;
+                               -fx-background-radius: 10; -fx-cursor: hand; -fx-font-size: 12px;"/>
+            </HBox>
+
+            <TableView fx:id="tvTransactions" VBox.vgrow="ALWAYS"
+                       style="-fx-background-radius: 12;">
+                <columns>
+                    <TableColumn fx:id="colTxType" text="Loại" prefWidth="170.0"/>
+                    <TableColumn fx:id="colTxAmount" text="Hoa hồng nhận" prefWidth="150.0"/>
+                    <TableColumn fx:id="colTxBalance" text="Số dư sau" prefWidth="150.0"/>
+                    <TableColumn fx:id="colTxAuction" text="ID Phiên đấu giá" prefWidth="200.0"/>
+                    <TableColumn fx:id="colTxTime" text="Thời gian" prefWidth="150.0"/>
+                </columns>
+                <placeholder>
+                    <Label text="Chưa có phiên đấu giá nào kết thúc." style="-fx-text-fill: #7f8c8d;"/>
+                </placeholder>
+            </TableView>
+
+        </VBox>
+
+    </children>
+</AnchorPane>

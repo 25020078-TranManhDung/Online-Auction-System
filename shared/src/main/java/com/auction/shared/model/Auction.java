@@ -20,6 +20,12 @@ public class Auction extends Entity {
     private AuctionStatus status;
 
     private String currentLeader;
+
+    // --- CÁC FIELD MỚI ĐƯỢC THÊM VÀO ĐỂ TÍCH HỢP VÍ ---
+    private String currentLeaderId;      // ID bidder dẫn đầu để refund
+    private double currentLeaderAmount;  // Số tiền họ đã khóa
+    // ---------------------------------------------------
+
     private int bidCount;
 
     private List<BidTransaction> bidHistory;
@@ -32,6 +38,7 @@ public class Auction extends Entity {
         this.bidHistory = new ArrayList<>();
         this.bidCount   = 0;
     }
+
     public Auction(String id, String itemId, String sellerId, double startPrice, double minBidIncrement, LocalDateTime startTime, LocalDateTime endTime) {
         super(id);
         this.itemId = itemId;
@@ -96,4 +103,11 @@ public class Auction extends Entity {
 
     public String getWinnerId() { return winnerId; }
     public void setWinnerId(String winnerId) { this.winnerId = winnerId; }
+
+    // --- GETTER & SETTER CHO CÁC FIELD MỚI ---
+    public String getCurrentLeaderId() { return currentLeaderId; }
+    public void setCurrentLeaderId(String currentLeaderId) { this.currentLeaderId = currentLeaderId; }
+
+    public double getCurrentLeaderAmount() { return currentLeaderAmount; }
+    public void setCurrentLeaderAmount(double currentLeaderAmount) { this.currentLeaderAmount = currentLeaderAmount; }
 }

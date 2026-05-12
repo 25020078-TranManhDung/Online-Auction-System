@@ -32,6 +32,8 @@ public class BidService {
     private final AuctionDAO auctionDao;
     private final UserDAO userDao;
 
+    private final WalletService walletService;
+
     private final AuctionEventBus eventBus = AuctionEventBus.getInstance();
     private final AuctionManager manager = AuctionManager.getInstance();
 
@@ -39,10 +41,11 @@ public class BidService {
     // Giúp 100 người đặt giá ở Phiên A không làm chặn 100 người đang đặt giá ở Phiên B.
     private final Map<String, Object> auctionLocks = new ConcurrentHashMap<>();
 
-    public BidService(BidTransactionDAO bidDao, AuctionDAO auctionDao, UserDAO userDao) {
+    public BidService(BidTransactionDAO bidDao, AuctionDAO auctionDao, UserDAO userDao, WalletService walletService) {
         this.bidDao = bidDao;
         this.auctionDao = auctionDao;
         this.userDao = userDao;
+        this.walletService = walletService;
     }
 
     public BidResponse placeBid(BidRequest req, String token) {
@@ -97,6 +100,27 @@ public class BidService {
                 throw new AuctionException("USER_NOT_FOUND", "Tài khoản người dùng không tồn tại.");
             }
 
+            // --- [BỔ SUNG LOGIC TÍCH HỢP VÍ] ---
+
+            // a. Kiểm tra hợp lệ về giá TRƯỚC KHI gọi ví trừ tiền
+            if (amount < auction.getCurrentPrice() + auction.getMinBidIncrement()) {
+                throw new AuctionException("INSUFFICIENT_BID",
+                        "Mức giá phải lớn hơn hoặc bằng Giá hiện tại (" + auction.getCurrentPrice() + ") + Bước giá tối thiểu (" + auction.getMinBidIncrement() + ")");
+            }
+
+            // Ngăn chặn bid trùng với người đang dẫn đầu (tránh tự đẩy giá chính mình rồi bị giam thêm vốn)
+            if (bidderId.equals(auction.getCurrentLeaderId())) {
+                throw new AuctionException("INVALID_BID", "Bạn đang là người dẫn đầu, không thể tự đặt giá thêm.");
+            }
+
+            // b. Lưu lại thông tin của người dẫn đầu cũ để hoàn tiền sau khi trừ tiền bidder mới thành công
+            String previousLeaderId = auction.getCurrentLeaderId();
+            double previousLeaderAmount = auction.getCurrentLeaderAmount();
+
+            // c. Gọi WalletService trừ tiền người đang bid
+            // (Nếu số dư không đủ, WalletService sẽ ném ra lỗi INSUFFICIENT_BALANCE và dừng hàm tại đây)
+            walletService.deductForBid(bidderId, amount, auctionId);
+
             // 6. Xây dựng đối tượng Transaction
             BidTransaction newBid = new BidTransaction(
                 UUID.randomUUID().toString(),
@@ -108,12 +132,17 @@ public class BidService {
                 req.isAutoBid()
             );
 
-            // 7. Gọi hàm xử lý logic kinh tế đã định nghĩa sẵn trong class Auction
-            boolean isValidBid = auction.addBidTransaction(newBid);
+            // 7. Cập nhật Model phiên đấu giá (Chắc chắn sẽ true vì đã check giá ở trên)
+            auction.addBidTransaction(newBid);
 
-            if (!isValidBid) {
-                throw new AuctionException("INSUFFICIENT_BID",
-                    "Mức giá phải lớn hơn hoặc bằng Giá hiện tại (" + auction.getCurrentPrice() + ") + Bước giá tối thiểu (" + auction.getMinBidIncrement() + ")");
+            // --- [CẬP NHẬT LEADER MỚI THEO TÀI LIỆU VÍ] ---
+            auction.setCurrentLeaderId(bidderId);
+            auction.setCurrentLeaderAmount(amount);
+            // ---------------------------------------------
+
+            // --- [HOÀN TIỀN CHO NGƯỜI DẪN ĐẦU CŨ] ---
+            if (previousLeaderId != null) {
+                walletService.refundPreviousLeader(previousLeaderId, previousLeaderAmount, auctionId);
             }
 
             // 8. Cập nhật vào Cơ sở dữ liệu

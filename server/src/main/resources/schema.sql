@@ -9,7 +9,8 @@ CREATE TABLE users (
                        role ENUM('BIDDER', 'SELLER', 'ADMIN') NOT NULL,
                        admin_level INT DEFAULT 0,          -- Thuộc tính của Admin.java
                        reputation_score DOUBLE DEFAULT 5.0, -- Thuộc tính của Seller.java
-                       status VARCHAR(20) DEFAULT 'ACTIVE'
+                       status VARCHAR(20) DEFAULT 'ACTIVE',
+                       wallet_balance DOUBLE DEFAULT 0.0
 );
 
 -- 2. Bảng Items (Gộp Item.java và subclasses Electronics, Vehicle, Art)
@@ -53,14 +54,38 @@ CREATE TABLE bid_transactions (
                                   auction_id VARCHAR(50) NOT NULL,
                                   bidder_id VARCHAR(50) NOT NULL,      -- ID người đặt giá (FK)
                                   bidder_name VARCHAR(100),            -- Tên hiển thị (cache)
+                                  current_leader_id VARCHAR(50) DEFAULT NULL,
                                   amount DOUBLE NOT NULL,
                                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                                   is_auto_bid BOOLEAN DEFAULT FALSE,
                                   FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
                                   FOREIGN KEY (bidder_id) REFERENCES users(id)
 );
--- TĂNG TỐC HỆ THỐNG (INDEX)
+-- 5. Tạo bảng lịch sử giao dịch ví
+CREATE TABLE wallet_transactions (
+    id            VARCHAR(50)  PRIMARY KEY,
+    user_id       VARCHAR(50)  NOT NULL,
+    type          ENUM(
+                      'TOP_UP',          -- Bidder nạp tiền
+                      'BID_DEDUCT',      -- Trừ tiền khi đặt giá
+                      'BID_REFUND',      -- Hoàn tiền khi bị outbid
+                      'AUCTION_WIN',     -- Winner trả tiền (đã trừ lúc bid, đây là log)
+                      'SELLER_RECEIVE',  -- Seller nhận 95% từ winner
+                      'COMMISSION',      -- Admin nhận 5% hoa hồng
+                      'WITHDRAW'         -- Seller rút tiền
+                  ) NOT NULL,
+    amount        DOUBLE       NOT NULL,        -- Số tiền giao dịch (luôn dương)
+    balance_after DOUBLE       NOT NULL,        -- Số dư sau giao dịch
+    description   VARCHAR(255),                 -- Mô tả chi tiết
+    auction_id    VARCHAR(50)  DEFAULT NULL,    -- Liên kết phiên đấu giá (nullable)
+    created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE,
+    FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE SET NULL
+);
 
+-- TĂNG TỐC HỆ THỐNG (INDEX)
+CREATE INDEX idx_wallet_user ON wallet_transactions(user_id, created_at DESC);
+CREATE INDEX idx_wallet_auction ON wallet_transactions(auction_id);
 CREATE INDEX idx_auction_status ON auctions(status); -- Tìm nhanh các phiên đang chạy
 CREATE INDEX idx_bid_history ON bid_transactions(auction_id, amount DESC); -- Lấy top bid nhanh nhất
 CREATE INDEX idx_item_category ON items(category); -- Lọc theo loại sản phẩm

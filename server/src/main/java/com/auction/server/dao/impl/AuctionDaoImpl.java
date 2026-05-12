@@ -75,12 +75,11 @@ public class AuctionDaoImpl implements AuctionDAO {
     @Override
     public boolean save(Auction auction) {
         String sql = """
-                INSERT INTO auctions
-                  (id, item_id, seller_id, start_price, current_price,
-                   min_bid_increment, start_time, end_time,
-                   status, current_leader)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """;
+            INSERT INTO auctions
+              (id, item_id, seller_id, start_price, current_price, min_bid_increment,
+               start_time, end_time, status, current_leader, bid_count, current_leader_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, auction.getId());
@@ -93,6 +92,8 @@ public class AuctionDaoImpl implements AuctionDAO {
             ps.setTimestamp(8, toTs(auction.getEndTime()));
             ps.setString(9, auction.getStatus().name());
             ps.setString(10, auction.getCurrentLeader());
+            ps.setInt(11, auction.getBidCount());
+            ps.setString(12, auction.getCurrentLeaderId());
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("save auction thất bại", e);
@@ -102,18 +103,24 @@ public class AuctionDaoImpl implements AuctionDAO {
     @Override
     public boolean update(Auction auction) {
         String sql = """
-                UPDATE auctions
-                SET current_price = ?, status = ?, end_time = ?, current_leader = ?, winner_id = ?
-                WHERE id = ?
-                """;
+
+            UPDATE auctions
+            SET current_price=?, status=?, current_leader=?, bid_count=?,
+                end_time=?, winner_id=?, current_leader_id=?
+            WHERE id=?
+            """;
+
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDouble(1, auction.getCurrentPrice());
             ps.setString(2, auction.getStatus().name());
-            ps.setTimestamp(3, toTs(auction.getEndTime()));
-            ps.setString(4, auction.getCurrentLeader());
-            ps.setString(5, auction.getWinnerId());   // ← FIX: lưu ID người thắng cuộc
-            ps.setString(6, auction.getId());
+            ps.setString(3, auction.getCurrentLeader());
+            ps.setInt(4, auction.getBidCount());
+            ps.setTimestamp(5, Timestamp.valueOf(auction.getEndTime()));
+            ps.setString(6, auction.getWinnerId());
+            ps.setString(7, auction.getCurrentLeaderId()); // [MỚI]
+            ps.setString(8, auction.getId());
+
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("update auction thất bại", e);
@@ -128,12 +135,17 @@ public class AuctionDaoImpl implements AuctionDAO {
         a.setStartPrice(rs.getDouble("start_price"));
         a.setCurrentPrice(rs.getDouble("current_price"));
         a.setMinBidIncrement(rs.getDouble("min_bid_increment"));
-        a.setStartTime(toLdt(rs.getTimestamp("start_time")));
-        a.setEndTime(toLdt(rs.getTimestamp("end_time")));
+        Timestamp st = rs.getTimestamp("start_time");
+        if (st != null) a.setStartTime(st.toLocalDateTime());
+        Timestamp et = rs.getTimestamp("end_time");
+        if (et != null) a.setEndTime(et.toLocalDateTime());
         a.setStatus(AuctionStatus.valueOf(rs.getString("status")));
         a.setCurrentLeader(rs.getString("current_leader"));
-        a.setWinnerId(rs.getString("winner_id"));     // ← FIX: đọc winner_id từ DB
-        a.setBidCount(rs.getInt("bid_count"));        // BUG FIX: thiếu dòng này khiến bidCount luôn = 0
+        a.setBidCount(rs.getInt("bid_count"));
+        a.setWinnerId(rs.getString("winner_id"));
+        a.setCurrentLeaderId(rs.getString("current_leader_id"));
+        a.setCurrentLeaderAmount(rs.getDouble("current_price"));
+
         return a;
     }
 
