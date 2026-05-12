@@ -103,7 +103,7 @@ public class AuctionDaoImpl implements AuctionDAO {
     public boolean update(Auction auction) {
         String sql = """
                 UPDATE auctions
-                SET current_price = ?, status = ?, end_time = ?, current_leader = ?
+                SET current_price = ?, status = ?, end_time = ?, current_leader = ?, winner_id = ?
                 WHERE id = ?
                 """;
         try (Connection conn = db.getConnection();
@@ -112,7 +112,8 @@ public class AuctionDaoImpl implements AuctionDAO {
             ps.setString(2, auction.getStatus().name());
             ps.setTimestamp(3, toTs(auction.getEndTime()));
             ps.setString(4, auction.getCurrentLeader());
-            ps.setString(5, auction.getId());
+            ps.setString(5, auction.getWinnerId());   // ← FIX: lưu ID người thắng cuộc
+            ps.setString(6, auction.getId());
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("update auction thất bại", e);
@@ -131,7 +132,8 @@ public class AuctionDaoImpl implements AuctionDAO {
         a.setEndTime(toLdt(rs.getTimestamp("end_time")));
         a.setStatus(AuctionStatus.valueOf(rs.getString("status")));
         a.setCurrentLeader(rs.getString("current_leader"));
-        a.setBidCount(rs.getInt("bid_count"));   // BUG FIX: thiếu dòng này khiến bidCount luôn = 0
+        a.setWinnerId(rs.getString("winner_id"));     // ← FIX: đọc winner_id từ DB
+        a.setBidCount(rs.getInt("bid_count"));        // BUG FIX: thiếu dòng này khiến bidCount luôn = 0
         return a;
     }
 

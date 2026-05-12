@@ -39,10 +39,12 @@ CREATE TABLE auctions (
                           start_time DATETIME NOT NULL,
                           end_time DATETIME NOT NULL,
                           status ENUM('OPEN', 'RUNNING', 'FINISHED', 'PAID', 'CANCELED') DEFAULT 'OPEN',
-                          current_leader VARCHAR(100), -- bidderName dẫn đầu
+                          current_leader VARCHAR(100), -- bidderName dẫn đầu (hiển thị)
+                          winner_id VARCHAR(50) DEFAULT NULL, -- ID người thắng cuộc (FK, lưu vĩnh viễn)
                           bid_count INT DEFAULT 0,
                           FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
-                          FOREIGN KEY (seller_id) REFERENCES users(id)
+                          FOREIGN KEY (seller_id) REFERENCES users(id),
+                          FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- 4. Bảng Bid Transactions (Khớp BidTransaction.java)

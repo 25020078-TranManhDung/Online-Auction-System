@@ -23,6 +23,7 @@ public class AuctionResponse implements Serializable {
     private String highestBidderName;
 
     private String sellerId;
+    private String winnerId;     // ← FIX: ID người thắng cuộc (null nếu chưa kết thúc)
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private AuctionStatus status;
@@ -80,6 +81,9 @@ public class AuctionResponse implements Serializable {
 
     public String getSellerId() { return sellerId; }
     public void setSellerId(String sellerId) { this.sellerId = sellerId; }
+
+    public String getWinnerId() { return winnerId; }
+    public void setWinnerId(String winnerId) { this.winnerId = winnerId; }
 
     public long getTimeRemaining() { return timeRemaining; }
     public void setTimeRemaining(long timeRemaining) { this.timeRemaining = timeRemaining; }

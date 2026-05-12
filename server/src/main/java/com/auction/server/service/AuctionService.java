@@ -13,6 +13,7 @@ import com.auction.shared.enums.AuctionStatus;
 import com.auction.shared.enums.UserRole;
 import com.auction.shared.exception.AuctionException;
 import com.auction.shared.exception.ResourceNotFoundException;
+import com.auction.shared.exception.UnauthorizedException;
 import com.auction.shared.model.Auction;
 import com.auction.shared.model.BidTransaction;
 import com.auction.shared.model.item.Item;
@@ -222,6 +223,83 @@ public class AuctionService {
         eventBus.publishAuctionClosed(auction);
     }
 
+    /**
+     * Xác nhận thanh toán: FINISHED → PAID.
+     * Chỉ winner hoặc Admin mới được gọi.
+     * @param auctionId  ID phiên đấu giá
+     * @param token      Token của người gọi (dùng để xác định role)
+     */
+    public void markAsPaid(String auctionId, String token) {
+        String requesterId = TokenUtil.getUserId(token);
+        if (requesterId == null) {
+            throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ.");
+        }
+
+        // Phiên FINISHED mới được truy xuất từ DB (không cần ở RAM nữa)
+        Auction auction = auctionDao.findById(auctionId);
+        if (auction == null) {
+            throw new ResourceNotFoundException("AUCTION_NOT_FOUND",
+                "Không tìm thấy phiên đấu giá có ID: " + auctionId);
+        }
+
+        // Kiểm tra đúng trạng thái
+        if (auction.getStatus() != AuctionStatus.FINISHED) {
+            throw new AuctionException("INVALID_STATE",
+                "Chỉ có thể xác nhận thanh toán khi phiên ở trạng thái FINISHED. " +
+                    "Trạng thái hiện tại: " + auction.getStatus());
+        }
+
+        // Kiểm tra quyền: phải là winner hoặc Admin
+        String role = TokenUtil.getRole(token);
+        boolean isAdmin  = "ADMIN".equals(role);
+        boolean isWinner = requesterId.equals(auction.getWinnerId());
+        if (!isAdmin && !isWinner) {
+            throw new UnauthorizedException("Chỉ người thắng cuộc hoặc Admin mới được xác nhận thanh toán.");
+        }
+
+        auction.setStatus(AuctionStatus.PAID);
+        auctionDao.update(auction);
+        eventBus.publishAuctionStatusChanged(auction, "PAID");
+    }
+
+    /**
+     * Hủy phiên đấu giá: bất kỳ trạng thái nào (trừ PAID) → CANCELED.
+     * Chỉ Admin mới được gọi.
+     * @param auctionId  ID phiên đấu giá
+     * @param token      Token của Admin
+     */
+    public void cancelAuction(String auctionId, String token) {
+        String requesterId = TokenUtil.getUserId(token);
+        if (requesterId == null) {
+            throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ.");
+        }
+
+        // Kiểm tra quyền Admin
+        String role = TokenUtil.getRole(token);
+        if (!"ADMIN".equals(role)) {
+            throw new UnauthorizedException("Chỉ Admin mới có quyền hủy phiên đấu giá.");
+        }
+
+        Auction auction = auctionDao.findById(auctionId);
+        if (auction == null) {
+            throw new ResourceNotFoundException("AUCTION_NOT_FOUND",
+                "Không tìm thấy phiên đấu giá có ID: " + auctionId);
+        }
+
+        // Phiên đã PAID thì không được hủy
+        if (auction.getStatus() == AuctionStatus.PAID) {
+            throw new AuctionException("INVALID_STATE",
+                "Không thể hủy phiên đấu giá đã được thanh toán.");
+        }
+
+        auction.setStatus(AuctionStatus.CANCELED);
+        auctionDao.update(auction);
+
+        // Nếu phiên đang chạy trên RAM thì dọn dẹp luôn
+        manager.removeAuction(auctionId);
+        eventBus.publishAuctionStatusChanged(auction, "CANCELED");
+    }
+
     public AuctionResponse getDetail(String auctionId) {
         Auction auction = getOrThrow(auctionId);
         Item item = itemDao.findById(auction.getItemId());
@@ -238,6 +316,7 @@ public class AuctionService {
         response.setCurrentPrice(auction.getCurrentPrice());
         response.setHighestBidderName(auction.getCurrentLeader());
         response.setSellerId(auction.getSellerId());
+        response.setWinnerId(auction.getWinnerId());   // ← FIX: trả winnerId về client
 
         response.setStartTime(auction.getStartTime());
         response.setEndTime(auction.getEndTime());
