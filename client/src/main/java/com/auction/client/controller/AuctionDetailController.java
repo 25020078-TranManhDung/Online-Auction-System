@@ -3,6 +3,7 @@ package com.auction.client.controller;
 import com.auction.client.network.MessageHandler;
 import com.auction.client.network.SocketClient;
 import com.auction.client.model.UserSession;
+import com.auction.client.observer.AuctionUpdateListener;
 import com.auction.client.observer.BidUpdateListener;
 import com.auction.client.util.AlertUtil;
 import com.auction.client.util.ChartUtil;
@@ -37,7 +38,7 @@ import java.util.TimerTask;
  * - Mapping mềm dẻo (camelCase / snake_case / wrapper object).
  * - Đăng ký/huỷ đăng ký listener realtime qua reflection.
  */
-public class AuctionDetailController implements BidUpdateListener {
+public class AuctionDetailController implements BidUpdateListener, AuctionUpdateListener {
 
     // ===== Header / Navigation =====
     @FXML private ImageView imgAvatar;
@@ -57,6 +58,7 @@ public class AuctionDetailController implements BidUpdateListener {
     @FXML private Label lblEndTime;
     @FXML private Label lblDescription;
     @FXML private Button btnPlaceBid;
+    @FXML private Button btnMarkAsPaid;   // FIX #1: nút thanh toán cho winner/admin
     @FXML private Label lblMessage;
 
     // ===== Middle column (chart) =====
@@ -77,8 +79,9 @@ public class AuctionDetailController implements BidUpdateListener {
     private long secondsRemaining;
     private long currentPriceValue;
     private long minIncrementValue;    // FIX: lưu thực để tránh parse lỗi từ label
-    private String currentLeaderName = "—"; // FIX: lưu tên người dẫn đầu để truyền sang BiddingController
-    private long   currentLeaderBid  = 0;   // FIX: lưu giá người dẫn đầu
+    private String currentLeaderName = "—";
+    private long   currentLeaderBid  = 0;
+    private String currentWinnerId   = null;  // FIX #1: lưu winnerId để kiểm tra quyền thanh toán
     // FIX: lưu các field còn thiếu để truyền sang BiddingController
     private String currentProductName = "—";
     private String currentSellerId    = "—";
@@ -117,6 +120,7 @@ public class AuctionDetailController implements BidUpdateListener {
 
         // Default UI state
         if (btnPlaceBid != null) btnPlaceBid.setDisable(true);
+        if (btnMarkAsPaid != null) btnMarkAsPaid.setVisible(false);
         if (lblMessage != null) lblMessage.setVisible(false);
         if (lblTimer != null) lblTimer.setText("--:--:--");
 
@@ -136,10 +140,11 @@ public class AuctionDetailController implements BidUpdateListener {
     public void initData(String auctionId) {
         this.currentAuctionId = auctionId;
 
-        // Register for realtime bid updates
+        // Register for realtime bid + auction-status updates
         MessageHandler handler = getMessageHandlerByReflection();
         if (handler != null) {
             handler.addBidListener(this);
+            handler.addAuctionListener(this);  // FIX #3: đăng ký nhận AUCTION_CLOSED / PAID
         }
 
         // Load detail from server
@@ -265,7 +270,7 @@ public class AuctionDetailController implements BidUpdateListener {
                             // "timestamp" được serialize bởi JsonUtil thành ISO-8601 string
                             // → ChartUtil.normalizeLabel() cắt lấy HH:mm:ss
                             String raw = getSafe(b, "timestamp",
-                                    getSafe(b, "time", getSafe(b, "createdAt", "")));
+                                getSafe(b, "time", getSafe(b, "createdAt", "")));
                             String timeLabel = formatTimeOnly(raw); // Gọi hàm vừa tạo thay vì dùng ChartUtil
                             if (timeLabel.equals(raw) && raw.isEmpty()) {
                                 timeLabel = "Bid " + (limit - i); // fallback index khi không có timestamp
@@ -318,13 +323,16 @@ public class AuctionDetailController implements BidUpdateListener {
             // Chart info
             lblChartInfo.setText(String.format("Bắt đầu: %s", getSafe(auction, "startTime", getSafe(auction, "start_time", "—"))));
 
-            // Timer
+            // Timer + winnerId
             this.secondsRemaining = getLongSafe(data, "timeRemaining", getLongSafe(auction, "timeRemaining", getLongSafe(auction, "time_remaining", 0L)));
+            this.currentWinnerId  = getSafe(auction, "winnerId", getSafe(data, "winnerId", null));
             startCountdown();
 
-            // Enable place bid if RUNNING
-            boolean isRunning = "RUNNING".equalsIgnoreCase(lblStatus.getText());
+            // Enable/disable buttons based on status
+            boolean isRunning  = "RUNNING".equalsIgnoreCase(lblStatus.getText());
+            boolean isFinished = "FINISHED".equalsIgnoreCase(lblStatus.getText());
             btnPlaceBid.setDisable(!isRunning);
+            updateMarkAsPaidButton(isFinished);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -389,6 +397,7 @@ public class AuctionDetailController implements BidUpdateListener {
         MessageHandler handler = getMessageHandlerByReflection();
         if (handler != null) {
             handler.removeBidListener(this);
+            handler.removeAuctionListener(this);  // FIX #3: cleanup
         }
 
         try {
@@ -474,6 +483,115 @@ public class AuctionDetailController implements BidUpdateListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    // ----------------- Mark as Paid -----------------
+
+    /**
+     * FIX #4: Gửi MARK_AS_PAID lên server.
+     * Chỉ hiển thị khi phiên FINISHED + người dùng là winner hoặc ADMIN.
+     */
+    @FXML
+    void handleMarkAsPaid(ActionEvent event) {
+        if (currentAuctionId == null) return;
+        boolean confirmed = AlertUtil.showConfirm("Xác nhận thanh toán",
+            "Bạn có chắc muốn xác nhận đã thanh toán cho phiên đấu giá này?");
+        if (!confirmed) return;
+
+        new Thread(() -> {
+            try {
+                java.util.Map<String, Object> params = new java.util.HashMap<>();
+                params.put("auctionId", currentAuctionId);
+                SocketClient.getInstance().send(Actions.MARK_AS_PAID, params, com.google.gson.JsonObject.class);
+                Platform.runLater(() -> {
+                    lblStatus.setText("PAID");
+                    lblStatus.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:#8e44ad;");
+                    if (btnMarkAsPaid != null) btnMarkAsPaid.setVisible(false);
+                    btnPlaceBid.setDisable(true);
+                    showMessage("✅ Xác nhận thanh toán thành công!");
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> AlertUtil.showError("Lỗi", "Không thể xác nhận thanh toán: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    // ----------------- Realtime Auction Status -----------------
+
+    /**
+     * FIX #2 + #3: Nhận push AUCTION_CLOSED / AUCTION_STATUS_CHANGED từ server.
+     * Cập nhật UI ngay lập tức: disable đặt giá, hiện nút thanh toán nếu là winner.
+     */
+    @Override
+    public void onAuctionStatusChanged(JsonObject eventData) {
+        try {
+            if (eventData == null) return;
+            JsonObject data = eventData.has("data") ? eventData.getAsJsonObject("data") : eventData;
+            if (data == null) return;
+
+            // Chỉ xử lý nếu event thuộc phiên này
+            String evAuctionId = getSafe(data, "auctionId", "");
+            if (!evAuctionId.equals(currentAuctionId)) return;
+
+            String event     = getSafe(eventData, "event", "");
+            String newStatus = getSafe(data, "newStatus", getSafe(data, "status", ""));
+
+            if (Actions.AUCTION_CLOSED.equals(event) || "FINISHED".equalsIgnoreCase(newStatus)) {
+                // Phiên vừa kết thúc → lưu winnerId từ push
+                String wId = getSafe(data, "winnerId", getSafe(data, "winner_id", null));
+                if (wId != null) this.currentWinnerId = wId;
+
+                String winnerName  = getSafe(data, "winnerName", getSafe(data, "winner_name", "—"));
+                String finalPrice  = formatMoney((long) getLongSafe(data, "finalPrice", getLongSafe(data, "final_price", currentPriceValue)));
+
+                Platform.runLater(() -> {
+                    lblStatus.setText("FINISHED");
+                    lblStatus.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:#e67e22;");
+                    btnPlaceBid.setDisable(true);
+                    if (countdownTimer != null) { countdownTimer.cancel(); countdownTimer = null; }
+                    if (lblTimer != null) lblTimer.setText("ĐÃ KẾT THÚC");
+                    lblLeaderName.setText(winnerName);
+                    lblLeaderBid.setText(finalPrice);
+                    updateMarkAsPaidButton(true);
+                    showMessage("🏆 Phiên đấu giá đã kết thúc! Người thắng: " + winnerName + " — " + finalPrice);
+                });
+
+            } else if ("PAID".equalsIgnoreCase(newStatus)) {
+                Platform.runLater(() -> {
+                    lblStatus.setText("PAID");
+                    lblStatus.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:#8e44ad;");
+                    if (btnMarkAsPaid != null) btnMarkAsPaid.setVisible(false);
+                    btnPlaceBid.setDisable(true);
+                    showMessage("✅ Phiên đấu giá đã được thanh toán.");
+                });
+
+            } else if ("CANCELED".equalsIgnoreCase(newStatus)) {
+                Platform.runLater(() -> {
+                    lblStatus.setText("CANCELED");
+                    lblStatus.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:#95a5a6;");
+                    if (btnMarkAsPaid != null) btnMarkAsPaid.setVisible(false);
+                    btnPlaceBid.setDisable(true);
+                    showMessage("❌ Phiên đấu giá đã bị hủy.");
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Helper: hiện/ẩn btnMarkAsPaid tùy thuộc phiên FINISHED và quyền người dùng.
+     * Chỉ winner hoặc ADMIN mới thấy nút này.
+     */
+    private void updateMarkAsPaidButton(boolean isFinished) {
+        if (btnMarkAsPaid == null) return;
+        if (!isFinished) { btnMarkAsPaid.setVisible(false); return; }
+
+        UserSession session = UserSession.getInstance();
+        boolean isAdmin  = "ADMIN".equalsIgnoreCase(session.getRole());
+        boolean isWinner = session.getUserId() != null && session.getUserId().equals(currentWinnerId);
+        btnMarkAsPaid.setVisible(isAdmin || isWinner);
     }
 
     // ----------------- Countdown -----------------

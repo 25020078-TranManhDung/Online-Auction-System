@@ -177,6 +177,16 @@
                         style="-fx-font-size: 15px; -fx-padding: 14 0;
                                -fx-font-weight: bold;"/>
 
+                <!-- FIX #1: Nút xác nhận thanh toán (chỉ hiển thị với winner/admin khi FINISHED) -->
+                <Button fx:id="btnMarkAsPaid"
+                        text="✅ XÁC NHẬN THANH TOÁN"
+                        onAction="#handleMarkAsPaid"
+                        visible="false"
+                        maxWidth="Infinity"
+                        style="-fx-font-size: 14px; -fx-padding: 13 0; -fx-font-weight: bold;
+                               -fx-background-color: #8e44ad; -fx-text-fill: white;
+                               -fx-background-radius: 12; -fx-cursor: hand;"/>
+
                 <!-- Thông báo -->
                 <Label fx:id="lblMessage"
                        visible="false"
