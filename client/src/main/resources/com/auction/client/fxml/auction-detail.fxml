@@ -29,7 +29,7 @@
                        pickOnBounds="true"
                        style="-fx-effect: dropshadow(gaussian, #9b59b640, 8, 0, 0, 2);">
                 <image>
-                    <Image url="@../images/bg_login.jpg"/>
+                    <Image url="@../images/logo.png"/>
                 </image>
             </ImageView>
 
@@ -206,13 +206,19 @@
                     <Separator style="-fx-background-color: #9b59b630;"/>
 
                     <LineChart fx:id="priceChart"
+                               animated="false"
                                VBox.vgrow="ALWAYS"
                                style="-fx-font-size: 12px; -fx-background-color: transparent;">
                         <xAxis>
-                            <CategoryAxis label="Thời điểm" side="BOTTOM"/>
+                            <CategoryAxis animated="false"
+                                          label="Thời điểm"
+                                          side="BOTTOM"
+                                          tickLabelRotation="-45"/>
                         </xAxis>
                         <yAxis>
-                            <NumberAxis label="Giá (VNĐ)" side="LEFT"/>
+                            <NumberAxis animated="false"
+                                        label="Giá (VNĐ)"
+                                        side="LEFT"/>
                         </yAxis>
                     </LineChart>
                 </VBox>
