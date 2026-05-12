@@ -103,6 +103,8 @@ public class MessageRouter {
                 case Actions.START_AUCTION -> auctionCtrl.start(msg);
                 case Actions.CLOSE_AUCTION -> auctionCtrl.close(msg);
                 case Actions.ADMIN_CLOSE_AUCTION -> auctionCtrl.close(msg);
+                case Actions.MARK_AS_PAID   -> auctionCtrl.markAsPaid(msg);
+                case Actions.CANCEL_AUCTION -> auctionCtrl.cancelAuction(msg);
 
                 // --- Bid Operations ---
                 case Actions.PLACE_BID -> bidCtrl.placeBid(msg);

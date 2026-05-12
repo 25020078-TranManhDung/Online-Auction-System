@@ -16,6 +16,9 @@ public interface AuctionObserver {
     // Khi phiên đấu giá kết thúc (RUNNING -> FINISHED)
     void onAuctionClosed(Auction auction);
 
+    // Khi trạng thái phiên đổi thành PAID hoặc CANCELED (FINISHED -> PAID/CANCELED)
+    void onAuctionStatusChanged(Auction auction, String newStatus);
+
     // Khi logic Anti-sniping kích hoạt (Gia hạn thời gian)
     void onAuctionExtended(Auction auction, long extraSeconds);
 

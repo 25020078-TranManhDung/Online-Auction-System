@@ -87,4 +87,28 @@ public class AuctionController {
     auctionService.closeAuction(auctionId);
     return ServerResponse.ok(msg.getRequestId(), Map.of("message", "Đã đóng phiên đấu giá thành công."));
   }
+
+  /**
+   * Winner hoặc Admin xác nhận thanh toán: FINISHED → PAID.
+   */
+  public ServerResponse markAsPaid(Message msg) {
+    Map payload = msg.getData(Map.class);
+    String auctionId = (String) payload.get("auctionId");
+
+    auctionService.markAsPaid(auctionId, msg.getToken());
+    return ServerResponse.ok(msg.getRequestId(),
+        Map.of("message", "Phiên đấu giá đã được xác nhận thanh toán thành công."));
+  }
+
+  /**
+   * Admin hủy phiên đấu giá (bất kỳ trạng thái nào trừ PAID): → CANCELED.
+   */
+  public ServerResponse cancelAuction(Message msg) {
+    Map payload = msg.getData(Map.class);
+    String auctionId = (String) payload.get("auctionId");
+
+    auctionService.cancelAuction(auctionId, msg.getToken());
+    return ServerResponse.ok(msg.getRequestId(),
+        Map.of("message", "Phiên đấu giá đã bị hủy thành công."));
+  }
 }

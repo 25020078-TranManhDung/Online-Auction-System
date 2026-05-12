@@ -36,7 +36,7 @@ public class MessageHandler implements Runnable {
     @Override
     public void run() {
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             String line;
             // Liên tục lắng nghe dữ liệu từ Server gửi xuống
             while ((line = reader.readLine()) != null) {
@@ -93,6 +93,14 @@ public class MessageHandler implements Runnable {
 
             case Actions.AUCTION_CLOSED, Actions.AUCTION_EXTENDED -> {
                 // ĐỒNG BỘ 4: Truyền JsonObject xuống cho UI tự xử lý bóc tách dữ liệu
+                Platform.runLater(() -> auctionListeners.forEach(l -> l.onAuctionStatusChanged(rawJsonObject)));
+            }
+
+            // FIX REQ-3: Xử lý push khi server đổi trạng thái phiên sang PAID hoặc CANCELED.
+            // Trước đây bị rơi vào default → bị bỏ qua hoàn toàn, UI không cập nhật gì.
+            // Dùng cùng callback onAuctionStatusChanged() để UI (AuctionDetailController) tự
+            // đọc field "newStatus" và hiển thị banner / disable nút đặt giá tương ứng.
+            case Actions.AUCTION_STATUS_CHANGED -> {
                 Platform.runLater(() -> auctionListeners.forEach(l -> l.onAuctionStatusChanged(rawJsonObject)));
             }
 

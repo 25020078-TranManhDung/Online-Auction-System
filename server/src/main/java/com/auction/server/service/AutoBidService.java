@@ -245,6 +245,13 @@ public class AutoBidService implements AuctionObserver {
     }
 
     @Override
+    public void onAuctionStatusChanged(Auction auction, String newStatus) {
+        // Khi phiên chuyển PAID hoặc CANCELED: dọn dẹp queue nếu còn sót
+        queues.remove(auction.getId());
+        processing.remove(auction.getId());
+    }
+
+    @Override
     public void onAuctionExtended(Auction auction, long extraSeconds) {
         // AutoBidService không bị ảnh hưởng bởi việc gia hạn thời gian, để trống.
     }

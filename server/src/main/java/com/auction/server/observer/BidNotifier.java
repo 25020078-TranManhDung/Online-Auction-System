@@ -74,6 +74,22 @@ public class BidNotifier implements AuctionObserver {
     }
 
     @Override
+    public void onAuctionStatusChanged(Auction auction, String newStatus) {
+        // Push PAID hoặc CANCELED tới tất cả client đang theo dõi phiên
+        PushMessage push = new PushMessage("AUCTION_STATUS_CHANGED", Map.of(
+            "auctionId",  auction.getId(),
+            "newStatus",  newStatus,
+            "winnerId",   auction.getWinnerId()   != null ? auction.getWinnerId()   : "",
+            "winnerName", auction.getCurrentLeader() != null ? auction.getCurrentLeader() : "Không có",
+            "finalPrice", auction.getCurrentPrice(),
+            "message",    "PAID".equals(newStatus)
+                ? "Phiên đấu giá đã được xác nhận thanh toán."
+                : "Phiên đấu giá đã bị hủy."
+        ));
+        socketServer.broadcastToAuction(auction.getId(), JsonUtil.toJson(push));
+    }
+
+    @Override
     public void onError(Auction auction, String errorCode, String message) {
         // Push các sự kiện lỗi/hệ thống (VD: AUTO_BID_FAILED theo PROTOCOL.md)
         PushMessage push = new PushMessage(errorCode, Map.of(

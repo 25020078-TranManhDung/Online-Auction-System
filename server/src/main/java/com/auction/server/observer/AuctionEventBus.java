@@ -56,6 +56,14 @@ public class AuctionEventBus {
         observers.forEach(o -> o.onAuctionClosed(a));
     }
 
+    /**
+     * Phát sự kiện khi phiên đổi sang PAID hoặc CANCELED.
+     * @param newStatus "PAID" hoặc "CANCELED"
+     */
+    public void publishAuctionStatusChanged(Auction a, String newStatus) {
+        observers.forEach(o -> o.onAuctionStatusChanged(a, newStatus));
+    }
+
     // Tích hợp tham số extraSeconds từ giao thức của chúng ta
     public void publishAuctionExtended(Auction a, long extraSeconds) {
         observers.forEach(o -> o.onAuctionExtended(a, extraSeconds));
