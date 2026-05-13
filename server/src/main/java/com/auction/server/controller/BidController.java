@@ -47,6 +47,14 @@ public class BidController {
   }
 
   /**
+   * Admin: lấy TOÀN BỘ lịch sử đặt giá của hệ thống (tất cả các phiên).
+   * Trả về danh sách kèm tên sản phẩm để hiển thị trên Admin Dashboard.
+   */
+  public ServerResponse getAllBids(Message msg) {
+    return ServerResponse.ok(msg.getRequestId(), bidService.getAllBids());
+  }
+
+  /**
    * Đăng ký cấu hình Auto-bid (Proxy bidding) cho một user trên một sản phẩm.
    */
   public ServerResponse setAutoBid(Message msg) {

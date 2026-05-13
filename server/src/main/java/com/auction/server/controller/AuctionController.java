@@ -88,6 +88,19 @@ public class AuctionController {
   }
 
   /**
+   * Admin xác nhận thanh toán thủ công: FINISHED → PAID (không qua settle ví).
+   * Dùng cho trường hợp Admin can thiệp trực tiếp.
+   */
+  public ServerResponse markAsPaid(Message msg) {
+    Map payload = msg.getData(Map.class);
+    String auctionId = (String) payload.get("auctionId");
+
+    auctionService.markAsPaid(auctionId, msg.getToken());
+    return ServerResponse.ok(msg.getRequestId(),
+        Map.of("message", "Phiên đấu giá đã được xác nhận thanh toán thủ công."));
+  }
+
+  /**
    * CẬP NHẬT: Winner xác nhận thanh toán (FINISHED → PAID).
    * Gọi hàm confirmPayment bên Service để trừ tiền Tạm giữ và chuyển cho Seller.
    */
@@ -98,7 +111,7 @@ public class AuctionController {
     auctionService.confirmPayment(auctionId, msg.getToken());
 
     return ServerResponse.ok(msg.getRequestId(),
-            Map.of("message", "Thanh toán thành công! Tiền đã được chuyển cho Người bán."));
+        Map.of("message", "Thanh toán thành công! Tiền đã được chuyển cho Người bán."));
   }
 
   /**
@@ -110,6 +123,6 @@ public class AuctionController {
 
     auctionService.cancelAuction(auctionId, msg.getToken());
     return ServerResponse.ok(msg.getRequestId(),
-            Map.of("message", "Phiên đấu giá đã bị hủy thành công."));
+        Map.of("message", "Phiên đấu giá đã bị hủy thành công."));
   }
 }

@@ -60,6 +60,39 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
         }
     }
 
+    /**
+     * Admin: lấy toàn bộ lịch sử đặt giá, JOIN items để hiện tên sản phẩm.
+     * Kết quả sắp xếp theo thời gian mới nhất trước (DESC).
+     */
+    @Override
+    public List<BidTransaction> findAll() {
+        String sql = """
+            SELECT bt.*,
+                   u.username  AS real_bidder_name,
+                   i.title     AS product_title
+            FROM   bid_transactions bt
+            LEFT JOIN users    u ON bt.bidder_id  = u.id
+            LEFT JOIN auctions a ON bt.auction_id = a.id
+            LEFT JOIN items    i ON a.item_id     = i.id
+            ORDER BY bt.timestamp DESC
+            """;
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            List<BidTransaction> list = new ArrayList<>();
+            while (rs.next()) {
+                BidTransaction bid = mapToBid(rs);
+                // Gán tên sản phẩm từ JOIN (chỉ có trong admin view)
+                try { bid.setProductTitle(rs.getString("product_title")); }
+                catch (SQLException ignored) {}
+                list.add(bid);
+            }
+            return list;
+        } catch (SQLException e) {
+            throw new RuntimeException("findAll bid transactions thất bại", e);
+        }
+    }
+
     @Override
     public List<BidTransaction> findByAuctionId(String auctionId) {
         // BUG FIX: JOIN phải dùng bt.bidder_id = u.id (không phải bt.bidder_name = u.id)

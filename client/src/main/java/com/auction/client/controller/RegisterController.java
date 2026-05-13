@@ -28,6 +28,20 @@ public class RegisterController {
     @FXML private Button btnRegister;
     @FXML private Label lblError;
 
+    @FXML
+    public void initialize() {
+        if (lblError != null) lblError.setVisible(false);
+
+        // Phím tắt Enter: điều hướng tuần tự qua từng field
+        txtFullname.setOnAction(event -> txtUsername.requestFocus());
+        txtUsername.setOnAction(event -> txtEmail.requestFocus());
+        txtEmail.setOnAction(event -> txtPassword.requestFocus());
+        txtPassword.setOnAction(event -> txtConfirmPassword.requestFocus());
+
+        // Enter ở field cuối cùng → kích hoạt nút Tạo tài khoản
+        txtConfirmPassword.setOnAction(event -> btnRegister.fire());
+    }
+
     /**
      * DTO: Hứng dữ liệu trả về từ Server cho action REGISTER.
      * Khớp với trường "data" của ServerResponse trong PROTOCOL.md
@@ -97,9 +111,9 @@ public class RegisterController {
 
                 // Gửi Request đồng bộ
                 RegisterResponseData response = SocketClient.getInstance().send(
-                        Actions.REGISTER,
-                        requestData,
-                        RegisterResponseData.class
+                    Actions.REGISTER,
+                    requestData,
+                    RegisterResponseData.class
                 );
 
                 // 4. Thành công -> Về lại luồng chính để báo cáo và chuyển trang

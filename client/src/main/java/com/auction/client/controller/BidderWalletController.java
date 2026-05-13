@@ -1,5 +1,6 @@
 package com.auction.client.controller;
 
+import com.auction.client.controller.AuctionDetailController;
 import com.auction.client.model.UserSession;
 import com.auction.client.network.SocketClient;
 import com.auction.client.util.AlertUtil;
@@ -66,6 +67,7 @@ public class BidderWalletController {
     // Nội bộ
     private double requiredAmount = 0;   // Số tiền cần để đặt giá (nếu mở từ BiddingController)
     private double currentBalance = 0;
+    private String returnAuctionId = null; // ID phiên cần quay lại sau khi đóng ví
 
     private final ObservableList<WalletTransaction> txList = FXCollections.observableArrayList();
 
@@ -83,6 +85,14 @@ public class BidderWalletController {
     }
 
     /**
+     * Gọi từ BiddingController để truyền auctionId, nhằm quay đúng về phiên đó khi đóng ví.
+     * @param auctionId ID phiên đấu giá cần quay lại
+     */
+    public void setReturnAuctionId(String auctionId) {
+        this.returnAuctionId = auctionId;
+    }
+
+    /**
      * Gọi từ BiddingController khi số dư không đủ để đặt giá.
      * @param required Số tiền tối thiểu cần có
      */
@@ -95,7 +105,7 @@ public class BidderWalletController {
             }
             if (lblRequiredAmount != null) {
                 lblRequiredAmount.setText("Bạn cần tối thiểu " + formatVnd(required)
-                        + " để tham gia đấu giá. Vui lòng nạp thêm tiền.");
+                    + " để tham gia đấu giá. Vui lòng nạp thêm tiền.");
             }
         });
     }
@@ -135,7 +145,7 @@ public class BidderWalletController {
             try {
                 TopUpRequest req = new TopUpRequest(capturedAmount);
                 WalletResponse resp = SocketClient.getInstance()
-                        .send(Actions.TOP_UP, req, WalletResponse.class);
+                    .send(Actions.TOP_UP, req, WalletResponse.class);
 
                 Platform.runLater(() -> {
                     btnConfirmTopUp.setDisable(false);
@@ -145,7 +155,7 @@ public class BidderWalletController {
                         updateBalanceDisplay(resp.getBalance(), resp.getAvailableBalance());
                         txtTopUpAmount.clear();
                         showTopUpMsg("✅ Nạp thành công " + formatVnd(capturedAmount)
-                                + "! Số dư: " + formatVnd(resp.getBalance()), false);
+                            + "! Số dư: " + formatVnd(resp.getBalance()), false);
                         loadWallet(); // Reload lịch sử
                         // Ẩn cảnh báo nếu đã đủ tiền
                         if (requiredAmount > 0 && resp.getBalance() >= requiredAmount) {
@@ -176,19 +186,29 @@ public class BidderWalletController {
 
     @FXML
     void handleClose(ActionEvent event) {
+        Stage stage = (Stage) btnClose.getScene().getWindow();
         try {
-            // Tải lại giao diện danh sách phiên đấu giá của Bidder
-            javafx.scene.Parent listView = com.auction.client.util.ViewLoader.loadView("auction-list.fxml");
-
-            if (listView != null) {
-                // Thay "ruột" cửa sổ hiện tại
-                Stage stage = (Stage) btnClose.getScene().getWindow();
-                stage.getScene().setRoot(listView);
-                stage.setTitle("Danh sách phiên đấu giá - Online Auction System");
+            if (returnAuctionId != null && !returnAuctionId.isEmpty()) {
+                // Mở từ BiddingController → quay đúng về auction-detail của phiên đó
+                com.auction.client.util.ViewLoader.ViewResult<AuctionDetailController> result =
+                    com.auction.client.util.ViewLoader.loadViewWithController("auction-detail.fxml");
+                if (result != null) {
+                    result.getController().initData(returnAuctionId);
+                    stage.getScene().setRoot(result.getView());
+                    stage.setTitle("Chi tiết phiên đấu giá");
+                }
+            } else {
+                // Mở độc lập (ví dụ từ menu) → quay về danh sách phiên
+                javafx.scene.Parent listView =
+                    com.auction.client.util.ViewLoader.loadView("auction-list.fxml");
+                if (listView != null) {
+                    stage.getScene().setRoot(listView);
+                    stage.setTitle("Danh sách phiên đấu giá - Online Auction System");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            AlertUtil.showError("Lỗi điều hướng", "Không thể quay lại màn hình chính.");
+            AlertUtil.showError("Lỗi điều hướng", "Không thể quay lại màn hình trước.");
         }
     }
 
@@ -199,7 +219,7 @@ public class BidderWalletController {
         new Thread(() -> {
             try {
                 WalletResponse resp = SocketClient.getInstance()
-                        .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
+                    .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
 
                 Platform.runLater(() -> {
                     if (resp != null) {
@@ -214,7 +234,7 @@ public class BidderWalletController {
                 });
             } catch (Exception e) {
                 Platform.runLater(() ->
-                        AlertUtil.showError("Lỗi tải ví", e.getMessage()));
+                    AlertUtil.showError("Lỗi tải ví", e.getMessage()));
             }
         }, "wallet-load-thread").start();
     }
@@ -234,14 +254,14 @@ public class BidderWalletController {
             return new SimpleStringProperty(label);
         });
         colTxAmount.setCellValueFactory(cd ->
-                new SimpleStringProperty(formatVnd(cd.getValue().getAmount())));
+            new SimpleStringProperty(formatVnd(cd.getValue().getAmount())));
         colTxBalance.setCellValueFactory(cd ->
-                new SimpleStringProperty(formatVnd(cd.getValue().getBalanceAfter())));
+            new SimpleStringProperty(formatVnd(cd.getValue().getBalanceAfter())));
         colTxDesc.setCellValueFactory(cd ->
-                new SimpleStringProperty(cd.getValue().getDescription()));
+            new SimpleStringProperty(cd.getValue().getDescription()));
         colTxTime.setCellValueFactory(cd -> {
             String ts = cd.getValue().getCreatedAt() != null
-                    ? cd.getValue().getCreatedAt().toString().replace("T", " ") : "";
+                ? cd.getValue().getCreatedAt().toString().replace("T", " ") : "";
             if (ts.length() > 19) ts = ts.substring(0, 19);
             return new SimpleStringProperty(ts);
         });
@@ -288,8 +308,8 @@ public class BidderWalletController {
         if (lblTopUpMessage == null) return;
         lblTopUpMessage.setText(msg);
         lblTopUpMessage.setStyle(isError
-                ? "-fx-text-fill: #e74c3c;"
-                : "-fx-text-fill: #27ae60;");
+            ? "-fx-text-fill: #e74c3c;"
+            : "-fx-text-fill: #27ae60;");
         lblTopUpMessage.setVisible(true);
     }
 

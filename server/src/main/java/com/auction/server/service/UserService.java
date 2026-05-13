@@ -88,7 +88,13 @@ public class UserService {
             throw new InvalidCredentialsException("Sai tên đăng nhập hoặc mật khẩu.");
         }
 
-        // 3. Tạo token mới
+        // 3. FIX: Chặn tài khoản bị khoá — phải kiểm tra SAU khi xác thực password
+        //    (trước đây bỏ qua bước này nên LOCKED user vẫn đăng nhập và đặt giá được)
+        if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
+            throw new InvalidCredentialsException("Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên.");
+        }
+
+        // 4. Tạo token mới
         String token = TokenUtil.generate(user.getId(), user.getRole().name());
 
         return new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);

@@ -11,6 +11,9 @@ public class BidTransaction extends Entity {
     private LocalDateTime timestamp;
     private boolean isAutoBid;   // Vẫn để đây cho hợp form JSON, server cứ set false là xong
 
+    // Chỉ dùng trong Admin view (GET_ALL_BIDS) — JOIN từ items.title, không lưu DB
+    private String productTitle;
+
 
     public BidTransaction() {
         super();
@@ -42,4 +45,7 @@ public class BidTransaction extends Entity {
 
     public boolean isAutoBid() { return isAutoBid; }
     public void setAutoBid(boolean autoBid) { this.isAutoBid = autoBid; }
+
+    public String getProductTitle() { return productTitle; }
+    public void setProductTitle(String productTitle) { this.productTitle = productTitle; }
 }

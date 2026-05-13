@@ -3,6 +3,7 @@ package com.auction.client.controller;
 import com.auction.client.network.SocketClient;
 import com.auction.client.util.AlertUtil;
 import com.auction.client.util.ViewLoader;
+import com.auction.shared.network.protocol.Actions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import javafx.application.Platform;
@@ -13,8 +14,10 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
+import javafx.stage.Stage;
 import javafx.util.Callback;
 
 import java.util.HashMap;
@@ -24,13 +27,22 @@ import java.util.function.Predicate;
 
 public class AdminDashboardController {
 
+    // --- THỐNG KÊ TỔNG QUAN (FIX: thiếu @FXML → luôn null → không cập nhật được) ---
+    @FXML private Label lblTotalUsers;
+    @FXML private Label lblLockedUsers;
+    @FXML private Label lblTotalAuctions;
+    @FXML private Label lblActiveAuctions;
+    @FXML private Label lblTotalBids;
+
     // --- TAB QUẢN LÝ NGƯỜI DÙNG ---
     @FXML private TableView<JsonObject> tvUsers;
     @FXML private TableColumn<JsonObject, String> colUserId;
     @FXML private TableColumn<JsonObject, String> colUsername;
+    @FXML private TableColumn<JsonObject, String> colFullname;   // FIX: thiếu @FXML bind
+    @FXML private TableColumn<JsonObject, String> colEmail;      // FIX: thiếu @FXML bind
     @FXML private TableColumn<JsonObject, String> colUserRole;
     @FXML private TableColumn<JsonObject, String> colUserStatus;
-    @FXML private TableColumn<JsonObject, Void> colUserAction; // Cột chứa nút bấm dùng Void
+    @FXML private TableColumn<JsonObject, Void>   colUserAction;
 
     @FXML private TextField txtUserSearch;
     @FXML private ComboBox<String> cboRoleFilter;
@@ -42,29 +54,41 @@ public class AdminDashboardController {
     @FXML private TableColumn<JsonObject, String> colAuctionName;
     @FXML private TableColumn<JsonObject, String> colSellerName;
     @FXML private TableColumn<JsonObject, String> colCurrentBid;
+    @FXML private TableColumn<JsonObject, String> colBidCount;    // FIX: thiếu @FXML bind
     @FXML private TableColumn<JsonObject, String> colAuctionStatus;
-    @FXML private TableColumn<JsonObject, Void> colAuctionAction; // Cột chứa nút bấm dùng Void
+    @FXML private TableColumn<JsonObject, String> colEndTime;     // FIX: thiếu @FXML bind
+    @FXML private TableColumn<JsonObject, Void>   colAuctionAction;
 
     @FXML private TextField txtAuctionSearch;
     @FXML private ComboBox<String> cboAuctionStatusFilter;
     @FXML private Label lblAuctionCount;
 
-    // --- TAB LỊCH SỬ ĐẶT GIÁ (nếu cần) ---
+    // --- TAB LỊCH SỬ ĐẶT GIÁ ---
+    @FXML private TableView<JsonObject>             tvBidHistory;
+    @FXML private TableColumn<JsonObject, String>   colBidNo;
+    @FXML private TableColumn<JsonObject, String>   colBidder;
+    @FXML private TableColumn<JsonObject, String>   colBidProduct;
+    @FXML private TableColumn<JsonObject, String>   colBidAmount;
+    @FXML private TableColumn<JsonObject, String>   colBidTime;
+    @FXML private TableColumn<JsonObject, String>   colBidStatus;
     @FXML private TextField txtBidSearch;
     @FXML private Label lblBidHistoryCount;
 
     // Data lists
-    private final ObservableList<JsonObject> userList = FXCollections.observableArrayList();
+    private final ObservableList<JsonObject> userList    = FXCollections.observableArrayList();
     private final ObservableList<JsonObject> auctionList = FXCollections.observableArrayList();
+    private final ObservableList<JsonObject> bidList     = FXCollections.observableArrayList();
 
     // Filtered/Sorted wrappers
     private FilteredList<JsonObject> filteredUsers;
     private FilteredList<JsonObject> filteredAuctions;
+    private FilteredList<JsonObject> filteredBids;
 
     @FXML
     public void initialize() {
         setupUserTable();
         setupAuctionTable();
+        setupBidTable();   // FIX: khởi tạo bảng bid history
 
         // Wrap lists with FilteredList and SortedList for TableView
         filteredUsers = new FilteredList<>(userList, p -> true);
@@ -75,6 +99,15 @@ public class AdminDashboardController {
         filteredAuctions = new FilteredList<>(auctionList, p -> true);
         SortedList<JsonObject> sortedAuctions = new SortedList<>(filteredAuctions);
         sortedAuctions.comparatorProperty().bind(tvAllAuctions.comparatorProperty());
+        tvAllAuctions.setItems(sortedAuctions);
+
+        // FIX: bid history FilteredList + SortedList
+        filteredBids = new FilteredList<>(bidList, p -> true);
+        SortedList<JsonObject> sortedBids = new SortedList<>(filteredBids);
+        if (tvBidHistory != null) {
+            sortedBids.comparatorProperty().bind(tvBidHistory.comparatorProperty());
+            tvBidHistory.setItems(sortedBids);
+        }
         tvAllAuctions.setItems(sortedAuctions);
 
         // Populate filter comboboxes (optional defaults)
@@ -120,9 +153,18 @@ public class AdminDashboardController {
             });
         }
 
+        if (txtBidSearch != null) {
+            txtBidSearch.textProperty().addListener((obs, oldV, newV) -> {
+                String q = newV == null ? "" : newV.trim().toLowerCase();
+                filteredBids.setPredicate(makeBidPredicate(q));
+                updateBidCountLabel();
+            });
+        }
+
         // Load initial data
         loadUsers();
         loadAuctions();
+        loadBids();   // FIX: load bid history khi khởi động
     }
 
     // =================================================================================
@@ -131,6 +173,9 @@ public class AdminDashboardController {
     private void setupUserTable() {
         colUserId.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "id")));
         colUsername.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "username")));
+        // FIX: bind cột Họ và tên + Email (trước đây bỏ qua khiến hai cột này trống hoàn toàn)
+        colFullname.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "fullname")));
+        colEmail.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "email")));
         colUserRole.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "role")));
         colUserStatus.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "status")));
 
@@ -186,6 +231,7 @@ public class AdminDashboardController {
                             finalArr.forEach(element -> userList.add(element.getAsJsonObject()));
                             System.out.println("✅ ADMIN Đã tải lên bảng " + userList.size() + " người dùng!");
                             updateUserCountLabel();
+                            updateStatLabels(); // FIX: cập nhật stat cards sau khi có dữ liệu
                         });
                     } else {
                         System.err.println("❌ Không tìm thấy mảng dữ liệu Users nào trong cục Response!");
@@ -229,6 +275,9 @@ public class AdminDashboardController {
             long price = data.getValue().has("currentPrice") ? data.getValue().get("currentPrice").getAsLong() : 0;
             return new SimpleStringProperty(formatMoney(price));
         });
+        // FIX: bind cột Lượt đặt + Kết thúc (trước đây bỏ qua khiến hai cột này trống)
+        colBidCount.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "bidCount")));
+        colEndTime.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "endTime")));
         colAuctionStatus.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "status")));
 
         // Tạo nút Hủy phiên cho từng dòng
@@ -285,6 +334,7 @@ public class AdminDashboardController {
                             finalArr.forEach(element -> auctionList.add(element.getAsJsonObject()));
                             System.out.println("✅ ADMIN Đã tải xong " + auctionList.size() + " phiên đấu giá!");
                             updateAuctionCountLabel();
+                            updateStatLabels(); // FIX: cập nhật stat cards sau khi có dữ liệu
                         });
                     } else {
                         System.err.println("❌ Không tìm thấy mảng auctions nào trong cục Response!");
@@ -299,17 +349,18 @@ public class AdminDashboardController {
 
     private void handleForceEndAuction(JsonObject selectedAuction) {
         String status = getJsonString(selectedAuction, "status");
-        if ("CLOSED".equals(status)) {
-            AlertUtil.showInfo("Thông báo", "Phiên đấu giá này đã kết thúc từ trước rồi.");
+        if ("PAID".equals(status) || "CANCELED".equals(status)) {
+            AlertUtil.showInfo("Thông báo", "Phiên đấu giá này không thể hủy (trạng thái: " + status + ").");
             return;
         }
 
         String auctionId = getJsonString(selectedAuction, "auctionId");
+        String title     = getJsonString(selectedAuction, "title");
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Xác nhận hủy");
+        confirm.setTitle("Xác nhận hủy phiên");
         confirm.setHeaderText("Bạn có chắc chắn muốn HỦY phiên đấu giá này?");
-        confirm.setContentText("ID: " + auctionId);
+        confirm.setContentText("\"" + title + "\"\nHành động này không thể hoàn tác.");
 
         Optional<ButtonType> result = confirm.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
@@ -317,10 +368,13 @@ public class AdminDashboardController {
                 try {
                     Map<String, Object> params = new HashMap<>();
                     params.put("auctionId", auctionId);
-                    SocketClient.getInstance().send("ADMIN_CLOSE_AUCTION", params, JsonObject.class);
+                    // FIX: dùng CANCEL_AUCTION thay vì ADMIN_CLOSE_AUCTION
+                    // ADMIN_CLOSE_AUCTION → closeAuction() → FINISHED (sai)
+                    // CANCEL_AUCTION      → cancelAuction() → CANCELED  (đúng)
+                    SocketClient.getInstance().send(Actions.CANCEL_AUCTION, params, JsonObject.class);
 
                     Platform.runLater(() -> {
-                        AlertUtil.showInfo("Thành công", "Đã hủy phiên đấu giá!");
+                        AlertUtil.showInfo("Thành công", "Đã hủy phiên: " + title);
                         loadAuctions();
                     });
                 } catch (Exception e) {
@@ -331,7 +385,76 @@ public class AdminDashboardController {
     }
 
     // =================================================================================
-    // 3. HANDLER ĐƯỢC FXML GỌI (đảm bảo không bị lỗi resolving)
+    // 3. XỬ LÝ BẢNG LỊCH SỬ ĐẶT GIÁ (FIX: toàn bộ phần này bị thiếu)
+    // =================================================================================
+    private void setupBidTable() {
+        if (colBidNo == null) return; // guard nếu FXML chưa inject
+
+        // Cột # — số thứ tự tự sinh theo vị trí hàng
+        colBidNo.setCellValueFactory(data -> {
+            int idx = tvBidHistory.getItems().indexOf(data.getValue()) + 1;
+            return new SimpleStringProperty(String.valueOf(idx));
+        });
+        colBidder.setCellValueFactory(data ->
+            new SimpleStringProperty(getJsonString(data.getValue(), "bidderName")));
+        colBidProduct.setCellValueFactory(data ->
+            new SimpleStringProperty(getJsonString(data.getValue(), "productTitle")));
+        colBidAmount.setCellValueFactory(data -> {
+            try {
+                long amt = data.getValue().has("amount")
+                    ? data.getValue().get("amount").getAsLong() : 0L;
+                return new SimpleStringProperty(formatMoney(amt));
+            } catch (Exception e) {
+                return new SimpleStringProperty("—");
+            }
+        });
+        colBidTime.setCellValueFactory(data ->
+            new SimpleStringProperty(getJsonString(data.getValue(), "timestamp")));
+        colBidStatus.setCellValueFactory(data -> {
+            String auto = getJsonString(data.getValue(), "isAutoBid");
+            return new SimpleStringProperty("true".equalsIgnoreCase(auto) ? "AUTO" : "THƯỜNG");
+        });
+    }
+
+    private void loadBids() {
+        new Thread(() -> {
+            try {
+                com.google.gson.JsonElement response = SocketClient.getInstance()
+                    .send("GET_ALL_BIDS", new HashMap<>(), com.google.gson.JsonElement.class);
+
+                System.out.println(">>> RAW BID HISTORY: " + response);
+
+                if (response != null) {
+                    JsonArray arr = null;
+                    if (response.isJsonArray()) {
+                        arr = response.getAsJsonArray();
+                    } else if (response.isJsonObject()) {
+                        JsonObject obj = response.getAsJsonObject();
+                        if (obj.has("bids"))      arr = obj.getAsJsonArray("bids");
+                        else if (obj.has("data")) arr = obj.getAsJsonArray("data");
+                    }
+
+                    if (arr != null) {
+                        final JsonArray finalArr = arr;
+                        Platform.runLater(() -> {
+                            bidList.clear();
+                            finalArr.forEach(e -> bidList.add(e.getAsJsonObject()));
+                            System.out.println("✅ ADMIN Đã tải " + bidList.size() + " lượt đặt giá!");
+                            updateBidCountLabel();
+                        });
+                    } else {
+                        System.err.println("❌ Không tìm thấy mảng bids trong response!");
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi Admin tải Bids: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    // =================================================================================
+    // 4. HANDLER ĐƯỢC FXML GỌI (đảm bảo không bị lỗi resolving)
     // =================================================================================
     @FXML
     private void handleUserSearch(KeyEvent event) {
@@ -373,16 +496,20 @@ public class AdminDashboardController {
 
     @FXML
     private void handleBidSearch(KeyEvent event) {
-        // Nếu bạn có danh sách lịch sử đặt giá, áp dụng tương tự filtered list ở đây
+        // FIX: trước đây là stub rỗng — giờ thực sự lọc bảng
+        String q = txtBidSearch == null ? "" : txtBidSearch.getText().trim().toLowerCase();
+        if (filteredBids != null) filteredBids.setPredicate(makeBidPredicate(q));
+        updateBidCountLabel();
     }
 
     @FXML
     private void handleRefreshBids(ActionEvent event) {
-        // Nếu có API load lịch sử đặt giá, gọi ở đây
+        // FIX: trước đây là stub rỗng — giờ thực sự reload
+        loadBids();
     }
 
     // =================================================================================
-    // 4. CÁC HÀM TIỆN ÍCH (HELPER)
+    // 5. CÁC HÀM TIỆN ÍCH (HELPER)
     // =================================================================================
     @FXML
     void handleLogout(ActionEvent event) {
@@ -396,7 +523,14 @@ public class AdminDashboardController {
     @FXML
     void handleOpenWallet(ActionEvent event) {
         try {
-            ViewLoader.openInNewWindow("admin-wallet.fxml", "💼 Ví Quản Trị – Hoa Hồng Hệ Thống");
+            javafx.scene.Parent walletView = ViewLoader.loadView("admin-wallet.fxml");
+            if (walletView != null) {
+                Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+                stage.getScene().setRoot(walletView);
+                stage.setTitle("💼 Ví Quản Trị – Hoa Hồng Hệ Thống");
+            } else {
+                AlertUtil.showError("Lỗi", "Không thể tải màn hình ví.");
+            }
         } catch (Exception e) {
             AlertUtil.showError("Lỗi", "Không thể mở ví: " + e.getMessage());
         }
@@ -439,6 +573,23 @@ public class AdminDashboardController {
         };
     }
 
+    private Predicate<JsonObject> makeBidPredicate(String q) {
+        return bid -> {
+            if (bid == null) return false;
+            if (q == null || q.isEmpty()) return true;
+            String bidder  = getJsonString(bid, "bidderName").toLowerCase();
+            String product = getJsonString(bid, "productTitle").toLowerCase();
+            return bidder.contains(q) || product.contains(q);
+        };
+    }
+
+    private void updateBidCountLabel() {
+        if (lblBidHistoryCount != null) {
+            int count = filteredBids == null ? bidList.size() : filteredBids.size();
+            lblBidHistoryCount.setText(count + " lượt đặt giá");
+        }
+    }
+
     private void updateUserCountLabel() {
         if (lblUserCount != null) {
             lblUserCount.setText(String.format("%d người", filteredUsers == null ? userList.size() : filteredUsers.size()));
@@ -449,5 +600,40 @@ public class AdminDashboardController {
         if (lblAuctionCount != null) {
             lblAuctionCount.setText(String.format("%d phiên", filteredAuctions == null ? auctionList.size() : filteredAuctions.size()));
         }
+    }
+
+    /**
+     * FIX: Tính toán và cập nhật 5 stat cards ở header.
+     * Được gọi sau mỗi lần loadUsers() hoặc loadAuctions() hoàn thành.
+     */
+    private void updateStatLabels() {
+        // --- Thống kê người dùng ---
+        long totalUsers  = userList.size();
+        long lockedUsers = userList.stream()
+            .filter(u -> "LOCKED".equalsIgnoreCase(getJsonString(u, "status")))
+            .count();
+
+        if (lblTotalUsers  != null) lblTotalUsers.setText(String.valueOf(totalUsers));
+        if (lblLockedUsers != null) lblLockedUsers.setText(String.valueOf(lockedUsers));
+
+        // --- Thống kê phiên đấu giá ---
+        long totalAuctions  = auctionList.size();
+        long activeAuctions = auctionList.stream()
+            .filter(a -> {
+                String s = getJsonString(a, "status");
+                return "RUNNING".equalsIgnoreCase(s) || "OPEN".equalsIgnoreCase(s);
+            })
+            .count();
+        // Tổng lượt đặt giá = cộng dồn bidCount của tất cả phiên
+        long totalBids = auctionList.stream()
+            .mapToLong(a -> {
+                try { return a.has("bidCount") ? a.get("bidCount").getAsLong() : 0L; }
+                catch (Exception e) { return 0L; }
+            })
+            .sum();
+
+        if (lblTotalAuctions  != null) lblTotalAuctions.setText(String.valueOf(totalAuctions));
+        if (lblActiveAuctions != null) lblActiveAuctions.setText(String.valueOf(activeAuctions));
+        if (lblTotalBids      != null) lblTotalBids.setText(String.valueOf(totalBids));
     }
 }

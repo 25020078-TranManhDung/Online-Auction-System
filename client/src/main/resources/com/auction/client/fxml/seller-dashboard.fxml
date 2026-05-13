@@ -125,75 +125,102 @@
               AnchorPane.bottomAnchor="36.0">
 
             <!-- ══════════════════════════════
-                 CỘT TRÁI – Form đăng sản phẩm
+                 CỘT TRÁI – Form đăng sản phẩm (ScrollPane để nút luôn hiển thị)
                  ══════════════════════════════ -->
-            <VBox spacing="18.0" prefWidth="400.0"
-                  styleClass="glass-box"
-                  style="-fx-background-radius: 20; -fx-padding: 30 34 26 34;">
+            <ScrollPane prefWidth="420.0"
+                        fitToWidth="true"
+                        hbarPolicy="NEVER"
+                        vbarPolicy="AS_NEEDED"
+                        style="-fx-background: transparent; -fx-background-color: transparent;
+                               -fx-border-color: transparent; -fx-padding: 0;">
+                <content>
+                    <VBox spacing="12.0"
+                          styleClass="glass-box"
+                          style="-fx-background-radius: 20; -fx-padding: 24 28 20 28;">
 
-                <Label text="Đăng sản phẩm mới"
-                       styleClass="login-main-title"/>
+                        <Label text="Đăng sản phẩm mới"
+                               styleClass="login-main-title"/>
 
-                <Separator style="-fx-background-color: #9b59b630;"/>
+                        <Separator style="-fx-background-color: #9b59b630;"/>
 
-                <!-- Tên sản phẩm -->
-                <VBox alignment="CENTER_LEFT" spacing="6.0">
-                    <Label text="Tên sản phẩm" styleClass="field-label"/>
-                    <TextField fx:id="txtProductName"
-                               promptText="Nhập tên sản phẩm"
-                               styleClass="input-auction"/>
-                </VBox>
+                        <!-- Tên sản phẩm -->
+                        <VBox alignment="CENTER_LEFT" spacing="5.0">
+                            <Label text="Tên sản phẩm" styleClass="field-label"/>
+                            <TextField fx:id="txtProductName"
+                                       promptText="Nhập tên sản phẩm"
+                                       styleClass="input-auction"/>
+                        </VBox>
 
-                <!-- Mô tả -->
-                <VBox alignment="CENTER_LEFT" spacing="6.0">
-                    <Label text="Mô tả chi tiết" styleClass="field-label"/>
-                    <TextArea fx:id="txtDescription"
-                              promptText="Mô tả tình trạng, xuất xứ, đặc điểm sản phẩm..."
-                              styleClass="input-auction"
-                              prefHeight="110.0"
-                              wrapText="true"
-                              style="-fx-font-size: 14px;"/>
-                </VBox>
+                        <!-- Mô tả -->
+                        <VBox alignment="CENTER_LEFT" spacing="5.0">
+                            <Label text="Mô tả chi tiết" styleClass="field-label"/>
+                            <TextArea fx:id="txtDescription"
+                                      promptText="Mô tả tình trạng, xuất xứ, đặc điểm sản phẩm..."
+                                      styleClass="input-auction"
+                                      prefHeight="80.0"
+                                      wrapText="true"
+                                      style="-fx-font-size: 14px;"/>
+                        </VBox>
 
-                <!-- Giá khởi điểm -->
-                <VBox alignment="CENTER_LEFT" spacing="6.0">
-                    <Label text="Giá khởi điểm (VNĐ)" styleClass="field-label"/>
-                    <TextField fx:id="txtStartPrice"
-                               promptText="Ví dụ: 500000"
-                               styleClass="input-auction"/>
-                </VBox>
+                        <!-- Giá khởi điểm -->
+                        <VBox alignment="CENTER_LEFT" spacing="5.0">
+                            <Label text="Giá khởi điểm (VNĐ)" styleClass="field-label"/>
+                            <TextField fx:id="txtStartPrice"
+                                       promptText="Ví dụ: 500000"
+                                       styleClass="input-auction"/>
+                        </VBox>
 
-                <!-- Bước giá -->
-                <VBox alignment="CENTER_LEFT" spacing="6.0">
-                    <Label text="Bước giá tối thiểu (VNĐ)" styleClass="field-label"/>
-                    <TextField fx:id="txtMinIncrement"
-                               promptText="Ví dụ: 50000"
-                               styleClass="input-auction"/>
-                </VBox>
+                        <!-- Bước giá -->
+                        <VBox alignment="CENTER_LEFT" spacing="5.0">
+                            <Label text="Bước giá tối thiểu (VNĐ)" styleClass="field-label"/>
+                            <TextField fx:id="txtMinIncrement"
+                                       promptText="Ví dụ: 50000"
+                                       styleClass="input-auction"/>
+                        </VBox>
 
-                <!-- Thời gian -->
-                <VBox alignment="CENTER_LEFT" spacing="6.0">
-                    <Label text="Thời gian đấu giá (phút)" styleClass="field-label"/>
-                    <TextField fx:id="txtDuration"
-                               promptText="Ví dụ: 60"
-                               styleClass="input-auction"/>
-                </VBox>
+                        <!-- Thời gian bắt đầu -->
+                        <VBox alignment="CENTER_LEFT" spacing="5.0">
+                            <Label text="Thời gian bắt đầu" styleClass="field-label"/>
+                            <HBox spacing="8.0">
+                                <DatePicker fx:id="dpStartDate"
+                                            promptText="Chọn ngày"
+                                            styleClass="input-auction"
+                                            HBox.hgrow="ALWAYS"
+                                            maxWidth="Infinity"/>
+                                <TextField fx:id="txtStartTime"
+                                           promptText="HH:mm (VD: 14:30)"
+                                           styleClass="input-auction"
+                                           prefWidth="110.0"/>
+                            </HBox>
+                            <Label text="Để trống = bắt đầu ngay lập tức"
+                                   style="-fx-font-size: 11px; -fx-text-fill: #9b59b6; -fx-font-style: italic;"/>
+                        </VBox>
 
-                <!-- Nút đăng -->
-                <Button fx:id="btnAddItem"
-                        text="ĐĂNG PHIÊN ĐẤU GIÁ"
-                        onAction="#handleAddItem"
-                        styleClass="btn-auction-primary"
-                        maxWidth="Infinity"
-                        style="-fx-font-size: 14.5px; -fx-padding: 12 0; -fx-font-weight: bold;"/>
+                        <!-- Thời gian đấu giá -->
+                        <VBox alignment="CENTER_LEFT" spacing="5.0">
+                            <Label text="Thời gian đấu giá (phút)" styleClass="field-label"/>
+                            <TextField fx:id="txtDuration"
+                                       promptText="Ví dụ: 60"
+                                       styleClass="input-auction"/>
+                        </VBox>
 
-                <!-- Thông báo -->
-                <Label fx:id="lblFormMessage"
-                       visible="false"
-                       wrapText="true"
-                       alignment="CENTER"
-                       style="-fx-font-size: 13px; -fx-text-fill: #e74c3c; -fx-padding: 4 0 0 0;"/>
-            </VBox>
+                        <!-- Nút đăng – luôn nhìn thấy nhờ ScrollPane -->
+                        <Button fx:id="btnAddItem"
+                                text="ĐĂNG PHIÊN ĐẤU GIÁ"
+                                onAction="#handleAddItem"
+                                styleClass="btn-auction-primary"
+                                maxWidth="Infinity"
+                                style="-fx-font-size: 14.5px; -fx-padding: 13 0; -fx-font-weight: bold;"/>
+
+                        <!-- Thông báo -->
+                        <Label fx:id="lblFormMessage"
+                               visible="false"
+                               wrapText="true"
+                               alignment="CENTER"
+                               style="-fx-font-size: 13px; -fx-text-fill: #e74c3c; -fx-padding: 4 0 0 0;"/>
+                    </VBox>
+                </content>
+            </ScrollPane>
 
             <!-- ══════════════════════════════
                  CỘT PHẢI – Danh sách sản phẩm

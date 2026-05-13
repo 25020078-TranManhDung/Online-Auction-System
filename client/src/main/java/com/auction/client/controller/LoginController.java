@@ -22,10 +22,15 @@ public class LoginController {
     @FXML private Button btnLogin;
     @FXML private Label lblError; // Bổ sung để đồng bộ FXML
 
-    // Nếu dùng thêm initialize để ẩn lỗi khi vào form
     @FXML
     public void initialize() {
         if (lblError != null) lblError.setVisible(false);
+
+        // Phím tắt Enter: Username → chuyển focus sang Password
+        txtUsername.setOnAction(event -> txtPassword.requestFocus());
+
+        // Phím tắt Enter: Password → kích hoạt nút Đăng nhập
+        txtPassword.setOnAction(event -> btnLogin.fire());
     }
 
     public static class LoginResponseData {
@@ -61,19 +66,19 @@ public class LoginController {
                 requestData.put("password", password);
 
                 LoginResponseData response = SocketClient.getInstance().send(
-                        Actions.LOGIN,
-                        requestData,
-                        LoginResponseData.class
+                    Actions.LOGIN,
+                    requestData,
+                    LoginResponseData.class
                 );
 
                 // Đăng nhập thành công
                 Platform.runLater(() -> {
                     UserSession.getInstance().initSession(
-                            response.userId,
-                            response.username,
-                            response.token,
-                            response.role,
-                            response.expiresAt
+                        response.userId,
+                        response.username,
+                        response.token,
+                        response.role,
+                        response.expiresAt
                     );
 
                     try {

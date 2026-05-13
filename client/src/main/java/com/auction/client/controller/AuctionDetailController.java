@@ -8,6 +8,7 @@ import com.auction.client.observer.BidUpdateListener;
 import com.auction.client.util.AlertUtil;
 import com.auction.client.util.ChartUtil;
 import com.auction.client.util.ViewLoader;
+import com.auction.client.controller.BiddingController;
 import com.auction.shared.network.protocol.Actions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -15,6 +16,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
@@ -350,22 +352,19 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         }
 
         try {
-            // Đọc bước giá từ label hiện tại
-            // FIX: dùng giá trị đã lưu thay vì parse từ label (tránh lỗi format tiền tệ)
             long minInc = this.minIncrementValue;
 
-            // BUG FIX: Dùng ViewLoader.openInNewWindow() thay vì tự tạo Stage thủ công.
-            // ViewLoader tự động load CSS (style.css), tránh lỗi StyleableProperty khi
-            // các styleClass trong bidding.fxml không tìm được định nghĩa trong scene.
-            BiddingController controller = ViewLoader.openInNewWindow("bidding.fxml", "Tham gia đặt giá");
+            // Tải bidding.fxml cùng controller để truyền dữ liệu, KHÔNG mở cửa sổ mới
+            ViewLoader.ViewResult<BiddingController> result =
+                ViewLoader.loadViewWithController("bidding.fxml");
 
-            if (controller == null) {
-                AlertUtil.showError("Lỗi giao diện", "Không thể khởi tạo cửa sổ đặt giá.");
+            if (result == null || result.getController() == null) {
+                AlertUtil.showError("Lỗi giao diện", "Không thể khởi tạo màn hình đặt giá.");
                 return;
             }
 
-            // Truyền dữ liệu phiên vào cửa sổ đặt giá
-            controller.setAuctionData(
+            // Truyền dữ liệu phiên vào controller
+            result.getController().setAuctionData(
                 currentAuctionId,
                 currentPriceValue,
                 minInc,
@@ -379,11 +378,20 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                 currentBidHistory
             );
 
+            // Dọn dẹp timer và listener trước khi rời màn hình
+            if (countdownTimer != null) { countdownTimer.cancel(); countdownTimer = null; }
+            MessageHandler handler = getMessageHandlerByReflection();
+            if (handler != null) { handler.removeBidListener(this); }
+
+            // Thay nội dung cửa sổ hiện tại — không mở Stage mới
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(result.getView());
+            stage.setTitle("Đặt giá – " + currentProductName);
+
         } catch (Exception e) {
-            // In lỗi chi tiết ra console để debug
-            System.err.println("❌ Lỗi mở cửa sổ đặt giá: " + e.getClass().getName() + " — " + e.getMessage());
+            System.err.println("❌ Lỗi mở màn hình đặt giá: " + e.getMessage());
             e.printStackTrace();
-            AlertUtil.showError("Lỗi giao diện", "Không thể mở cửa sổ đặt giá.\nChi tiết: " + e.getMessage());
+            AlertUtil.showError("Lỗi giao diện", "Không thể mở màn hình đặt giá.\nChi tiết: " + e.getMessage());
         }
     }
 
@@ -497,7 +505,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
         // Cập nhật câu chữ để Bidder hiểu rõ luồng tiền
         boolean confirmed = AlertUtil.showConfirm("Xác nhận thanh toán",
-                "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
+            "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
         if (!confirmed) return;
 
         new Thread(() -> {

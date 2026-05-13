@@ -18,22 +18,22 @@ import java.util.Set;
 public class MessageRouter {
 
     private static final Set<String> PUBLIC_ACTIONS = Set.of(
-            Actions.LOGIN,
-            Actions.REGISTER
+        Actions.LOGIN,
+        Actions.REGISTER
     );
 
     private UserController    userCtrl;
     private AuctionController auctionCtrl;
     private BidController     bidCtrl;
     private ItemController    itemCtrl;
-    private WalletController  walletCtrl;   // [MỚI]
+    private WalletController  walletCtrl;
 
     public MessageRouter() {}
 
-    /** Constructor đầy đủ  */
+    /** Constructor đầy đủ */
     public MessageRouter(UserController userCtrl, AuctionController auctionCtrl,
                          BidController bidCtrl, ItemController itemCtrl,
-                         WalletController walletCtrl) {          // [MỚI]
+                         WalletController walletCtrl) {
         this.userCtrl    = userCtrl;
         this.auctionCtrl = auctionCtrl;
         this.bidCtrl     = bidCtrl;
@@ -48,12 +48,13 @@ public class MessageRouter {
     }
 
     public void setControllers(UserController userCtrl, AuctionController auctionCtrl,
-                               BidController bidCtrl, ItemController itemCtrl, WalletController walletCtrl) {
+                               BidController bidCtrl, ItemController itemCtrl,
+                               WalletController walletCtrl) {
         this.userCtrl    = userCtrl;
         this.auctionCtrl = auctionCtrl;
         this.bidCtrl     = bidCtrl;
         this.itemCtrl    = itemCtrl;
-        this.walletCtrl = walletCtrl;
+        this.walletCtrl  = walletCtrl;
     }
 
     public String route(String rawJson, ClientHandler sender) {
@@ -86,21 +87,26 @@ public class MessageRouter {
                 case Actions.GET_ALL_USERS      -> userCtrl.getAllUsers(msg);
                 case Actions.TOGGLE_USER_STATUS -> userCtrl.toggleStatus(msg);
 
-                // --- Auction Operations ---
-                case Actions.GET_AUCTIONS -> auctionCtrl.getList(msg);
-                case Actions.GET_AUCTION_DETAIL -> auctionCtrl.getDetail(msg, sender);
-                case Actions.CREATE_AUCTION -> auctionCtrl.create(msg);
-                case Actions.START_AUCTION -> auctionCtrl.start(msg);
-                case Actions.CLOSE_AUCTION -> auctionCtrl.close(msg);
+                // Auction Operations
+                case Actions.GET_AUCTIONS        -> auctionCtrl.getList(msg);
+                case Actions.GET_AUCTION_DETAIL  -> auctionCtrl.getDetail(msg, sender);
+                case Actions.CREATE_AUCTION      -> auctionCtrl.create(msg);
+                case Actions.START_AUCTION       -> auctionCtrl.start(msg);
+                case Actions.CLOSE_AUCTION       -> auctionCtrl.close(msg);
                 case Actions.ADMIN_CLOSE_AUCTION -> auctionCtrl.close(msg);
-                case Actions.CONFIRM_PAYMENT   -> auctionCtrl.confirmPayment(msg);
-                case Actions.CANCEL_AUCTION -> auctionCtrl.cancelAuction(msg);
+
+                // [MERGE] Giữ MARK_AS_PAID (Admin thủ công) + thêm CONFIRM_PAYMENT (Winner tự xác nhận)
+                case Actions.MARK_AS_PAID    -> auctionCtrl.markAsPaid(msg);
+                case Actions.CONFIRM_PAYMENT -> auctionCtrl.confirmPayment(msg);
+
+                case Actions.CANCEL_AUCTION  -> auctionCtrl.cancelAuction(msg);
 
                 // Bid
                 case Actions.PLACE_BID       -> bidCtrl.placeBid(msg);
                 case Actions.SET_AUTO_BID    -> bidCtrl.setAutoBid(msg);
                 case Actions.CANCEL_AUTO_BID -> bidCtrl.cancelAutoBid(msg);
                 case Actions.GET_BID_HISTORY -> bidCtrl.getHistory(msg);
+                case Actions.GET_ALL_BIDS    -> bidCtrl.getAllBids(msg); // [GIỮ LẠI] Admin
 
                 // Item
                 case Actions.CREATE_ITEM -> itemCtrl.create(msg);
@@ -108,14 +114,13 @@ public class MessageRouter {
                 case Actions.UPDATE_ITEM -> itemCtrl.update(msg);
                 case Actions.DELETE_ITEM -> itemCtrl.delete(msg);
 
-                // ── [MỚI] Wallet ────────────────────────────────────────────
+                // Wallet
                 case Actions.GET_WALLET -> walletCtrl.getWallet(msg);
                 case Actions.TOP_UP     -> walletCtrl.topUp(msg);
                 case Actions.WITHDRAW   -> walletCtrl.withdraw(msg);
-                // ──────────────────────────────────────────────────────────────
 
                 default -> ServerResponse.fail(msg.getRequestId(), "NOT_FOUND",
-                        String.format("Server không hỗ trợ action: [%s]", msg.getAction()));
+                    String.format("Server không hỗ trợ action: [%s]", msg.getAction()));
             };
 
             if (response.getRequestId() == null) {
@@ -129,7 +134,7 @@ public class MessageRouter {
             return err(reqId(msg), e.getCode(), e.getMessage());
         } catch (Exception e) {
             System.err.printf("[Router Exception] Action=%s | Error=%s%n",
-                    (msg != null ? msg.getAction() : "N/A"), e.getMessage());
+                (msg != null ? msg.getAction() : "N/A"), e.getMessage());
             e.printStackTrace();
             return err(reqId(msg), "INTERNAL_SERVER_ERROR", "Đã xảy ra lỗi nghiêm trọng tại phía máy chủ.");
         }

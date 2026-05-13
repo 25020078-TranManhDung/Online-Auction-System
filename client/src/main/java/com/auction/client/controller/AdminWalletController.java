@@ -62,9 +62,17 @@ public class AdminWalletController {
     @FXML
     void handleClose(ActionEvent event) {
         try {
-            Stage stage = (Stage) btnClose.getScene().getWindow();
-            stage.close();
-        } catch (Exception ignored) {}
+            javafx.scene.Parent dashView =
+                com.auction.client.util.ViewLoader.loadView("admin-dashboard.fxml");
+            if (dashView != null) {
+                Stage stage = (Stage) btnClose.getScene().getWindow();
+                stage.getScene().setRoot(dashView);
+                stage.setTitle("Admin Dashboard - Online Auction System");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            AlertUtil.showError("Lỗi điều hướng", "Không thể quay lại Admin Dashboard.");
+        }
     }
 
     // ───────────────────────────────────────────────────────────────
@@ -74,7 +82,7 @@ public class AdminWalletController {
         new Thread(() -> {
             try {
                 WalletResponse resp = SocketClient.getInstance()
-                        .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
+                    .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
 
                 Platform.runLater(() -> {
                     if (resp != null) {
@@ -90,11 +98,11 @@ public class AdminWalletController {
 
                             // Thống kê hoa hồng
                             double totalComm = resp.getTransactions().stream()
-                                    .filter(t -> t.getType() == WalletTransaction.TransactionType.COMMISSION)
-                                    .mapToDouble(WalletTransaction::getAmount).sum();
+                                .filter(t -> t.getType() == WalletTransaction.TransactionType.COMMISSION)
+                                .mapToDouble(WalletTransaction::getAmount).sum();
                             long auctionCnt = resp.getTransactions().stream()
-                                    .filter(t -> t.getType() == WalletTransaction.TransactionType.COMMISSION)
-                                    .count();
+                                .filter(t -> t.getType() == WalletTransaction.TransactionType.COMMISSION)
+                                .count();
 
                             if (lblTotalCommission != null) lblTotalCommission.setText(formatVnd(totalComm));
                             if (lblAuctionCount != null) lblAuctionCount.setText(auctionCnt + " phiên");
@@ -110,18 +118,18 @@ public class AdminWalletController {
 
     private void setupTable() {
         colTxType.setCellValueFactory(cd ->
-                new SimpleStringProperty("💼 Hoa hồng 5%"));
+            new SimpleStringProperty("💼 Hoa hồng 5%"));
         colTxAmount.setCellValueFactory(cd ->
-                new SimpleStringProperty(formatVnd(cd.getValue().getAmount())));
+            new SimpleStringProperty(formatVnd(cd.getValue().getAmount())));
         colTxBalance.setCellValueFactory(cd ->
-                new SimpleStringProperty(formatVnd(cd.getValue().getBalanceAfter())));
+            new SimpleStringProperty(formatVnd(cd.getValue().getBalanceAfter())));
         colTxAuction.setCellValueFactory(cd -> {
             String aid = cd.getValue().getAuctionId();
             return new SimpleStringProperty(aid != null ? aid : "—");
         });
         colTxTime.setCellValueFactory(cd -> {
             String ts = cd.getValue().getCreatedAt() != null
-                    ? cd.getValue().getCreatedAt().toString().replace("T", " ") : "";
+                ? cd.getValue().getCreatedAt().toString().replace("T", " ") : "";
             if (ts.length() > 19) ts = ts.substring(0, 19);
             return new SimpleStringProperty(ts);
         });
