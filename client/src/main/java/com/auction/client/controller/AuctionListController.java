@@ -36,6 +36,8 @@ public class AuctionListController {
     private Label lblRole;
     @FXML
     private Button btnLogout;
+    @FXML
+    private Label lblWalletBalance;
 
     // ─── Toolbar / filters ────────────────────────────────────
     @FXML
@@ -123,6 +125,7 @@ public class AuctionListController {
 
         // 5. Tải dữ liệu ban đầu
         loadAuctions();
+        loadWalletBalance();
     }
 
     // ==========================================================
@@ -432,6 +435,57 @@ public class AuctionListController {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    // ==========================================================
+    //  VÍ ĐIỆN TỬ (LOGIC MỚI)
+    // ==========================================================
+
+    private void loadWalletBalance() {
+        new Thread(() -> {
+            try {
+                Map<String, Object> params = new HashMap<>();
+                // Gửi request lấy thông tin ví (Dùng String "GET_WALLET" để khớp với style code hiện tại của em)
+                JsonObject data = SocketClient.getInstance().send("GET_WALLET", params, JsonObject.class);
+
+                if (data != null) {
+                    // Ưu tiên lấy Số dư khả dụng
+                    long availableBalance = data.has("availableBalance") ? data.get("availableBalance").getAsLong() : 0;
+
+                    Platform.runLater(() -> {
+                        if (lblWalletBalance != null) {
+                            // Tận dụng luôn hàm formatMoney có sẵn của em ở dưới cùng
+                            lblWalletBalance.setText(formatMoney(availableBalance));
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    if (lblWalletBalance != null) lblWalletBalance.setText("Lỗi tải ví");
+                });
+            }
+        }).start();
+    }
+
+    @FXML
+    public void handleOpenWallet(ActionEvent event) {
+        try {
+            // 1. Tải file giao diện Ví
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/auction/client/fxml/bidder-wallet.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            // 2. Lấy cửa sổ (Stage) hiện tại đang chạy
+            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+
+            // 3. Thay thế nội dung cửa sổ bằng giao diện Ví (Cách này giữ nguyên được CSS nền)
+            stage.getScene().setRoot(root);
+            stage.setTitle("Ví Điện Tử - Quản lý số dư");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            AlertUtil.showError("Lỗi", "Không thể mở ví: " + e.getMessage());
+        }
     }
 
     // ==========================================================

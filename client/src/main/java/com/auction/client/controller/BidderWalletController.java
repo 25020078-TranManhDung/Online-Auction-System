@@ -189,26 +189,29 @@ public class BidderWalletController {
         Stage stage = (Stage) btnClose.getScene().getWindow();
         try {
             if (returnAuctionId != null && !returnAuctionId.isEmpty()) {
-                // Mở từ BiddingController → quay đúng về auction-detail của phiên đó
-                com.auction.client.util.ViewLoader.ViewResult<AuctionDetailController> result =
-                    com.auction.client.util.ViewLoader.loadViewWithController("auction-detail.fxml");
-                if (result != null) {
-                    result.getController().initData(returnAuctionId);
-                    stage.getScene().setRoot(result.getView());
-                    stage.setTitle("Chi tiết phiên đấu giá");
-                }
+                // TRƯỜNG HỢP 1: Mở ví từ bên trong Chi tiết một phiên đấu giá
+                // -> Quay đúng về màn hình Chi tiết của phiên đó
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/auction/client/fxml/auction-detail.fxml"));
+                javafx.scene.Parent root = loader.load();
+
+                // Ép kiểu lấy Controller để truyền ID phiên vào lại
+                AuctionDetailController controller = loader.getController();
+                controller.initData(returnAuctionId);
+
+                stage.getScene().setRoot(root);
+                stage.setTitle("Chi tiết phiên đấu giá");
             } else {
-                // Mở độc lập (ví dụ từ menu) → quay về danh sách phiên
-                javafx.scene.Parent listView =
-                    com.auction.client.util.ViewLoader.loadView("auction-list.fxml");
-                if (listView != null) {
-                    stage.getScene().setRoot(listView);
-                    stage.setTitle("Danh sách phiên đấu giá - Online Auction System");
-                }
+                // TRƯỜNG HỢP 2: Mở ví từ nút ngoài màn hình Danh sách chính
+                // -> Quay về màn hình Danh sách phiên
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/auction/client/fxml/auction-list.fxml"));
+                javafx.scene.Parent root = loader.load();
+
+                stage.getScene().setRoot(root);
+                stage.setTitle("Danh sách phiên đấu giá - Online Auction System");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            AlertUtil.showError("Lỗi điều hướng", "Không thể quay lại màn hình trước.");
+            AlertUtil.showError("Lỗi điều hướng", "Không thể quay lại màn hình trước: " + e.getMessage());
         }
     }
 
