@@ -49,6 +49,8 @@ public class WalletService {
         resp.setUsername(user.getUsername());
         resp.setBalance(walletDao.getBalance(userId));
 
+        resp.setAvailableBalance(walletDao.getAvailableBalance(userId));
+
         List<WalletTransaction> history = walletDao.getTransactions(userId);
         resp.setTransactions(history);
         resp.setMessage("Thông tin ví thành công.");
@@ -126,113 +128,80 @@ public class WalletService {
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    //  Kiểm tra số dư khi Bidder đặt giá
-    //  Gọi từ BidService.placeBidInternal() TRƯỚC khi lưu bid
+    //  Tạm giữ (Hold) số dư khi Bidder đặt giá
     // ──────────────────────────────────────────────────────────────────────
-
-    /**
-     * Kiểm tra xem bidder có đủ tiền để đặt giá không.
-     * Nếu đủ → trừ tiền và lưu log BID_DEDUCT.
-     * Nếu không đủ → throw AuctionException để BidService bắt và trả lỗi cho client.
-     *
-     * @param bidderId  ID của bidder
-     * @param amount    Số tiền cần đặt
-     * @param auctionId ID phiên đấu giá
-     */
-    public void deductForBid(String bidderId, double amount, String auctionId) {
-        double currentBalance = walletDao.getBalance(bidderId);
-        if (currentBalance < amount) {
+    public void holdBalanceForBid(String bidderId, double amount, String auctionId) {
+        // Lấy số dư khả dụng (Số dư tổng - Tiền đang bị hold ở các phiên khác)
+        double availableBalance = walletDao.getAvailableBalance(bidderId);
+        if (availableBalance < amount) {
             throw new AuctionException("INSUFFICIENT_BALANCE",
-                    String.format("Số dư ví không đủ. Hiện có: %s, cần: %s. Vui lòng nạp thêm tiền.",
-                            formatVnd(currentBalance), formatVnd(amount)));
+                    String.format("Số dư khả dụng không đủ. Khả dụng: %s, Cần: %s. Vui lòng nạp thêm.",
+                            formatVnd(availableBalance), formatVnd(amount)));
         }
 
-        double balanceAfter = walletDao.debit(bidderId, amount);
-        if (balanceAfter < 0) {
-            throw new AuctionException("INSUFFICIENT_BALANCE",
-                    "Không thể trừ tiền. Số dư không đủ.");
-        }
+        // Cập nhật Database: Tăng giá trị cột 'held_amount'
+        walletDao.hold(bidderId, amount);
+
+        // Lấy lại tổng số dư (không đổi) để ghi log
+        double totalBalance = walletDao.getBalance(bidderId);
 
         User bidder = userDao.findById(bidderId);
-        String username = bidder != null ? bidder.getUsername() : bidderId;
-
-        saveTransaction(bidderId, TransactionType.BID_DEDUCT, amount, balanceAfter,
-                String.format("Đặt giá %s trong phiên %s", formatVnd(amount), auctionId),
+        saveTransaction(bidderId, TransactionType.BID_HOLD, amount, totalBalance,
+                String.format("Tạm giữ %s để đặt giá phiên %s", formatVnd(amount), auctionId),
                 auctionId);
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    //  Hoàn tiền cho người bị outbid
-    //  Gọi từ BidService khi có bid mới thắng người dẫn đầu cũ
+    //  Hủy tạm giữ (Unhold) khi Bidder bị vượt giá
     // ──────────────────────────────────────────────────────────────────────
-
-    /**
-     * Hoàn lại tiền cho bidder vừa bị outbid.
-     *
-     * @param previousLeaderId  ID của bidder dẫn đầu cũ (sẽ được hoàn tiền)
-     * @param previousAmount    Số tiền đã bị khóa của người đó
-     * @param auctionId         ID phiên đấu giá
-     */
-    public void refundPreviousLeader(String previousLeaderId, double previousAmount, String auctionId) {
+    public void releaseHeldBalance(String previousLeaderId, double previousAmount, String auctionId) {
         if (previousLeaderId == null || previousAmount <= 0) return;
 
-        double balanceAfter = walletDao.credit(previousLeaderId, previousAmount);
+        // Cập nhật Database: Giảm giá trị cột 'held_amount'
+        walletDao.release(previousLeaderId, previousAmount);
 
-        saveTransaction(previousLeaderId, TransactionType.BID_REFUND, previousAmount, balanceAfter,
-                String.format("Hoàn tiền do bị outbid trong phiên %s", auctionId),
+        double totalBalance = walletDao.getBalance(previousLeaderId);
+
+        saveTransaction(previousLeaderId, TransactionType.BID_RELEASE, previousAmount, totalBalance,
+                String.format("Hủy tạm giữ do bị vượt giá trong phiên %s", auctionId),
                 auctionId);
     }
 
     // ──────────────────────────────────────────────────────────────────────
     //  Xử lý thanh toán khi đấu giá kết thúc
-    //  Gọi từ AuctionService.closeAuction()
     // ──────────────────────────────────────────────────────────────────────
-
-    /**
-     * Phân phối tiền khi phiên đấu giá kết thúc:
-     *   - Seller nhận 95% giá thắng
-     *   - Admin nhận 5% hoa hồng
-     *   - Người thua cuộc (không phải winner) được refund nếu chưa hoàn
-     *
-     * Lưu ý: Tiền của winner đã bị trừ ngay khi đặt giá thắng (BID_DEDUCT),
-     * nên bước này chỉ phân phối cho Seller & Admin.
-     *
-     * @param winnerId       ID người thắng cuộc (null nếu không có bid nào)
-     * @param winnerAmount   Giá thắng cuộc
-     * @param sellerId       ID người bán
-     * @param auctionId      ID phiên đấu giá
-     * @param adminId        ID tài khoản admin nhận hoa hồng
-     */
     public void settleAuction(String winnerId, double winnerAmount,
                               String sellerId, String auctionId, String adminId) {
         if (winnerId == null) {
-            // Không có người đặt giá → không xử lý tài chính
-            return;
+            return; // Không có người đặt giá
         }
 
-        double commission    = winnerAmount * COMMISSION_RATE;            // 5%
-        double sellerReceive = winnerAmount - commission;                  // 95%
+        // 1. CHÍNH THỨC TRỪ TIỀN WINNER
+        // Lệnh này phải giảm cả cột 'balance' (tổng tiền) VÀ cột 'held_amount' (tiền đang khóa)
+        walletDao.debitHeld(winnerId, winnerAmount);
 
-        // 1. Seller nhận 95%
-        double sellerBalanceAfter = walletDao.credit(sellerId, sellerReceive);
-        saveTransaction(sellerId, TransactionType.SELLER_RECEIVE, sellerReceive, sellerBalanceAfter,
-                String.format("Nhận doanh thu đấu giá %s (95%% của %s)",
-                        auctionId, formatVnd(winnerAmount)),
+        double winnerBalance = walletDao.getBalance(winnerId);
+        saveTransaction(winnerId, TransactionType.AUCTION_WIN, winnerAmount, winnerBalance,
+                String.format("Thanh toán thắng đấu giá %s", auctionId),
                 auctionId);
 
-        // 2. Admin nhận 5% hoa hồng
+        // 2. Tính toán hoa hồng
+        double commission    = winnerAmount * COMMISSION_RATE; // 5%
+        double sellerReceive = winnerAmount - commission;      // 95%
+
+        // 3. Seller nhận 95%
+        double sellerBalanceAfter = walletDao.credit(sellerId, sellerReceive);
+        saveTransaction(sellerId, TransactionType.SELLER_RECEIVE, sellerReceive, sellerBalanceAfter,
+                String.format("Nhận doanh thu đấu giá %s (95%%)", auctionId),
+                auctionId);
+
+        // 4. Admin nhận 5% hoa hồng
         if (adminId != null) {
             double adminBalanceAfter = walletDao.credit(adminId, commission);
             saveTransaction(adminId, TransactionType.COMMISSION, commission, adminBalanceAfter,
-                    String.format("Hoa hồng 5%% từ phiên đấu giá %s", auctionId),
+                    String.format("Hoa hồng 5%% từ phiên %s", auctionId),
                     auctionId);
         }
-
-        // 3. Log AUCTION_WIN cho winner (tiền đã bị trừ từ trước, bước này chỉ ghi nhận)
-        double winnerBalance = walletDao.getBalance(winnerId);
-        saveTransaction(winnerId, TransactionType.AUCTION_WIN, winnerAmount, winnerBalance,
-                String.format("Thắng đấu giá %s với giá %s", auctionId, formatVnd(winnerAmount)),
-                auctionId);
     }
 
     // ──────────────────────────────────────────────────────────────────────

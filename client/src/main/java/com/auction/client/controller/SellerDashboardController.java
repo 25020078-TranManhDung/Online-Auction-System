@@ -276,13 +276,41 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
 
     @FXML
     private void handleOpenWallet(ActionEvent event) {
+        // 1. Dọn dẹp Listener real-time để tránh rò rỉ bộ nhớ (Memory Leak) khi rời khỏi trang
         try {
-            ViewLoader.openInNewWindow("seller-wallet.fxml", "💵 Ví Doanh Thu – Seller");
+            MessageHandler handler = getMessageHandlerSecurely();
+            if (handler != null) {
+                handler.removeBidListener(this);
+                handler.removeAuctionListener(this);
+            }
+        } catch (Exception ignored) {
+            // Bỏ qua lỗi nếu chưa thể kết nối
+        }
+
+        // 2. Tải giao diện và thay thế trên cùng một cửa sổ (chuẩn SPA)
+        try {
+            // Sử dụng loadViewWithController thay vì openInNewWindow
+            ViewLoader.ViewResult<com.auction.client.controller.SellerWalletController> result =
+                    ViewLoader.loadViewWithController("seller-wallet.fxml");
+
+            if (result != null) {
+                // (Tùy chọn) Nếu trong SellerWalletController em có hàm load dữ liệu, có thể gọi ở đây
+                // result.getController().initWalletData();
+
+                // Lấy Cửa sổ (Stage) hiện tại từ nút bấm và "thay ruột" nó
+                javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+                stage.getScene().setRoot(result.getView());
+
+                // Cập nhật lại tiêu đề cửa sổ cho phù hợp
+                stage.setTitle("💵 Ví Doanh Thu – Seller");
+            } else {
+                AlertUtil.showError("Lỗi giao diện", "Không thể khởi tạo màn hình Ví doanh thu.");
+            }
         } catch (Exception e) {
-            AlertUtil.showError("Lỗi", "Không thể mở ví: " + e.getMessage());
+            e.printStackTrace();
+            AlertUtil.showError("Lỗi giao diện", "Không thể mở màn hình Ví doanh thu: " + e.getMessage());
         }
     }
-
     // ===== Helpers =====
     @FXML
     private void applyStatusFilter() {

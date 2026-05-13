@@ -22,24 +22,22 @@ public class AuctionTimerService {
     private final AuctionManager manager = AuctionManager.getInstance();
     private ScheduledExecutorService scheduler;
 
-    // Inject AuctionService thay vì DAO, vì hàm closeAuction của Service đã xử lý mọi logic (DB, Socket)
+    // Inject AuctionService thay vì DAO, vì hàm closeAuction của Service đã xử lý mọi logic
     public AuctionTimerService(AuctionService auctionService) {
         this.auctionService = auctionService;
     }
 
     public void start() {
-        // Tạo Thread Pool dành riêng cho Background Job
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "Auction-Timer-Thread");
-            // TỐI ƯU 1: Daemon = true giúp luồng này tự chết khi Server tắt, không treo JVM
             t.setDaemon(true);
             return t;
         });
 
-        // TỐI ƯU 2: Quét mỗi 1 giây vì chúng ta thao tác trên RAM, cực kỳ nhẹ và chính xác tuyệt đối
+        // Quét mỗi 1 giây
         scheduler.scheduleAtFixedRate(
-            this::checkExpiredAuctions,
-            0, 1, TimeUnit.SECONDS
+                this::checkExpiredAuctions,
+                0, 1, TimeUnit.SECONDS
         );
 
         System.out.println("✅ AuctionTimerService đã khởi động (Chế độ Real-time: 1s/lần).");
@@ -56,13 +54,12 @@ public class AuctionTimerService {
         try {
             LocalDateTime now = LocalDateTime.now();
 
-            // === FIX: Tự động chuyển OPEN -> RUNNING khi startTime đã đến ===
-            // Phiên tạo ra với startTime = now nên sẽ RUNNING trong vòng 1 giây
+            // === 1. Tự động chuyển OPEN -> RUNNING khi startTime đã đến ===
             List<Auction> pendingAuctions = manager.getAll().stream()
-                .filter(a -> a.getStatus() == AuctionStatus.OPEN)
-                .filter(a -> a.getStartTime() != null &&
-                    (a.getStartTime().isBefore(now) || a.getStartTime().isEqual(now)))
-                .collect(Collectors.toList());
+                    .filter(a -> a.getStatus() == AuctionStatus.OPEN)
+                    .filter(a -> a.getStartTime() != null &&
+                            (a.getStartTime().isBefore(now) || a.getStartTime().isEqual(now)))
+                    .collect(Collectors.toList());
 
             for (Auction auction : pendingAuctions) {
                 try {
@@ -73,31 +70,29 @@ public class AuctionTimerService {
                 }
             }
 
-            // 1. Lọc các phiên đang chạy và đã qua thời gian kết thúc (từ RAM)
+            // === 2. Lọc các phiên đang chạy và đã qua thời gian kết thúc ===
             List<Auction> expiredAuctions = manager.getAll().stream()
-                .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
-                .filter(a -> a.getEndTime().isBefore(now) || a.getEndTime().isEqual(now))
-                .collect(Collectors.toList());
+                    .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
+                    .filter(a -> a.getEndTime().isBefore(now) || a.getEndTime().isEqual(now))
+                    .collect(Collectors.toList());
 
             if (!expiredAuctions.isEmpty()) {
                 System.out.println("⏳ Phát hiện " + expiredAuctions.size() + " phiên đấu giá hết hạn lúc " + now);
             }
 
-            // 2. Tiến hành đóng từng phiên
+            // === 3. Tiến hành đóng từng phiên ===
             for (Auction auction : expiredAuctions) {
                 try {
-                    // Gọi sang AuctionService để đóng.
-                    // Ở đó đã có sẵn logic cập nhật DB, thông báo Socket, tính người thắng cuộc.
+                    // Gọi sang AuctionService để kết thúc phiên.
+                    // LƯU Ý CHO LUỒNG MỚI: Hàm closeAuction này sẽ chỉ đổi trạng thái thành FINISHED,
+                    // lưu người thắng cuộc, và KHÔNG trừ tiền ngay.
                     auctionService.closeAuction(auction.getId());
-                    System.out.println("🔒 Đã đóng thành công phiên đấu giá: " + auction.getId());
+                    System.out.println("🔒 Đã kết thúc phiên đấu giá: " + auction.getId() + " (Đang chờ người thắng thanh toán)");
                 } catch (Exception e) {
-                    // TỐI ƯU 3: Try-catch riêng lẻ cho từng phiên
-                    // Nếu phiên A bị lỗi đóng, Timer vẫn tiếp tục chạy để đóng phiên B, không bị sập toàn hệ thống
                     System.err.println("❌ Lỗi khi đóng phiên đấu giá [" + auction.getId() + "]: " + e.getMessage());
                 }
             }
         } catch (Exception e) {
-            // TỐI ƯU 4: Bọc khối Try-catch tổng, đảm bảo Background Job không bao giờ chết vì lỗi Runtime
             System.err.println("🔥 Lỗi nghiêm trọng trong AuctionTimerService: " + e.getMessage());
             e.printStackTrace();
         }

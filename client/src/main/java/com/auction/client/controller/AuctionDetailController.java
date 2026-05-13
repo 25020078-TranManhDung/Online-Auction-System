@@ -485,34 +485,39 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         }
     }
 
-    // ----------------- Mark as Paid -----------------
+    // ----------------- Confirm Payment (Tạm giữ tiền) -----------------
 
     /**
-     * FIX #4: Gửi MARK_AS_PAID lên server.
+     * FIX: Gửi CONFIRM_PAYMENT lên server.
      * Chỉ hiển thị khi phiên FINISHED + người dùng là winner hoặc ADMIN.
      */
     @FXML
     void handleMarkAsPaid(ActionEvent event) {
         if (currentAuctionId == null) return;
+
+        // Cập nhật câu chữ để Bidder hiểu rõ luồng tiền
         boolean confirmed = AlertUtil.showConfirm("Xác nhận thanh toán",
-            "Bạn có chắc muốn xác nhận đã thanh toán cho phiên đấu giá này?");
+                "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
         if (!confirmed) return;
 
         new Thread(() -> {
             try {
                 java.util.Map<String, Object> params = new java.util.HashMap<>();
                 params.put("auctionId", currentAuctionId);
-                SocketClient.getInstance().send(Actions.MARK_AS_PAID, params, com.google.gson.JsonObject.class);
+
+                // THAY ĐỔI QUAN TRỌNG: Gọi đúng Action CONFIRM_PAYMENT
+                SocketClient.getInstance().send(Actions.CONFIRM_PAYMENT, params, com.google.gson.JsonObject.class);
+
                 Platform.runLater(() -> {
                     lblStatus.setText("PAID");
                     lblStatus.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:#8e44ad;");
                     if (btnMarkAsPaid != null) btnMarkAsPaid.setVisible(false);
                     btnPlaceBid.setDisable(true);
-                    showMessage("✅ Xác nhận thanh toán thành công!");
+                    showMessage("✅ Thanh toán thành công! Tiền đã được trừ khỏi ví.");
                 });
             } catch (Exception e) {
                 e.printStackTrace();
-                Platform.runLater(() -> AlertUtil.showError("Lỗi", "Không thể xác nhận thanh toán: " + e.getMessage()));
+                Platform.runLater(() -> AlertUtil.showError("Lỗi thanh toán", "Không thể xác nhận thanh toán: " + e.getMessage()));
             }
         }).start();
     }

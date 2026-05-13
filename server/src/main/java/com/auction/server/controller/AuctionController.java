@@ -32,7 +32,6 @@ public class AuctionController {
     int page = payload != null && payload.get("page") != null ? ((Number) payload.get("page")).intValue() : 0;
     int size = payload != null && payload.get("size") != null ? ((Number) payload.get("size")).intValue() : 20;
 
-    // --- FIX GSON ERROR TẠI ĐÂY ---
     // 1. Lấy dữ liệu dạng mảng (List) từ Service
     List<?> auctionList = auctionService.getList(status, page, size);
 
@@ -89,15 +88,17 @@ public class AuctionController {
   }
 
   /**
-   * Winner hoặc Admin xác nhận thanh toán: FINISHED → PAID.
+   * CẬP NHẬT: Winner xác nhận thanh toán (FINISHED → PAID).
+   * Gọi hàm confirmPayment bên Service để trừ tiền Tạm giữ và chuyển cho Seller.
    */
-  public ServerResponse markAsPaid(Message msg) {
+  public ServerResponse confirmPayment(Message msg) {
     Map payload = msg.getData(Map.class);
     String auctionId = (String) payload.get("auctionId");
 
-    auctionService.markAsPaid(auctionId, msg.getToken());
+    auctionService.confirmPayment(auctionId, msg.getToken());
+
     return ServerResponse.ok(msg.getRequestId(),
-        Map.of("message", "Phiên đấu giá đã được xác nhận thanh toán thành công."));
+            Map.of("message", "Thanh toán thành công! Tiền đã được chuyển cho Người bán."));
   }
 
   /**
@@ -109,6 +110,6 @@ public class AuctionController {
 
     auctionService.cancelAuction(auctionId, msg.getToken());
     return ServerResponse.ok(msg.getRequestId(),
-        Map.of("message", "Phiên đấu giá đã bị hủy thành công."));
+            Map.of("message", "Phiên đấu giá đã bị hủy thành công."));
   }
 }

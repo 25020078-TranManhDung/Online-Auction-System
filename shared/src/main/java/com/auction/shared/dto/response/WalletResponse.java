@@ -11,7 +11,8 @@ public class WalletResponse {
 
     private String userId;
     private String username;
-    private double balance;                      // Số dư hiện tại
+    private double balance;               // Tổng số dư hiện tại (Bao gồm cả tiền đang bị hold)
+    private double availableBalance;      // [MỚI BỔ SUNG] Số dư khả dụng (Tổng tiền - Tiền đang hold)
     private List<WalletTransaction> transactions; // Lịch sử giao dịch (nullable)
 
     // Kết quả giao dịch vừa thực hiện
@@ -31,6 +32,9 @@ public class WalletResponse {
 
     public double getBalance() { return balance; }
     public void setBalance(double balance) { this.balance = balance; }
+
+    public double getAvailableBalance() { return availableBalance; }
+    public void setAvailableBalance(double availableBalance) { this.availableBalance = availableBalance; }
 
     public List<WalletTransaction> getTransactions() { return transactions; }
     public void setTransactions(List<WalletTransaction> transactions) { this.transactions = transactions; }

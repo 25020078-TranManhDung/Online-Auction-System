@@ -198,6 +198,8 @@ public class AuctionService {
 
     /**
      * TỐI ƯU 3: Dùng 'synchronized' để chặn Race Condition (2 luồng cùng đóng 1 phiên)
+     * THAY ĐỔI: Hàm này giờ chỉ đổi trạng thái sang FINISHED và lưu winner,
+     * KHÔNG trừ tiền hay chia tiền ngay lập tức (Chờ Confirm Payment).
      */
     public synchronized void closeAuction(String auctionId) {
         Auction auction = getOrThrow(auctionId);
@@ -206,34 +208,19 @@ public class AuctionService {
             return; // Nếu đã đóng hoặc chưa chạy thì bỏ qua
         }
 
-        // Xác định người thắng cuộc (Giả định DAO trả về Object thay vì Optional để tránh lỗi như UserService)
-        // Khai báo đúng kiểu Optional mà DAO trả về
+        // Xác định người thắng cuộc (Lấy từ Bid mới nhất)
         java.util.Optional<BidTransaction> topBidOpt = bidDao.findHighestBid(auctionId);
 
-        // Kiểm tra xem có người đặt giá không (thay cho việc check != null)
         if (topBidOpt.isPresent()) {
-            BidTransaction topBid = topBidOpt.get(); // Lấy đối tượng thật ra khỏi hộp Optional
-            auction.setWinnerId(topBid.getBidderId()); // ID lưu vào database để tham chiếu
-            auction.setCurrentLeader(topBid.getBidderName()); // Tên hiển thị ra giao diện cho đẹp
+            BidTransaction topBid = topBidOpt.get();
+            auction.setWinnerId(topBid.getBidderId()); // ID lưu vào database để chờ thanh toán
+            auction.setCurrentLeader(topBid.getBidderName());
             auction.setCurrentPrice(topBid.getAmount());
-            // --- [TÍCH HỢP VÍ - SETTLE AUCTION CHÍNH XÁC] ---
-            try {
-                // 1. Tìm ID của Admin để nhận 5% hoa hồng
-                String adminId = walletService.findAdminId();
 
-                // 2. Gọi hàm thanh toán phân bổ tiền
-                walletService.settleAuction(
-                        topBid.getBidderId(),    // winnerId
-                        topBid.getAmount(),      // winnerAmount
-                        auction.getSellerId(),   // sellerId
-                        auctionId,               // auctionId
-                        adminId                  // adminId
-                );
-            } catch (Exception e) {
-                System.err.println("[AuctionService.closeAuction] Lỗi chia tiền sau khi kết thúc phiên: " + e.getMessage());
-            }
+            // XÓA BỎ đoạn gọi walletService.settleAuction ở đây!
         }
 
+        // Chuyển sang trạng thái chờ thanh toán
         auction.setStatus(AuctionStatus.FINISHED);
         auctionDao.update(auction);
 
@@ -243,39 +230,46 @@ public class AuctionService {
     }
 
     /**
-     * Xác nhận thanh toán: FINISHED → PAID.
-     * Chỉ winner hoặc Admin mới được gọi.
+     * CẬP NHẬT: Xác nhận thanh toán (Thay thế cho markAsPaid cũ).
+     * Chỉ người thắng cuộc mới được gọi.
      * @param auctionId  ID phiên đấu giá
-     * @param token      Token của người gọi (dùng để xác định role)
+     * @param token      Token của người gọi (phải là Winner)
      */
-    public void markAsPaid(String auctionId, String token) {
+    public void confirmPayment(String auctionId, String token) {
         String requesterId = TokenUtil.getUserId(token);
         if (requesterId == null) {
             throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ.");
         }
 
-        // Phiên FINISHED mới được truy xuất từ DB (không cần ở RAM nữa)
         Auction auction = auctionDao.findById(auctionId);
         if (auction == null) {
-            throw new ResourceNotFoundException("AUCTION_NOT_FOUND",
-                "Không tìm thấy phiên đấu giá có ID: " + auctionId);
+            throw new ResourceNotFoundException("AUCTION_NOT_FOUND", "Không tìm thấy phiên đấu giá có ID: " + auctionId);
         }
 
-        // Kiểm tra đúng trạng thái
+        // 1. Kiểm tra trạng thái và quyền hạn
         if (auction.getStatus() != AuctionStatus.FINISHED) {
-            throw new AuctionException("INVALID_STATE",
-                "Chỉ có thể xác nhận thanh toán khi phiên ở trạng thái FINISHED. " +
-                    "Trạng thái hiện tại: " + auction.getStatus());
+            throw new AuctionException("INVALID_STATE", "Chỉ có thể thanh toán khi phiên ở trạng thái FINISHED.");
+        }
+        if (!requesterId.equals(auction.getWinnerId())) {
+            throw new UnauthorizedException("Chỉ người chiến thắng mới có quyền xác nhận thanh toán.");
         }
 
-        // Kiểm tra quyền: phải là winner hoặc Admin
-        String role = TokenUtil.getRole(token);
-        boolean isAdmin  = "ADMIN".equals(role);
-        boolean isWinner = requesterId.equals(auction.getWinnerId());
-        if (!isAdmin && !isWinner) {
-            throw new UnauthorizedException("Chỉ người thắng cuộc hoặc Admin mới được xác nhận thanh toán.");
+        // 2. Tiến hành giao dịch tài chính (Chính thức trừ tiền Hold, cộng cho Seller)
+        try {
+            String adminId = walletService.findAdminId();
+            walletService.settleAuction(
+                    requesterId,              // ID người thắng (đang bị hold tiền)
+                    auction.getCurrentPrice(), // Số tiền thắng
+                    auction.getSellerId(),     // ID người bán
+                    auctionId,                 // ID phiên đấu giá
+                    adminId                    // ID admin nhận hoa hồng
+            );
+        } catch (Exception e) {
+            System.err.println("[AuctionService.confirmPayment] Lỗi hệ thống Ví: " + e.getMessage());
+            throw new AuctionException("PAYMENT_FAILED", "Không thể thanh toán: " + e.getMessage());
         }
 
+        // 3. Cập nhật trạng thái phiên đấu giá
         auction.setStatus(AuctionStatus.PAID);
         auctionDao.update(auction);
         eventBus.publishAuctionStatusChanged(auction, "PAID");

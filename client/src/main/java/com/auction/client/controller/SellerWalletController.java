@@ -122,9 +122,21 @@ public class SellerWalletController {
     @FXML
     void handleClose(ActionEvent event) {
         try {
-            Stage stage = (Stage) btnClose.getScene().getWindow();
-            stage.close();
-        } catch (Exception ignored) {}
+            // 1. Tải lại giao diện bảng điều khiển của Seller
+            javafx.scene.Parent dashboardView = com.auction.client.util.ViewLoader.loadView("seller-dashboard.fxml");
+
+            if (dashboardView != null) {
+                // 2. Lấy cửa sổ hiện tại và thay "ruột" để quay về Dashboard
+                Stage stage = (Stage) btnClose.getScene().getWindow();
+                stage.getScene().setRoot(dashboardView);
+
+                // 3. Cập nhật lại tiêu đề ban đầu
+                stage.setTitle("Bảng điều khiển Người bán - Online Auction System");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            AlertUtil.showError("Lỗi điều hướng", "Không thể quay lại bảng điều khiển.");
+        }
     }
 
     // ───────────────────────────────────────────────────────────────

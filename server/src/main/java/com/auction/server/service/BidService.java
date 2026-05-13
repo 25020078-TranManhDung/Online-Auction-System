@@ -100,9 +100,9 @@ public class BidService {
                 throw new AuctionException("USER_NOT_FOUND", "Tài khoản người dùng không tồn tại.");
             }
 
-            // --- [BỔ SUNG LOGIC TÍCH HỢP VÍ] ---
+            // --- [BỔ SUNG LOGIC TÍCH HỢP VÍ - CƠ CHẾ HOLD BALANCE] ---
 
-            // a. Kiểm tra hợp lệ về giá TRƯỚC KHI gọi ví trừ tiền
+            // a. Kiểm tra hợp lệ về giá TRƯỚC KHI gọi ví
             if (amount < auction.getCurrentPrice() + auction.getMinBidIncrement()) {
                 throw new AuctionException("INSUFFICIENT_BID",
                         "Mức giá phải lớn hơn hoặc bằng Giá hiện tại (" + auction.getCurrentPrice() + ") + Bước giá tối thiểu (" + auction.getMinBidIncrement() + ")");
@@ -113,36 +113,38 @@ public class BidService {
                 throw new AuctionException("INVALID_BID", "Bạn đang là người dẫn đầu, không thể tự đặt giá thêm.");
             }
 
-            // b. Lưu lại thông tin của người dẫn đầu cũ để hoàn tiền sau khi trừ tiền bidder mới thành công
+            // b. Lưu lại thông tin của người dẫn đầu cũ để "nhả" tiền tạm giữ sau này
             String previousLeaderId = auction.getCurrentLeaderId();
             double previousLeaderAmount = auction.getCurrentLeaderAmount();
 
-            // c. Gọi WalletService trừ tiền người đang bid
-            // (Nếu số dư không đủ, WalletService sẽ ném ra lỗi INSUFFICIENT_BALANCE và dừng hàm tại đây)
-            walletService.deductForBid(bidderId, amount, auctionId);
+            // c. THAY ĐỔI: Thay vì trừ tiền (deduct), ta gọi WalletService để TẠM GIỮ (hold) tiền
+            // WalletService sẽ kiểm tra số dư khả dụng (Available Balance) = Tổng tiền - Tiền đang bị hold.
+            // Nếu không đủ, nó sẽ ném ra lỗi.
+            walletService.holdBalanceForBid(bidderId, amount, auctionId);
 
             // 6. Xây dựng đối tượng Transaction
             BidTransaction newBid = new BidTransaction(
-                UUID.randomUUID().toString(),
-                auctionId,
-                bidderId,
-                bidder.getUsername(),
-                amount,
-                LocalDateTime.now(),
-                req.isAutoBid()
+                    UUID.randomUUID().toString(),
+                    auctionId,
+                    bidderId,
+                    bidder.getUsername(),
+                    amount,
+                    LocalDateTime.now(),
+                    req.isAutoBid()
             );
 
-            // 7. Cập nhật Model phiên đấu giá (Chắc chắn sẽ true vì đã check giá ở trên)
+            // 7. Cập nhật Model phiên đấu giá
             auction.addBidTransaction(newBid);
 
-            // --- [CẬP NHẬT LEADER MỚI THEO TÀI LIỆU VÍ] ---
+            // --- [CẬP NHẬT LEADER MỚI] ---
             auction.setCurrentLeaderId(bidderId);
             auction.setCurrentLeaderAmount(amount);
             // ---------------------------------------------
 
-            // --- [HOÀN TIỀN CHO NGƯỜI DẪN ĐẦU CŨ] ---
+            // --- [THAY ĐỔI: NHẢ TIỀN TẠM GIỮ CHO NGƯỜI DẪN ĐẦU CŨ] ---
+            // Thay vì hoàn tiền thật, ta chỉ gỡ bỏ trạng thái "hold" cho số tiền của người cũ
             if (previousLeaderId != null) {
-                walletService.refundPreviousLeader(previousLeaderId, previousLeaderAmount, auctionId);
+                walletService.releaseHeldBalance(previousLeaderId, previousLeaderAmount, auctionId);
             }
 
             // 8. Cập nhật vào Cơ sở dữ liệu
@@ -174,7 +176,7 @@ public class BidService {
      */
     private void checkAndExtend(Auction auction) {
         long remainingSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
-            LocalDateTime.now(), auction.getEndTime()
+                LocalDateTime.now(), auction.getEndTime()
         );
 
         if (remainingSeconds > 0 && remainingSeconds <= 30) {

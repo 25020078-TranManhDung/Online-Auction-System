@@ -61,6 +61,8 @@ public class BidderWalletController {
     @FXML private Button btnClose;
     @FXML private Button btnRefresh;
 
+    @FXML private Label lblAvailableBalance;
+
     // Nội bộ
     private double requiredAmount = 0;   // Số tiền cần để đặt giá (nếu mở từ BiddingController)
     private double currentBalance = 0;
@@ -140,7 +142,7 @@ public class BidderWalletController {
                     btnConfirmTopUp.setText("NẠP TIỀN");
                     if (resp != null) {
                         currentBalance = resp.getBalance();
-                        updateBalanceDisplay(resp.getBalance());
+                        updateBalanceDisplay(resp.getBalance(), resp.getAvailableBalance());
                         txtTopUpAmount.clear();
                         showTopUpMsg("✅ Nạp thành công " + formatVnd(capturedAmount)
                                 + "! Số dư: " + formatVnd(resp.getBalance()), false);
@@ -175,9 +177,19 @@ public class BidderWalletController {
     @FXML
     void handleClose(ActionEvent event) {
         try {
-            Stage stage = (Stage) btnClose.getScene().getWindow();
-            stage.close();
-        } catch (Exception ignored) {}
+            // Tải lại giao diện danh sách phiên đấu giá của Bidder
+            javafx.scene.Parent listView = com.auction.client.util.ViewLoader.loadView("auction-list.fxml");
+
+            if (listView != null) {
+                // Thay "ruột" cửa sổ hiện tại
+                Stage stage = (Stage) btnClose.getScene().getWindow();
+                stage.getScene().setRoot(listView);
+                stage.setTitle("Danh sách phiên đấu giá - Online Auction System");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            AlertUtil.showError("Lỗi điều hướng", "Không thể quay lại màn hình chính.");
+        }
     }
 
     // ───────────────────────────────────────────────────────────────
@@ -192,7 +204,7 @@ public class BidderWalletController {
                 Platform.runLater(() -> {
                     if (resp != null) {
                         currentBalance = resp.getBalance();
-                        updateBalanceDisplay(resp.getBalance());
+                        updateBalanceDisplay(resp.getBalance(), resp.getAvailableBalance());
                         txList.clear();
                         if (resp.getTransactions() != null) {
                             txList.addAll(resp.getTransactions());
@@ -212,9 +224,11 @@ public class BidderWalletController {
             WalletTransaction tx = cd.getValue();
             String label = switch (tx.getType()) {
                 case TOP_UP       -> "💰 Nạp tiền";
-                case BID_DEDUCT   -> "🔴 Trừ (Đặt giá)";
-                case BID_REFUND   -> "🔵 Hoàn tiền";
-                case AUCTION_WIN  -> "🏆 Thắng đấu giá";
+                case BID_HOLD     -> "🔒 Tạm giữ (Đặt giá)";     // Luồng mới
+                case BID_RELEASE  -> "🔓 Hủy tạm giữ";           // Luồng mới
+                case AUCTION_WIN  -> "🏆 Thanh toán thắng đấu giá";
+                case BID_DEDUCT   -> "🔴 Trừ (Luồng cũ)";        // Giữ lại để tương thích dữ liệu cũ
+                case BID_REFUND   -> "🔵 Hoàn tiền (Luồng cũ)";  // Giữ lại để tương thích dữ liệu cũ
                 default           -> tx.getType().name();
             };
             return new SimpleStringProperty(label);
@@ -235,10 +249,10 @@ public class BidderWalletController {
         tvTransactions.setItems(txList);
     }
 
-    private void updateBalanceDisplay(double balance) {
+    private void updateBalanceDisplay(double balance, double availableBalance) {
         if (lblBalance != null) {
             lblBalance.setText(formatVnd(balance));
-            // Đổi màu theo mức số dư
+            // Đổi màu theo mức số dư tổng
             if (balance < 100_000) {
                 lblBalance.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold; -fx-font-size: 28px;");
             } else if (balance < 1_000_000) {
@@ -247,6 +261,12 @@ public class BidderWalletController {
                 lblBalance.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 28px;");
             }
         }
+
+        // Hiển thị số dư khả dụng
+        if (lblAvailableBalance != null) {
+            lblAvailableBalance.setText(formatVnd(availableBalance));
+        }
+
         if (lblWalletStatus != null) {
             if (balance < 100_000) {
                 lblWalletStatus.setText("⚠️ Số dư thấp – Hãy nạp thêm để tham gia đấu giá");

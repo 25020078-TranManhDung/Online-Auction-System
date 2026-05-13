@@ -62,10 +62,18 @@
 
                 <!-- Thẻ số dư -->
                 <VBox styleClass="glass-box"
-                      style="-fx-background-radius: 16; -fx-padding: 24; -fx-alignment: center;">
-                    <Label text="SỐ DƯ VÍ" style="-fx-text-fill: #7f8c8d; -fx-font-size: 12px; -fx-font-weight: bold;"/>
+                      style="-fx-background-radius: 16; -fx-padding: 20; -fx-alignment: center;" spacing="4.0">
+
+                    <Label text="TỔNG TÀI SẢN" style="-fx-text-fill: #7f8c8d; -fx-font-size: 12px; -fx-font-weight: bold;"/>
                     <Label fx:id="lblBalance" text="0 VNĐ"
-                           style="-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 28px; -fx-padding: 8 0 4 0;"/>
+                           style="-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 28px;"/>
+
+                    <HBox alignment="CENTER" spacing="6.0" style="-fx-padding: 4 0 8 0;">
+                        <Label text="Số dư khả dụng:" style="-fx-text-fill: #7f8c8d; -fx-font-size: 13px;"/>
+                        <Label fx:id="lblAvailableBalance" text="0 VNĐ"
+                               style="-fx-text-fill: #2980b9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                    </HBox>
+
                     <Label fx:id="lblWalletStatus" text="✅ Ví hoạt động bình thường"
                            style="-fx-text-fill: #27ae60; -fx-font-size: 12px;"/>
                 </VBox>

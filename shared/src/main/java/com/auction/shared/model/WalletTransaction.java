@@ -1,5 +1,7 @@
 package com.auction.shared.model;
+
 import java.time.LocalDateTime;
+
 /**
  * Model đại diện cho một giao dịch ví điện tử.
  * Đặt tại shared/ để cả client và server đều dùng được.
@@ -8,8 +10,10 @@ public class WalletTransaction {
 
     public enum TransactionType {
         TOP_UP,         // Bidder nạp tiền
-        BID_DEDUCT,     // Trừ tiền khi đặt giá
-        BID_REFUND,     // Hoàn tiền khi bị outbid
+        BID_DEDUCT,     // Trừ tiền khi đặt giá (Luồng cũ)
+        BID_REFUND,     // Hoàn tiền khi bị outbid (Luồng cũ)
+        BID_HOLD,       // Tạm giữ tiền khi đặt giá (Luồng mới - Hold Balance)
+        BID_RELEASE,    // Hủy tạm giữ khi bị vượt giá (Luồng mới - Hold Balance)
         AUCTION_WIN,    // Log: winner thanh toán xong
         SELLER_RECEIVE, // Seller nhận 95% tiền
         COMMISSION,     // Admin nhận 5% hoa hồng

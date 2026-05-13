@@ -14,10 +14,12 @@ public final class Actions {
     public static final String CREATE_AUCTION      = "CREATE_AUCTION";
     public static final String START_AUCTION       = "START_AUCTION";
     public static final String CLOSE_AUCTION       = "CLOSE_AUCTION";
-    public static final String MARK_AS_PAID        = "MARK_AS_PAID";   // Winner/Admin xác nhận thanh toán
-    public static final String CANCEL_AUCTION      = "CANCEL_AUCTION"; // Admin hủy phiên đấu giá
 
-    public static final String ADMIN_CLOSE_AUCTION =  "ADMIN_CLOSE_AUCTION";
+    // [CẬP NHẬT] Thay MARK_AS_PAID bằng CONFIRM_PAYMENT
+    public static final String CONFIRM_PAYMENT     = "CONFIRM_PAYMENT"; // Winner xác nhận thanh toán để trừ tiền Hold
+
+    public static final String CANCEL_AUCTION      = "CANCEL_AUCTION"; // Admin hủy phiên đấu giá
+    public static final String ADMIN_CLOSE_AUCTION = "ADMIN_CLOSE_AUCTION";
 
     // Bid
     public static final String PLACE_BID        = "PLACE_BID";
@@ -36,13 +38,12 @@ public final class Actions {
     public static final String TOGGLE_USER_STATUS = "TOGGLE_USER_STATUS";
 
     // Push events
-
     public static final String BID_PLACED              = "BID_PLACED";
     public static final String AUCTION_CLOSED          = "AUCTION_CLOSED";
     public static final String AUCTION_EXTENDED        = "AUCTION_EXTENDED";
     public static final String AUTO_BID_PLACED         = "AUTO_BID_PLACED";
     public static final String AUTO_BID_FAILED         = "AUTO_BID_FAILED";
-    // FIX REQ-3: Push event khi phiên chuyển sang PAID hoặc CANCELED
+    // Push event khi phiên chuyển sang PAID hoặc CANCELED
     public static final String AUCTION_STATUS_CHANGED  = "AUCTION_STATUS_CHANGED";
 
     // Wallet
