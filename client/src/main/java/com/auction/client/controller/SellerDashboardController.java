@@ -44,6 +44,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     @FXML private DatePicker dpStartDate;   // [GIỮ LẠI] Ngày bắt đầu (lên lịch)
     @FXML private TextField txtStartTime;   // [GIỮ LẠI] Giờ bắt đầu (HH:mm)
     @FXML private TextField txtDuration;
+    @FXML private ComboBox<String> cboCategory;
     @FXML private Button    btnAddItem;
     @FXML private Label     lblFormMessage;
 
@@ -186,7 +187,15 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         } catch (Exception e) {
             System.err.println("Cảnh báo: Không thể đăng ký Real-time update do giới hạn truy cập.");
         }
-
+        if (cboCategory != null) {
+            cboCategory.getItems().clear();
+            // Tự động lấy toàn bộ Tên hiển thị từ Enum nhét vào ComboBox
+            for (ItemCategory cat : ItemCategory.values()) {
+                cboCategory.getItems().add(cat.getDisplayName());
+            }
+            // Set mặc định là Tài sản khác
+            cboCategory.setValue(ItemCategory.OTHER.getDisplayName());
+        }
         loadMyAuctions();
     }
 
@@ -240,7 +249,21 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
             data.put("startingPrice",   startPrice);
             data.put("minBidIncrement", minIncrement);
             data.put("durationMinutes", duration);
-            data.put("category",        ItemCategory.ELECTRONICS.name());
+            // 1. Lấy tên hiển thị mà người dùng chọn (mặc định là OTHER)
+            String selectedDisplayName = (cboCategory != null && cboCategory.getValue() != null)
+                    ? cboCategory.getValue() : ItemCategory.OTHER.getDisplayName();
+
+            // 2. Quy đổi ngược từ Tên hiển thị -> Mã Enum chuẩn (ART, VEHICLE...)
+            String categoryToSend = ItemCategory.OTHER.name();
+            for (ItemCategory cat : ItemCategory.values()) {
+                if (cat.getDisplayName().equals(selectedDisplayName)) {
+                    categoryToSend = cat.name();
+                    break;
+                }
+            }
+
+            // 3. Gửi mã Enum chuẩn lên Server (Cực kỳ an toàn)
+            data.put("category", categoryToSend);
             if (startTimeStr != null) {
                 data.put("startTime", startTimeStr);
             }

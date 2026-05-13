@@ -26,6 +26,7 @@ public class AuctionDaoImpl implements AuctionDAO {
 
     @Override
     public List<Auction> findByStatus(AuctionStatus status) {
+        if (status == null) return new ArrayList<>();
         String sql = "SELECT * FROM auctions WHERE status = ? ORDER BY end_time ASC";
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -58,10 +59,11 @@ public class AuctionDaoImpl implements AuctionDAO {
 
     @Override
     public List<Auction> findExpiringBefore(LocalDateTime deadline) {
+        if (deadline == null) return new ArrayList<>();
         String sql = "SELECT * FROM auctions WHERE status = 'RUNNING' AND end_time <= ?";
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(deadline));
+            ps.setTimestamp(1, toTs(deadline));
             try (ResultSet rs = ps.executeQuery()) {
                 List<Auction> list = new ArrayList<>();
                 while (rs.next()) list.add(mapToAuction(rs));
@@ -90,7 +92,7 @@ public class AuctionDaoImpl implements AuctionDAO {
             ps.setDouble(6, auction.getMinBidIncrement());
             ps.setTimestamp(7, toTs(auction.getStartTime()));
             ps.setTimestamp(8, toTs(auction.getEndTime()));
-            ps.setString(9, auction.getStatus().name());
+            ps.setString(9, auction.getStatus() != null ? auction.getStatus().name() : "OPEN");
             ps.setString(10, auction.getCurrentLeader());
             ps.setInt(11, auction.getBidCount());
             ps.setString(12, auction.getCurrentLeaderId());
@@ -113,7 +115,7 @@ public class AuctionDaoImpl implements AuctionDAO {
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDouble(1, auction.getCurrentPrice());
-            ps.setString(2, auction.getStatus().name());
+            ps.setString(2, auction.getStatus() != null ? auction.getStatus().name() : "OPEN");
             ps.setString(3, auction.getCurrentLeader());
             ps.setInt(4, auction.getBidCount());
             ps.setTimestamp(5, Timestamp.valueOf(auction.getEndTime()));

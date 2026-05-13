@@ -42,6 +42,7 @@ public class ItemDaoImpl implements ItemDAO {
 
     @Override
     public List<Item> findByCategory(ItemCategory category) {
+        if (category == null) return new ArrayList<>();
         String sql = "SELECT * FROM items WHERE category = ?";
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -87,7 +88,7 @@ public class ItemDaoImpl implements ItemDAO {
             ps.setString(1, item.getId());
             ps.setString(2, item.getTitle());
             ps.setString(3, item.getDescription());
-            ps.setString(4, item.getCategory().name());
+            ps.setString(4, item.getCategory() != null ? item.getCategory().name() : "OTHER");
             ps.setString(5, item.getSellerId());
 
             for(int i = 6; i <= 15; i++) ps.setObject(i, null);
@@ -163,13 +164,13 @@ public class ItemDaoImpl implements ItemDAO {
     }
 
     private Item mapToItem(ResultSet rs) throws SQLException {
-        ItemCategory category = ItemCategory.valueOf(rs.getString("category"));
         Map<String, Object> data = new HashMap<>();
 
         data.put("id",          rs.getString("id"));
         data.put("title",       rs.getString("title"));
         data.put("description", rs.getString("description"));
-        data.put("category",    category);
+        // Đẩy thẳng chuỗi String lấy từ DB vào Map, để ItemFactory tự động nhận diện an toàn
+        data.put("category",    rs.getString("category"));
         data.put("sellerId",    rs.getString("seller_id"));
 
         data.put("brand",          rs.getString("brand"));
@@ -185,6 +186,7 @@ public class ItemDaoImpl implements ItemDAO {
         data.put("medium",         rs.getString("medium"));
         data.put("yearCreated",    rs.getInt("year_created"));
 
-        return ItemFactory.createItem(category, data);
+        // Gọi hàm bọc createItem(Map) mà chúng ta đã nâng cấp ở ItemFactory
+        return ItemFactory.createItem(data);
     }
 }

@@ -44,9 +44,12 @@ CREATE TABLE auctions (
                           current_leader VARCHAR(100), -- bidderName dẫn đầu (hiển thị)
                           winner_id VARCHAR(50) DEFAULT NULL, -- ID người thắng cuộc (FK, lưu vĩnh viễn)
                           bid_count INT DEFAULT 0,
+                          current_leader_id VARCHAR(50),
                           FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
                           FOREIGN KEY (seller_id) REFERENCES users(id),
-                          FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL
+                          FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL,
+                          FOREIGN KEY (current_leader_id) REFERENCES users(id) ON DELETE SET NULL
+
 );
 
 -- 4. Bảng Bid Transactions (Khớp BidTransaction.java)
@@ -55,7 +58,6 @@ CREATE TABLE bid_transactions (
                                   auction_id VARCHAR(50) NOT NULL,
                                   bidder_id VARCHAR(50) NOT NULL,      -- ID người đặt giá (FK)
                                   bidder_name VARCHAR(100),            -- Tên hiển thị (cache)
-                                  current_leader_id VARCHAR(50) DEFAULT NULL,
                                   amount DOUBLE NOT NULL,
                                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                                   is_auto_bid BOOLEAN DEFAULT FALSE,

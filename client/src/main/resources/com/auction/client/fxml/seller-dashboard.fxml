@@ -162,6 +162,14 @@
                                       style="-fx-font-size: 14px;"/>
                         </VBox>
 
+                        <VBox alignment="CENTER_LEFT" spacing="5.0">
+                            <Label text="Danh mục sản phẩm" styleClass="field-label"/>
+                            <ComboBox fx:id="cboCategory"
+                                      promptText="Chọn danh mục..."
+                                      styleClass="input-auction"
+                                      maxWidth="Infinity"/>
+                        </VBox>
+
                         <!-- Giá khởi điểm -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
                             <Label text="Giá khởi điểm (VNĐ)" styleClass="field-label"/>

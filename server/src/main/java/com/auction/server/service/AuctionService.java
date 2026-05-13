@@ -76,7 +76,7 @@ public class AuctionService {
         itemData.put("category",    req.getCategory());
         itemData.put("sellerId",    sellerId);
 
-        Item newItem = com.auction.server.pattern.factory.ItemFactory.createItem(req.getCategory(), itemData);
+        Item newItem = com.auction.server.pattern.factory.ItemFactory.createItem(itemData);
         String newItemId = newItem.getId();
 
         boolean isItemSaved = itemDao.save(newItem);
@@ -125,7 +125,7 @@ public class AuctionService {
         response.setAuctionId(auction.getId());
         response.setTitle(req.getTitle());
         response.setDescription(req.getDescription());
-        response.setCategory(req.getCategory() != null ? req.getCategory().name() : "N/A");
+        response.setCategory(newItem.getCategory() != null ? newItem.getCategory().name() : "OTHER");
         response.setStartingPrice(auction.getStartPrice());
         response.setCurrentPrice(auction.getCurrentPrice());
         response.setHighestBidderName(null);

@@ -209,7 +209,7 @@
 
                         <!-- Nhập số tiền -->
                         <VBox alignment="CENTER_LEFT" spacing="6.0">
-                            <Label text="Số tiền muốn đặt (VNĐ)" styleClass="field-label"/>
+                            <Label text="Số tiền muốn đặt (VNĐ)" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtBidAmount"
                                        promptText="Nhập số tiền đặt giá"
                                        styleClass="input-auction"
@@ -221,7 +221,7 @@
 
                         <!-- Các mức giá nhanh -->
                         <VBox spacing="8.0">
-                            <Label text="Chọn nhanh" styleClass="field-label"/>
+                            <Label text="Chọn nhanh" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <HBox spacing="8.0">
                                 <Button fx:id="btnQuick1" text="+1 bước"
                                         onAction="#handleQuickBid1"
@@ -328,13 +328,20 @@
                     </TitledPane>
 
                     <!-- ─── Ghi chú / điều khoản ─── -->
-                    <VBox spacing="8.0"
-                          styleClass="glass-box"
-                          style="-fx-background-radius: 20; -fx-padding: 18 28 16 28;">
-                        <Label text="Lưu ý quan trọng" styleClass="field-label"/>
-                        <Label wrapText="true"
-                               text="• Giá đặt phải cao hơn giá hiện tại ít nhất một bước giá.&#10;• Sau khi xác nhận, lệnh đặt giá không thể huỷ.&#10;• Người thắng cuộc sẽ được thông báo qua hệ thống."
-                               style="-fx-font-size: 12.5px; -fx-text-fill: #7f8c8d; -fx-line-spacing: 3;"/>
+                    <VBox spacing="6.0"
+                          style="-fx-background-color: rgba(255, 255, 255, 0.85); -fx-background-radius: 12; -fx-padding: 16; -fx-border-color: #9b59b650; -fx-border-width: 1; -fx-border-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 5, 0, 0, 2);">
+
+                        <Label text="⚠️ Lưu ý quan trọng"
+                               style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;" />
+
+                        <Label text="• Giá đặt phải cao hơn giá hiện tại ít nhất một bước giá."
+                               wrapText="true" style="-fx-font-size: 13px; -fx-text-fill: #2c3e50; -fx-line-spacing: 2px;" />
+
+                        <Label text="• Sau khi xác nhận, lệnh đặt giá không thể huỷ."
+                               wrapText="true" style="-fx-font-size: 13px; -fx-text-fill: #2c3e50; -fx-line-spacing: 2px;" />
+
+                        <Label text="• Người thắng cuộc sẽ được thông báo qua hệ thống."
+                               wrapText="true" style="-fx-font-size: 13px; -fx-text-fill: #2c3e50; -fx-line-spacing: 2px;" />
                     </VBox>
 
                 </VBox>
