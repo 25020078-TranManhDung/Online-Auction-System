@@ -95,6 +95,14 @@
                 <version>3.11.0</version>
                 <!-- Kế thừa source/target = 19 từ root pom.xml, không override ở đây -->
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
+            </plugin>
 
             <!-- Fat-JAR Plugin: đóng gói toàn bộ dependencies vào 1 file JAR duy nhất -->
             <!-- Chạy bằng lệnh: mvn package → java -jar target/server-1.0-SNAPSHOT.jar -->
