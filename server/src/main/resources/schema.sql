@@ -7,11 +7,13 @@ CREATE TABLE users (
                        password VARCHAR(255) NOT NULL,
                        email VARCHAR(100) UNIQUE,
                        role ENUM('BIDDER', 'SELLER', 'ADMIN') NOT NULL,
-                       admin_level INT DEFAULT 0,          -- Thuộc tính của Admin.java
-                       reputation_score DOUBLE DEFAULT 5.0, -- Thuộc tính của Seller.java
-                       status VARCHAR(20) DEFAULT 'ACTIVE',
+                       admin_level INT DEFAULT 0,
+                       reputation_score DOUBLE DEFAULT 5.0,
+                       status VARCHAR(20) DEFAULT 'ACTIVE',   -- ACTIVE | TEMP_LOCKED | PERM_LOCKED
+                       violation_count INT DEFAULT 0,         -- Số lần vi phạm tích lũy
+                       locked_until DATETIME DEFAULT NULL,    -- NULL = không giới hạn (PERM_LOCKED) hoặc ACTIVE
                        wallet_balance DOUBLE DEFAULT 0.0,
-                       held_amount DOUBLE DEFAULT 0.0      -- BỔ SUNG: Cột lưu số tiền đang bị tạm giữ khi đấu giá
+                       held_amount DOUBLE DEFAULT 0.0
 );
 
 -- 2. Bảng Items (Gộp Item.java và subclasses Electronics, Vehicle, Art)

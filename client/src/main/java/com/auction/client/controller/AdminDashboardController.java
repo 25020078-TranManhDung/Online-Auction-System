@@ -42,6 +42,7 @@ public class AdminDashboardController {
     @FXML private TableColumn<JsonObject, String> colEmail;      // FIX: thiếu @FXML bind
     @FXML private TableColumn<JsonObject, String> colUserRole;
     @FXML private TableColumn<JsonObject, String> colUserStatus;
+    @FXML private TableColumn<JsonObject, Integer> colViolationCount;
     @FXML private TableColumn<JsonObject, Void>   colUserAction;
 
     @FXML private TextField txtUserSearch;
@@ -113,7 +114,7 @@ public class AdminDashboardController {
         // Populate filter comboboxes (optional defaults)
         if (cboRoleFilter != null) {
             cboRoleFilter.getItems().clear();
-            cboRoleFilter.getItems().addAll("Tất cả", "BIDDER", "SELLER", "ADMIN");
+            cboRoleFilter.getItems().addAll("Tất cả", "BIDDER", "SELLER"); // Admin không quản lý Admin khác
             cboRoleFilter.setValue("Tất cả");
         }
         if (cboAuctionStatusFilter != null) {
@@ -179,89 +180,145 @@ public class AdminDashboardController {
         colUserRole.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "role")));
         colUserStatus.setCellValueFactory(data -> new SimpleStringProperty(getJsonString(data.getValue(), "status")));
 
+        // Cột Vi phạm — màu theo mức độ nguy hiểm
+        colViolationCount.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) { setText(null); setStyle(""); return; }
+                JsonObject user = getTableView().getItems().get(getIndex());
+                int count = 0;
+                try { count = user.has("violationCount") ? user.get("violationCount").getAsInt() : 0; } catch (Exception ignored) {}
+                setText(String.valueOf(count));
+                String color = count == 0 ? "#27ae60"       // xanh — sạch
+                    : count < 3  ? "#f39c12"       // vàng — cảnh cáo nhẹ
+                    : count < 7  ? "#e67e22"       // cam  — nguy hiểm
+                    : "#e74c3c";      // đỏ   — sắp/đã khoá nặng
+                setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold;");
+            }
+        });
+
         // Tạo nút Khóa/Mở cho từng dòng trong cột Hành động
         colUserAction.setCellFactory(new Callback<>() {
             @Override
             public TableCell<JsonObject, Void> call(TableColumn<JsonObject, Void> param) {
                 return new TableCell<>() {
-                    private final Button btn = new Button("Khóa/Mở");
+                    private final Button btnBan    = new Button("Xử lý");
+                    private final Button btnUnlock = new Button("Mở khoá");
+                    private final javafx.scene.layout.HBox box =
+                        new javafx.scene.layout.HBox(5, btnBan, btnUnlock);
 
                     {
-                        btn.setStyle("-fx-background-color: #f39c12; -fx-text-fill: white; -fx-cursor: hand;");
-                        btn.setOnAction(event -> {
+                        btnBan.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px;");
+                        btnUnlock.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px;");
+
+                        btnBan.setOnAction(event -> {
                             JsonObject user = getTableView().getItems().get(getIndex());
-                            handleToggleUserStatus(user);
+                            handleBanUser(user);
+                        });
+                        btnUnlock.setOnAction(event -> {
+                            JsonObject user = getTableView().getItems().get(getIndex());
+                            handleUnlockUser(user);
                         });
                     }
 
                     @Override
                     protected void updateItem(Void item, boolean empty) {
                         super.updateItem(item, empty);
-                        setGraphic(empty ? null : btn);
+                        if (empty) { setGraphic(null); return; }
+                        JsonObject user = getTableView().getItems().get(getIndex());
+                        String status = getJsonString(user, "status");
+                        // Ẩn nút mở khoá nếu tài khoản đang ACTIVE
+                        boolean isLocked = "TEMP_LOCKED".equals(status) || "PERM_LOCKED".equals(status) || "LOCKED".equals(status);
+                        btnUnlock.setVisible(isLocked);
+                        btnUnlock.setManaged(isLocked);
+                        setGraphic(box);
                     }
                 };
             }
         });
-
-        // Do items được set trong initialize() bằng SortedList, không set trực tiếp ở đây
     }
 
-    private void loadUsers() {
-        new Thread(() -> {
-            try {
-                com.google.gson.JsonElement response = SocketClient.getInstance().send("GET_ALL_USERS", new HashMap<>(), com.google.gson.JsonElement.class);
+    /** Hiện ChoiceDialog để admin chọn mức xử lý vi phạm */
+    private void handleBanUser(JsonObject user) {
+        String targetUserId = getJsonString(user, "id");
+        String username     = getJsonString(user, "username");
 
-                System.out.println(">>> RAW DATA USERS TỪ SERVER: " + response);
+        javafx.scene.control.ChoiceDialog<String> dialog = new javafx.scene.control.ChoiceDialog<>(
+            "Cảnh cáo (Warn)",
+            "Cảnh cáo (Warn)",
+            "Khoá tạm — 1 ngày",
+            "Khoá tạm — 7 ngày",
+            "Khoá tạm — 30 ngày",
+            "Khoá vĩnh viễn"
+        );
+        dialog.setTitle("Xử lý vi phạm");
+        dialog.setHeaderText("Tài khoản: " + username);
+        dialog.setContentText("Chọn mức độ xử lý:");
 
-                if (response != null) {
-                    JsonArray arr = null;
+        dialog.showAndWait().ifPresent(choice -> {
+            String action = switch (choice) {
+                case "Cảnh cáo (Warn)"      -> "WARN";
+                case "Khoá tạm — 1 ngày"   -> "TEMP_1D";
+                case "Khoá tạm — 7 ngày"   -> "TEMP_7D";
+                case "Khoá tạm — 30 ngày"  -> "TEMP_30D";
+                case "Khoá vĩnh viễn"       -> "PERM";
+                default -> null;
+            };
+            if (action == null) return;
 
-                    if (response.isJsonArray()) {
-                        arr = response.getAsJsonArray();
-                    } else if (response.isJsonObject()) {
-                        JsonObject obj = response.getAsJsonObject();
-                        if (obj.has("users")) arr = obj.getAsJsonArray("users");
-                        else if (obj.has("data")) arr = obj.getAsJsonArray("data");
-                    }
-
-                    if (arr != null) {
-                        final JsonArray finalArr = arr;
-                        Platform.runLater(() -> {
-                            userList.clear();
-                            finalArr.forEach(element -> userList.add(element.getAsJsonObject()));
-                            System.out.println("✅ ADMIN Đã tải lên bảng " + userList.size() + " người dùng!");
-                            updateUserCountLabel();
-                            updateStatLabels(); // FIX: cập nhật stat cards sau khi có dữ liệu
-                        });
-                    } else {
-                        System.err.println("❌ Không tìm thấy mảng dữ liệu Users nào trong cục Response!");
-                    }
+            new Thread(() -> {
+                try {
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("userId", targetUserId);
+                    params.put("action", action);
+                    JsonObject result = SocketClient.getInstance().send("BAN_USER", params, JsonObject.class);
+                    String msg = result != null && result.has("message")
+                        ? result.get("message").getAsString()
+                        : "Đã xử lý thành công.";
+                    Platform.runLater(() -> {
+                        // Admin chỉ thấy xác nhận gọn — nội dung cảnh báo đã push tới cửa sổ của user
+                        String adminMsg = "WARN".equals(action)
+                            ? "✅ Đã gửi cảnh báo tới tài khoản: " + username
+                            : "✅ Đã xử lý tài khoản: " + username;
+                        AlertUtil.showInfo("Thành công", adminMsg);
+                        loadUsers();
+                    });
+                } catch (Exception e) {
+                    Platform.runLater(() -> AlertUtil.showError("Lỗi", e.getMessage()));
                 }
-            } catch (Exception e) {
-                System.err.println("❌ Lỗi Admin tải Users: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }).start();
+            }).start();
+        });
+    }
+
+    /** Mở khoá thủ công — admin → ACTIVE */
+    private void handleUnlockUser(JsonObject user) {
+        String targetUserId = getJsonString(user, "id");
+        String username     = getJsonString(user, "username");
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Mở khoá tài khoản");
+        confirm.setHeaderText("Bạn có chắc muốn mở khoá tài khoản: " + username + "?");
+        confirm.showAndWait().filter(r -> r == ButtonType.OK).ifPresent(r -> {
+            new Thread(() -> {
+                try {
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("userId", targetUserId);
+                    params.put("action", "UNLOCK");
+                    SocketClient.getInstance().send("BAN_USER", params, JsonObject.class);
+                    Platform.runLater(() -> {
+                        AlertUtil.showInfo("Thành công", "Đã mở khoá tài khoản: " + username);
+                        loadUsers();
+                    });
+                } catch (Exception e) {
+                    Platform.runLater(() -> AlertUtil.showError("Lỗi", e.getMessage()));
+                }
+            }).start();
+        });
     }
 
     private void handleToggleUserStatus(JsonObject user) {
-        String targetUserId = getJsonString(user, "id");
-
-        new Thread(() -> {
-            try {
-                Map<String, Object> params = new HashMap<>();
-                params.put("userId", targetUserId);
-
-                SocketClient.getInstance().send("TOGGLE_USER_STATUS", params, JsonObject.class);
-
-                Platform.runLater(() -> {
-                    AlertUtil.showInfo("Thành công", "Đã đảo trạng thái của tài khoản: " + targetUserId);
-                    loadUsers();
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> AlertUtil.showError("Lỗi", "Không thể cập nhật: " + e.getMessage()));
-            }
-        }).start();
+        handleBanUser(user); // Redirect sang handleBanUser
     }
 
     // =================================================================================
@@ -305,6 +362,45 @@ public class AdminDashboardController {
         });
 
         // Items được set trong initialize() bằng SortedList
+    }
+
+    private void loadUsers() {
+        new Thread(() -> {
+            try {
+                com.google.gson.JsonElement response = SocketClient.getInstance()
+                    .send("GET_ALL_USERS", new HashMap<>(), com.google.gson.JsonElement.class);
+
+                if (response != null) {
+                    com.google.gson.JsonArray arr = null;
+                    if (response.isJsonArray()) {
+                        arr = response.getAsJsonArray();
+                    } else if (response.isJsonObject()) {
+                        JsonObject obj = response.getAsJsonObject();
+                        if (obj.has("users"))      arr = obj.getAsJsonArray("users");
+                        else if (obj.has("data"))  arr = obj.getAsJsonArray("data");
+                    }
+                    if (arr != null) {
+                        final com.google.gson.JsonArray finalArr = arr;
+                        Platform.runLater(() -> {
+                            userList.clear();
+                            finalArr.forEach(el -> {
+                                JsonObject user = el.getAsJsonObject();
+                                // Admin không cần quản lý tài khoản ADMIN khác
+                                String role = user.has("role") ? user.get("role").getAsString() : "";
+                                if (!"ADMIN".equalsIgnoreCase(role)) {
+                                    userList.add(user);
+                                }
+                            });
+                            updateUserCountLabel();
+                            updateStatLabels();
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi Admin tải Users: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     private void loadAuctions() {
@@ -547,9 +643,13 @@ public class AdminDashboardController {
     private Predicate<JsonObject> makeUserPredicate(String q, String roleFilter) {
         return user -> {
             if (user == null) return false;
+
+            // Safety net: không bao giờ hiện tài khoản ADMIN trong danh sách quản lý
+            String userRole = getJsonString(user, "role");
+            if ("ADMIN".equalsIgnoreCase(userRole)) return false;
+
             if (roleFilter != null && !roleFilter.isEmpty() && !"Tất cả".equals(roleFilter)) {
-                String role = getJsonString(user, "role").toLowerCase();
-                if (!role.contains(roleFilter.toLowerCase())) return false;
+                if (!userRole.equalsIgnoreCase(roleFilter)) return false;
             }
             if (q == null || q.isEmpty()) return true;
             String username = getJsonString(user, "username").toLowerCase();

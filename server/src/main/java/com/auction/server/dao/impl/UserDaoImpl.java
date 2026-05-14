@@ -5,6 +5,7 @@ import com.auction.shared.enums.UserRole;
 import com.auction.server.dao.UserDAO;
 import com.auction.server.pattern.singleton.DatabaseManager;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.*;
 public class UserDaoImpl implements UserDAO {
     private final DatabaseManager db = DatabaseManager.getInstance();
@@ -108,7 +109,8 @@ public class UserDaoImpl implements UserDAO {
     public boolean update(User user) {
         String sql = """
             UPDATE users
-            SET username=?, password=?, email=?, admin_level=?, reputation_score=?, status=?
+            SET username=?, password=?, email=?, admin_level=?, reputation_score=?,
+                status=?, violation_count=?, locked_until=?
             WHERE id=?
             """;
         try (Connection conn = db.getConnection();
@@ -118,11 +120,14 @@ public class UserDaoImpl implements UserDAO {
             ps.setString(3, user.getEmail());
             ps.setInt(4, (user instanceof Admin) ? ((Admin)user).getAdminLevel() : 0);
             ps.setDouble(5, (user instanceof Seller) ? ((Seller)user).getReputationScore() : 5.0);
-
-
             ps.setString(6, user.getStatus());
-            ps.setString(7, user.getId());
-
+            ps.setInt(7, user.getViolationCount());
+            if (user.getLockedUntil() != null) {
+                ps.setTimestamp(8, Timestamp.valueOf(user.getLockedUntil()));
+            } else {
+                ps.setNull(8, Types.TIMESTAMP);
+            }
+            ps.setString(9, user.getId());
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("update user thất bại", e);
@@ -159,16 +164,18 @@ public class UserDaoImpl implements UserDAO {
 
         user.setId(rs.getString("id"));
         user.setUsername(rs.getString("username"));
-        user.setPassword(rs.getString("password")); // Đã sửa thành setPassword
+        user.setPassword(rs.getString("password"));
         user.setEmail(rs.getString("email"));
         user.setRole(role);
 
         String status = rs.getString("status");
-        if (status != null) {
-            user.setStatus(status);
-        } else {
-            user.setStatus("ACTIVE");
-        }
+        user.setStatus(status != null ? status : "ACTIVE");
+
+        user.setViolationCount(rs.getInt("violation_count"));
+
+        Timestamp lockedUntil = rs.getTimestamp("locked_until");
+        user.setLockedUntil(lockedUntil != null ? lockedUntil.toLocalDateTime() : null);
+
         return user;
     }
 }

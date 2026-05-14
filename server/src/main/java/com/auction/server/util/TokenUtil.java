@@ -4,6 +4,7 @@ import com.auction.server.config.AppConfig; // Giả định bạn có class nà
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -41,6 +42,9 @@ public final class TokenUtil {
     // Chỉ dùng 1 ConcurrentHashMap duy nhất để tối ưu bộ nhớ và hiệu suất
     private static final Map<String, TokenPayload> tokenStore = new ConcurrentHashMap<>();
 
+    // FIX: Reverse index — userId → Set<token> để có thể thu hồi toàn bộ token của 1 user
+    private static final Map<String, Set<String>> userTokens = new ConcurrentHashMap<>();
+
     // 2. TỐI ƯU (Nâng cao): Khởi tạo một luồng chạy ngầm (Daemon Thread)
     // để dọn dẹp các token đã hết hạn mỗi 1 giờ, chống Memory Leak.
     static {
@@ -70,6 +74,8 @@ public final class TokenUtil {
         LocalDateTime expiry = LocalDateTime.now().plusSeconds(expiryMs / 1000);
 
         tokenStore.put(token, new TokenPayload(userId, role, expiry));
+        // FIX: đăng ký vào reverse index để có thể thu hồi sau khi khoá tài khoản
+        userTokens.computeIfAbsent(userId, k -> new java.util.HashSet<>()).add(token);
         return token;
     }
 
@@ -97,6 +103,26 @@ public final class TokenUtil {
     }
 
     public static void invalidate(String token) {
-        tokenStore.remove(token);
+        TokenPayload p = tokenStore.remove(token);
+        // FIX: dọn reverse index khi invalidate đơn lẻ (logout thủ công)
+        if (p != null) {
+            Set<String> tokens = userTokens.get(p.userId);
+            if (tokens != null) tokens.remove(token);
+        }
+    }
+
+    /**
+     * FIX: Thu hồi TẤT CẢ token của một user — gọi ngay khi admin khoá tài khoản.
+     * Đảm bảo user không thể tiếp tục thao tác dù đang online với session cũ.
+     *
+     * @param userId ID của user bị khoá
+     */
+    public static void invalidateAllForUser(String userId) {
+        Set<String> tokens = userTokens.remove(userId);
+        if (tokens != null) {
+            tokens.forEach(tokenStore::remove);
+            System.out.println("[TokenUtil] Đã thu hồi " + tokens.size()
+                + " token của user: " + userId);
+        }
     }
 }

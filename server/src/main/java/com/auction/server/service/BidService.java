@@ -100,6 +100,14 @@ public class BidService {
                 throw new AuctionException("USER_NOT_FOUND", "Tài khoản người dùng không tồn tại.");
             }
 
+            // FIX LAYER 3: Defense-in-depth — kiểm tra status ngay tại điểm đặt giá.
+            // Tầng 1 (token) và Tầng 2 (kick) đã chặn hầu hết, nhưng lớp này bảo vệ
+            // cho trường hợp edge case: race condition giữa khoá và request đang in-flight.
+            if ("LOCKED".equalsIgnoreCase(bidder.getStatus())) {
+                throw new AuctionException("ACCOUNT_LOCKED",
+                    "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên.");
+            }
+
             // --- [HOLD BALANCE] Kiểm tra giá hợp lệ trước khi thao tác ví ---
             if (amount < auction.getCurrentPrice() + auction.getMinBidIncrement()) {
                 throw new AuctionException("INSUFFICIENT_BID",

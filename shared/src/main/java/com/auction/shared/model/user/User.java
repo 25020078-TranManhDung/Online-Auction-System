@@ -2,14 +2,17 @@ package com.auction.shared.model.user;
 
 import com.auction.shared.model.entity.Entity;
 import com.auction.shared.enums.UserRole;
+import java.time.LocalDateTime;
 
 public abstract class User extends Entity {
     private String username;
     private String password;
     private String email;
-    private UserRole role; // Bắt buộc để map JSON
+    private UserRole role;
 
-    private String status = "ACTIVE";
+    private String status = "ACTIVE";           // ACTIVE | TEMP_LOCKED | PERM_LOCKED
+    private int violationCount = 0;             // Số lần vi phạm tích lũy
+    private LocalDateTime lockedUntil = null;   // null = ACTIVE hoặc PERM_LOCKED
     public User() {
         super();
     }
@@ -41,4 +44,10 @@ public abstract class User extends Entity {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public int getViolationCount() { return violationCount; }
+    public void setViolationCount(int violationCount) { this.violationCount = violationCount; }
+
+    public LocalDateTime getLockedUntil() { return lockedUntil; }
+    public void setLockedUntil(LocalDateTime lockedUntil) { this.lockedUntil = lockedUntil; }
 }

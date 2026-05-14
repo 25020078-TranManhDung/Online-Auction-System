@@ -194,10 +194,11 @@
                                     <TableColumn fx:id="colUserId"     text="#"             prefWidth="56.0"  style="-fx-alignment: CENTER;"/>
                                     <TableColumn fx:id="colUsername"   text="Tên đăng nhập" prefWidth="190.0"/>
                                     <TableColumn fx:id="colFullname"   text="Họ và tên"     prefWidth="190.0"/>
-                                    <TableColumn fx:id="colEmail"      text="Email"         prefWidth="210.0"/>
-                                    <TableColumn fx:id="colUserRole"   text="Vai trò"       prefWidth="120.0" style="-fx-alignment: CENTER;"/>
-                                    <TableColumn fx:id="colUserStatus" text="Trạng thái"    prefWidth="120.0" style="-fx-alignment: CENTER;"/>
-                                    <TableColumn fx:id="colUserAction" text="Thao tác"      prefWidth="160.0" style="-fx-alignment: CENTER;"/>
+                                    <TableColumn fx:id="colEmail"          text="Email"         prefWidth="190.0"/>
+                                    <TableColumn fx:id="colUserRole"       text="Vai trò"       prefWidth="100.0" style="-fx-alignment: CENTER;"/>
+                                    <TableColumn fx:id="colUserStatus"     text="Trạng thái"    prefWidth="110.0" style="-fx-alignment: CENTER;"/>
+                                    <TableColumn fx:id="colViolationCount" text="Vi phạm"       prefWidth="75.0"  style="-fx-alignment: CENTER;"/>
+                                    <TableColumn fx:id="colUserAction"     text="Thao tác"      prefWidth="160.0" style="-fx-alignment: CENTER;"/>
                                 </columns>
                                 <placeholder>
                                     <VBox alignment="CENTER" spacing="8.0">

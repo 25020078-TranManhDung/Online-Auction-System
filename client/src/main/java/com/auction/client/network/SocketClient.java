@@ -32,6 +32,13 @@ public class SocketClient {
     private String host;
     private int port;
 
+    /**
+     * FIX: Flag ngăn double-reconnect khi bị kick.
+     * Khi ACCOUNT_LOCKED handler gọi reconnectImmediately() trước,
+     * IOException catch trong MessageHandler sẽ thấy flag này và bỏ qua reconnect lần hai.
+     */
+    private volatile boolean suppressNextReconnect = false;
+
     // Chặn khởi tạo trực tiếp từ bên ngoài
     private SocketClient() {}
 
@@ -57,7 +64,7 @@ public class SocketClient {
             socket = new Socket(host, port);
             // Sử dụng PrintWriter với autoFlush = true và mã hóa UTF-8
             out = new PrintWriter(
-                    new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
+                new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
 
             // Khởi chạy luồng đọc tin nhắn ngầm
             messageHandler = new MessageHandler(socket.getInputStream(), this);
@@ -129,12 +136,34 @@ public class SocketClient {
     }
 
     /**
-     * Cơ chế thử kết nối lại khi rớt mạng.
+     * Cơ chế thử kết nối lại khi rớt mạng (sau 3 giây).
+     * Nếu suppressNextReconnect = true (bị kick có chủ ý), bỏ qua — đã reconnect trước rồi.
      */
     public void reconnect() {
+        if (suppressNextReconnect) {
+            suppressNextReconnect = false; // reset flag
+            System.out.println("[Client] Bỏ qua reconnect tự động (đã reconnect thủ công).");
+            return;
+        }
         System.out.println("[Client] Đang thử kết nối lại sau 3 giây...");
         try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
         doConnect();
+    }
+
+    /**
+     * FIX: Reconnect tức thì — gọi khi bị kick bởi server (ACCOUNT_LOCKED).
+     * Đặt suppressNextReconnect = true để IOException handler không reconnect thêm lần nữa.
+     * Nhờ đó user về trang login đã có socket sẵn sàng, đăng nhập tài khoản mới ngay được.
+     */
+    public void reconnectImmediately() {
+        suppressNextReconnect = true; // báo cho IOException handler bỏ qua
+        System.out.println("[Client] Reconnect ngay lập tức sau khi bị kick...");
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close(); // đóng socket cũ nếu còn sót
+            }
+        } catch (java.io.IOException ignored) {}
+        doConnect(); // tạo kết nối mới ngay, không chờ
     }
 
     public boolean isConnected() {

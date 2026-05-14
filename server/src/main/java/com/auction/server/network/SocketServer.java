@@ -108,6 +108,36 @@ public class SocketServer {
     }
 
     /**
+     * FIX: Ngắt kết nối cưỡng bức user đang online — gọi ngay sau khi admin khoá tài khoản.
+     * Quy trình:
+     *   1. Gửi PUSH event ACCOUNT_LOCKED → client hiển thị thông báo và về màn hình login
+     *   2. Đóng socket → cleanup() trong ClientHandler tự dọn tài nguyên
+     *
+     * @param userId  ID user bị khoá
+     * @param reason  Lý do hiển thị cho client
+     */
+    public void kickUser(String userId, String reason) {
+        ClientHandler handler = userHandlers.get(userId);
+        if (handler == null) {
+            System.out.println("[SERVER] kickUser: user " + userId + " không online, bỏ qua.");
+            return;
+        }
+        // Gửi PUSH trước để client có thể hiển thị thông báo và điều hướng về login
+        String kickPush = String.format(
+            "{\"type\":\"PUSH\",\"event\":\"ACCOUNT_LOCKED\",\"data\":{\"message\":\"%s\"}}",
+            reason.replace("\"", "\\\"")
+        );
+        handler.sendMessage(kickPush);
+
+        // Delay nhỏ để client nhận và xử lý message trước khi socket bị đóng
+        try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+
+        handler.forceClose();   // Đóng socket → vòng lặp readLine() ném IOException → cleanup()
+        unregisterUser(userId);
+        System.out.println("[SERVER] Đã kick user bị khoá: " + userId);
+    }
+
+    /**
      * QUAN TRỌNG: Dọn dẹp tài nguyên khi Client ngắt kết nối.
      * Ngăn chặn rò rỉ bộ nhớ (Memory Leak) và lỗi gửi tin nhắn tới socket đã đóng.
      */

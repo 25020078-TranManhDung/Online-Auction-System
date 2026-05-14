@@ -104,6 +104,75 @@ public class MessageHandler implements Runnable {
                 Platform.runLater(() -> auctionListeners.forEach(l -> l.onAuctionStatusChanged(rawJsonObject)));
             }
 
+            case Actions.WARNING_RECEIVED -> {
+                // Push cảnh báo từ Admin → hiện thông báo tại cửa sổ của USER bị cảnh báo
+                Platform.runLater(() -> {
+                    String warningMsg = "⚠️ Bạn vừa nhận được cảnh báo từ quản trị viên.";
+                    try {
+                        if (rawJsonObject.has("data")) {
+                            com.google.gson.JsonObject d = rawJsonObject.getAsJsonObject("data");
+                            if (d.has("message")) warningMsg = d.get("message").getAsString();
+                        }
+                    } catch (Exception ignored) {}
+
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                        javafx.scene.control.Alert.AlertType.WARNING);
+                    alert.setTitle("⚠️ Cảnh báo từ Quản trị viên");
+                    alert.setHeaderText("Tài khoản của bạn đã bị cảnh báo");
+                    alert.setContentText(warningMsg
+                        + "\n\nVui lòng tuân thủ quy định của hệ thống để tránh bị khoá tài khoản.");
+                    alert.showAndWait();
+                });
+            }
+
+            case Actions.ACCOUNT_LOCKED -> {
+                // FIX: Reconnect ngay trên background thread TRƯỚC KHI show alert.
+                // Mục đích: khi user dismiss alert và về login, socket đã sẵn sàng.
+                // suppressNextReconnect = true trong reconnectImmediately() ngăn
+                // IOException handler gọi reconnect() thêm lần nữa.
+                new Thread(() -> client.reconnectImmediately(), "kick-reconnect").start();
+
+                Platform.runLater(() -> {
+                    String reason = "Tài khoản của bạn đã bị khoá bởi quản trị viên.";
+                    try {
+                        if (rawJsonObject.has("data")) {
+                            com.google.gson.JsonObject d = rawJsonObject.getAsJsonObject("data");
+                            if (d.has("message")) reason = d.get("message").getAsString();
+                        }
+                    } catch (Exception ignored) {}
+
+                    // Xoá session cục bộ
+                    com.auction.client.model.UserSession.getInstance().cleanUserSession();
+
+                    // Hiển thị thông báo
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                        javafx.scene.control.Alert.AlertType.WARNING);
+                    alert.setTitle("Tài khoản bị khoá");
+                    alert.setHeaderText("Phiên đăng nhập đã bị chấm dứt");
+                    alert.setContentText(reason);
+                    alert.showAndWait(); // Block cho đến khi user click OK
+
+                    // Điều hướng về màn hình đăng nhập
+                    // Lúc này reconnectImmediately() đã chạy xong → socket sẵn sàng
+                    try {
+                        javafx.stage.Stage stage = (javafx.stage.Stage)
+                            javafx.stage.Window.getWindows().stream()
+                                .filter(javafx.stage.Window::isShowing)
+                                .findFirst().orElse(null);
+                        if (stage != null) {
+                            javafx.scene.Parent loginView =
+                                com.auction.client.util.ViewLoader.loadView("login.fxml");
+                            if (loginView != null) {
+                                stage.getScene().setRoot(loginView);
+                                stage.setTitle("Đăng nhập - Online Auction System");
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("[MessageHandler] Lỗi điều hướng về login: " + e.getMessage());
+                    }
+                });
+            }
+
             default -> System.out.println("[MessageHandler] Sự kiện Push chưa được hỗ trợ: " + event);
         }
     }

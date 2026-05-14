@@ -86,6 +86,8 @@ public class MessageRouter {
                 // User Management
                 case Actions.GET_ALL_USERS      -> userCtrl.getAllUsers(msg);
                 case Actions.TOGGLE_USER_STATUS -> userCtrl.toggleStatus(msg);
+                case Actions.BAN_USER           -> userCtrl.banUser(msg);
+                case Actions.UNLOCK_USER        -> userCtrl.banUser(msg); // reuse banUser với action=UNLOCK
 
                 // Auction Operations
                 case Actions.GET_AUCTIONS        -> auctionCtrl.getList(msg);

@@ -37,7 +37,9 @@ public final class Actions {
 
     // Admin / User Management
     public static final String GET_ALL_USERS      = "GET_ALL_USERS";
-    public static final String TOGGLE_USER_STATUS = "TOGGLE_USER_STATUS";
+    public static final String TOGGLE_USER_STATUS = "TOGGLE_USER_STATUS"; // tương thích ngược
+    public static final String BAN_USER           = "BAN_USER";           // khoá theo mức độ vi phạm
+    public static final String UNLOCK_USER        = "UNLOCK_USER";        // mở khoá thủ công
 
     // Push events (Server → Client)
     public static final String BID_PLACED             = "BID_PLACED";
@@ -46,6 +48,8 @@ public final class Actions {
     public static final String AUTO_BID_PLACED        = "AUTO_BID_PLACED";
     public static final String AUTO_BID_FAILED        = "AUTO_BID_FAILED";
     public static final String AUCTION_STATUS_CHANGED = "AUCTION_STATUS_CHANGED"; // PAID / CANCELED
+    public static final String ACCOUNT_LOCKED         = "ACCOUNT_LOCKED";         // Admin khoá → kick về login
+    public static final String WARNING_RECEIVED       = "WARNING_RECEIVED";       // Admin cảnh báo → hiện thông báo tại user
 
     // Wallet
     public static final String GET_WALLET = "GET_WALLET"; // Xem số dư & lịch sử

@@ -23,11 +23,11 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try (
-                // Sử dụng chuẩn UTF-8 để không bị lỗi font tiếng Việt
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-                PrintWriter writer = new PrintWriter(
-                        new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true)
+            // Sử dụng chuẩn UTF-8 để không bị lỗi font tiếng Việt
+            BufferedReader in = new BufferedReader(
+                new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+            PrintWriter writer = new PrintWriter(
+                new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true)
         ) {
             this.out = writer;
             String line;
@@ -97,5 +97,18 @@ public class ClientHandler implements Runnable {
 
     public String getWatchingAuctionId() {
         return watchingAuctionId;
+    }
+
+    /**
+     * FIX: Ngắt kết nối socket của client này ngay lập tức (dùng khi admin khoá tài khoản).
+     * Việc đóng socket sẽ khiến vòng lặp readLine() trong run() ném IOException → cleanup() tự dọn.
+     */
+    public void forceClose() {
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+                System.out.println("[ClientHandler] Đã ngắt kết nối cưỡng bức user: " + userId);
+            }
+        } catch (java.io.IOException ignored) {}
     }
 }
