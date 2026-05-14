@@ -20,16 +20,31 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
-
+import javafx.stage.StageStyle;
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 
 public class BiddingController implements BidUpdateListener {
 
@@ -50,6 +65,15 @@ public class BiddingController implements BidUpdateListener {
     @FXML private Label lblCurrentPrice;
     @FXML private Label lblCountdown;
     @FXML private Label lblMinIncrement;
+
+    // ===== Product images =====
+    @FXML private VBox      paneImages;
+    @FXML private StackPane imgMainPane;
+    @FXML private ImageView imgProductMain;
+    @FXML private Button    btnImgPrev;
+    @FXML private Button    btnImgNext;
+    @FXML private Label     lblImgCounter;
+    @FXML private HBox      hboxThumbs;
 
     // Bid history table
     @FXML private TableView<JsonObject> tbBidHistory;
@@ -88,6 +112,9 @@ public class BiddingController implements BidUpdateListener {
     private String productName   = "—";
     private String sellerId      = "—";
     private String statusText    = "—";
+    private String rawDescription = "";
+    private final List<byte[]> productImages = new ArrayList<>();
+    private int currentImageIndex = 0;
     private int    bidCount      = 0;
     private long   secondsLeft   = 0;
     private Timer  countdownTimer;
@@ -118,22 +145,283 @@ public class BiddingController implements BidUpdateListener {
     public void setAuctionData(String auctionId, double currentPrice, double minIncrement,
                                String leaderName, double leaderBid,
                                String productName, String sellerId, String statusText,
-                               int bidCount, long secondsLeft, JsonArray bidHistory) {
-        this.auctionId   = auctionId;
-        this.currentPrice = currentPrice;
-        this.minIncrement = minIncrement;
-        this.leaderName   = (leaderName != null && !leaderName.isBlank()) ? leaderName : "—";
-        this.leaderBid    = leaderBid;
-        this.productName  = (productName  != null && !productName.isBlank()) ? productName : "—";
-        this.sellerId     = (sellerId     != null && !sellerId.isBlank())    ? sellerId    : "—";
-        this.statusText   = (statusText   != null && !statusText.isBlank())  ? statusText  : "—";
-        this.bidCount     = bidCount;
-        this.secondsLeft  = secondsLeft;
+                               int bidCount, long secondsLeft, JsonArray bidHistory,
+                               String description) {
+        this.auctionId      = auctionId;
+        this.currentPrice   = currentPrice;
+        this.minIncrement   = minIncrement;
+        this.leaderName     = (leaderName != null && !leaderName.isBlank()) ? leaderName : "—";
+        this.leaderBid      = leaderBid;
+        this.productName    = (productName  != null && !productName.isBlank()) ? productName : "—";
+        this.sellerId       = (sellerId     != null && !sellerId.isBlank())    ? sellerId    : "—";
+        this.statusText     = (statusText   != null && !statusText.isBlank())  ? statusText  : "—";
+        this.rawDescription = (description  != null) ? description : "";
+        this.bidCount       = bidCount;
+        this.secondsLeft    = secondsLeft;
 
         updateLabels();
         updateBidHint();
+        loadProductImage();
         populateBidHistory(bidHistory);
         startCountdown();
+    }
+
+    /** Parse ảnh từ rawDescription, hỗ trợ [IMGS:b64|b64...] và [IMG:b64] (backward compat) */
+    private void loadProductImage() {
+        Platform.runLater(() -> {
+            productImages.clear();
+            currentImageIndex = 0;
+            if (rawDescription == null || rawDescription.isEmpty()) {
+                hidePaneImages(); return;
+            }
+            try {
+                if (rawDescription.startsWith("[IMGS:")) {
+                    int end = rawDescription.indexOf("]");
+                    if (end > 6) {
+                        String[] parts = rawDescription.substring(6, end).split("[|]");
+                        for (String p : parts) {
+                            if (!p.isBlank()) productImages.add(Base64.getDecoder().decode(p.trim()));
+                        }
+                    }
+                } else if (rawDescription.startsWith("[IMG:")) {
+                    int end = rawDescription.indexOf("]");
+                    if (end > 5) productImages.add(Base64.getDecoder().decode(rawDescription.substring(5, end)));
+                }
+            } catch (Exception ignored) {}
+
+            if (productImages.isEmpty()) { hidePaneImages(); return; }
+
+            // Hiện panel ảnh
+            if (paneImages != null) { paneImages.setVisible(true); paneImages.setManaged(true); }
+            buildThumbnailStrip();
+            showImage(0);
+            setupImageZoom();
+        });
+    }
+
+    private void hidePaneImages() {
+        if (paneImages != null) { paneImages.setVisible(false); paneImages.setManaged(false); }
+    }
+
+    /** Zoom ảnh chính bằng scroll chuột. Reset zoom khi chuyển ảnh. */
+    private void setupImageZoom() {
+        if (imgProductMain == null || imgMainPane == null) return;
+        // Xóa sự kiện cũ nếu có (tránh đăng ký nhiều lần)
+        imgMainPane.setOnScroll(null);
+        // Scale transform
+        javafx.scene.transform.Scale scale = new javafx.scene.transform.Scale(1, 1,
+                imgProductMain.getFitWidth() / 2, imgProductMain.getFitHeight() / 2);
+        if (imgProductMain.getTransforms().isEmpty()) {
+            imgProductMain.getTransforms().add(scale);
+        } else {
+            imgProductMain.getTransforms().set(0, scale);
+        }
+        // Scroll để zoom
+        imgMainPane.setOnScroll(event -> {
+            double delta = event.getDeltaY();
+            double factor = (delta > 0) ? 1.12 : (1.0 / 1.12);
+            double newScaleX = scale.getX() * factor;
+            double newScaleY = scale.getY() * factor;
+            // Giới hạn zoom từ 0.5x đến 4x
+            newScaleX = Math.max(0.5, Math.min(4.0, newScaleX));
+            newScaleY = Math.max(0.5, Math.min(4.0, newScaleY));
+            // Pivot theo vị trí chuột trong ảnh
+            double pivotX = event.getX();
+            double pivotY = event.getY();
+            scale.setPivotX(pivotX);
+            scale.setPivotY(pivotY);
+            scale.setX(newScaleX);
+            scale.setY(newScaleY);
+            event.consume();
+        });
+        // Double-click để reset zoom
+        imgMainPane.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                scale.setX(1.0); scale.setY(1.0);
+                scale.setPivotX(imgProductMain.getFitWidth() / 2);
+                scale.setPivotY(imgProductMain.getFitHeight() / 2);
+            } else if (event.getClickCount() == 1 && scale.getX() == 1.0) {
+                // Single click khi chưa zoom → mở fullscreen
+                if (!productImages.isEmpty()) openFullscreenViewer(currentImageIndex);
+            }
+        });
+    }
+
+    /** Reset zoom về 1x khi chuyển ảnh */
+    private void resetZoom() {
+        if (imgProductMain == null || imgProductMain.getTransforms().isEmpty()) return;
+        javafx.scene.transform.Transform t = imgProductMain.getTransforms().get(0);
+        if (t instanceof javafx.scene.transform.Scale) {
+            javafx.scene.transform.Scale s = (javafx.scene.transform.Scale) t;
+            s.setX(1.0); s.setY(1.0);
+        }
+    }
+
+    private void showImage(int index) {
+        if (productImages.isEmpty()) return;
+        currentImageIndex = Math.max(0, Math.min(index, productImages.size() - 1));
+        try {
+            Image img = new Image(new ByteArrayInputStream(productImages.get(currentImageIndex)));
+            if (imgProductMain != null) imgProductMain.setImage(img);
+        } catch (Exception ignored) {}
+        // Reset zoom về 1x khi chuyển ảnh
+        resetZoom();
+        // Counter
+        if (lblImgCounter != null) lblImgCounter.setText((currentImageIndex + 1) + "/" + productImages.size());
+        // Arrows visibility - luôn hiện khi có nhiều ảnh
+        boolean multi = productImages.size() > 1;
+        if (btnImgPrev != null) btnImgPrev.setVisible(multi);
+        if (btnImgNext != null) btnImgNext.setVisible(multi);
+        // Highlight active thumbnail
+        highlightThumb(currentImageIndex);
+    }
+
+    private void buildThumbnailStrip() {
+        if (hboxThumbs == null) return;
+        hboxThumbs.getChildren().clear();
+        boolean multi = productImages.size() > 1;
+        if (!multi) return; // chỉ 1 ảnh thì không cần strip
+        for (int i = 0; i < productImages.size(); i++) {
+            final int idx = i;
+            StackPane cell = new StackPane();
+            cell.setPrefSize(56, 56); cell.setMinSize(56, 56); cell.setMaxSize(56, 56);
+            cell.setStyle("-fx-background-color:#111; -fx-background-radius:8;"
+                    + "-fx-border-color:#44444470; -fx-border-radius:8; -fx-border-width:2; -fx-cursor:hand;"
+                    + "-fx-clip:true;");
+            try {
+                Image img = new Image(new ByteArrayInputStream(productImages.get(i)));
+                ImageView iv = new ImageView(img);
+                // Lấp đầy ô thumbnail (crop thay vì letterbox)
+                iv.setFitWidth(56); iv.setFitHeight(56);
+                iv.setPreserveRatio(false);
+                cell.getChildren().add(iv);
+            } catch (Exception ignored) {}
+            cell.setOnMouseClicked(e -> showImage(idx));
+            hboxThumbs.getChildren().add(cell);
+        }
+    }
+
+    private void highlightThumb(int active) {
+        if (hboxThumbs == null) return;
+        for (int i = 0; i < hboxThumbs.getChildren().size(); i++) {
+            String border = (i == active) ? "#9b59b6" : "#44444470";
+            hboxThumbs.getChildren().get(i).setStyle(
+                    "-fx-background-color:#111; -fx-background-radius:8;"
+                            + "-fx-border-color:" + border + "; -fx-border-radius:8; -fx-border-width:2; -fx-cursor:hand;");
+        }
+    }
+
+    @FXML
+    void handleImgPrev(ActionEvent event) {
+        if (productImages.isEmpty()) return;
+        showImage((currentImageIndex - 1 + productImages.size()) % productImages.size());
+    }
+
+    @FXML
+    void handleImgNext(ActionEvent event) {
+        if (productImages.isEmpty()) return;
+        showImage((currentImageIndex + 1) % productImages.size());
+    }
+
+    @FXML
+    void handleViewImageFullscreen(javafx.scene.input.MouseEvent event) {
+        if (productImages.isEmpty()) return;
+        openFullscreenViewer(currentImageIndex);
+    }
+
+    private void openFullscreenViewer(int startIndex) {
+        Stage viewer = new Stage();
+        viewer.initStyle(StageStyle.UNDECORATED);
+        viewer.initModality(Modality.APPLICATION_MODAL);
+
+        // Index holder
+        int[] idx = {startIndex};
+
+        // UI elements
+        ImageView ivFull = new ImageView();
+        ivFull.setPreserveRatio(true);
+        ivFull.setFitWidth(1000); ivFull.setFitHeight(700);
+
+        // Counter
+        Label counter = new Label();
+        counter.setStyle("-fx-text-fill:white; -fx-font-size:14px; -fx-background-color:#00000080;"
+                + "-fx-padding:4 12; -fx-background-radius:20;");
+
+        // Buttons
+        Button prev = new Button("❮");
+        Button next = new Button("❯");
+        Button close = new Button("✕");
+        String arrowStyle = "-fx-background-color:#00000080; -fx-text-fill:white; -fx-font-size:32px;"
+                + "-fx-padding:16 22; -fx-cursor:hand; -fx-background-radius:50; -fx-border-width:0;";
+        prev.setStyle(arrowStyle); next.setStyle(arrowStyle);
+        close.setStyle("-fx-background-color:#e74c3c; -fx-text-fill:white; -fx-font-size:16px;"
+                + "-fx-padding:6 14; -fx-cursor:hand; -fx-background-radius:8; -fx-border-width:0;");
+
+        Runnable updateImg = () -> {
+            try {
+                Image img = new Image(new ByteArrayInputStream(productImages.get(idx[0])));
+                ivFull.setImage(img);
+                counter.setText((idx[0]+1) + " / " + productImages.size());
+                prev.setVisible(productImages.size() > 1);
+                next.setVisible(productImages.size() > 1);
+            } catch (Exception ignored) {}
+        };
+        updateImg.run();
+
+        // Scroll zoom cho fullscreen
+        javafx.scene.transform.Scale fsScale = new javafx.scene.transform.Scale(1, 1, 500, 375);
+        ivFull.getTransforms().add(fsScale);
+
+        prev.setOnAction(e -> { idx[0] = (idx[0]-1+productImages.size())%productImages.size(); fsScale.setX(1); fsScale.setY(1); updateImg.run(); });
+        next.setOnAction(e -> { idx[0] = (idx[0]+1)%productImages.size(); fsScale.setX(1); fsScale.setY(1); updateImg.run(); });
+        close.setOnAction(e -> viewer.close());
+
+        // Layout
+        javafx.scene.layout.BorderPane root = new javafx.scene.layout.BorderPane();
+        root.setStyle("-fx-background-color:#0a0a0aee;");
+        root.setCenter(ivFull);
+
+        // Close button top-right
+        javafx.scene.layout.HBox topBar = new javafx.scene.layout.HBox(close);
+        topBar.setAlignment(Pos.TOP_RIGHT);
+        topBar.setStyle("-fx-padding:16 20 0 0;");
+        root.setTop(topBar);
+
+        // Arrows left/right
+        javafx.scene.layout.HBox navBar = new javafx.scene.layout.HBox();
+        navBar.setAlignment(Pos.CENTER);
+        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+        javafx.scene.layout.HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        navBar.getChildren().addAll(prev, spacer, next);
+        navBar.setStyle("-fx-padding:0 20;");
+        root.setBottom(navBar);
+
+        // Counter overlay
+        javafx.scene.layout.StackPane center = new javafx.scene.layout.StackPane(ivFull, counter);
+        StackPane.setAlignment(counter, Pos.BOTTOM_CENTER);
+        counter.setStyle(counter.getStyle() + "-fx-translate-y:-20;");
+        root.setCenter(center);
+
+        Scene scene = new Scene(root, 1100, 750);
+        scene.setOnKeyPressed(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.ESCAPE) viewer.close();
+            else if (e.getCode() == javafx.scene.input.KeyCode.LEFT) { idx[0]=(idx[0]-1+productImages.size())%productImages.size(); fsScale.setX(1); fsScale.setY(1); updateImg.run(); }
+            else if (e.getCode() == javafx.scene.input.KeyCode.RIGHT) { idx[0]=(idx[0]+1)%productImages.size(); fsScale.setX(1); fsScale.setY(1); updateImg.run(); }
+        });
+        // Scroll zoom trong fullscreen
+        center.setOnScroll(e -> {
+            double factor = (e.getDeltaY() > 0) ? 1.12 : (1.0 / 1.12);
+            double nx = Math.max(0.5, Math.min(5.0, fsScale.getX() * factor));
+            double ny = Math.max(0.5, Math.min(5.0, fsScale.getY() * factor));
+            fsScale.setPivotX(e.getX()); fsScale.setPivotY(e.getY());
+            fsScale.setX(nx); fsScale.setY(ny);
+            e.consume();
+        });
+        // Double-click để reset zoom
+        center.setOnMouseClicked(e -> { if (e.getClickCount() == 2) { fsScale.setX(1); fsScale.setY(1); }});
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        viewer.setScene(scene);
+        viewer.show();
     }
 
     private void updateLabels() {
@@ -171,7 +459,7 @@ public class BiddingController implements BidUpdateListener {
                 colBidder.setCellValueFactory(param -> {
                     JsonObject obj = param.getValue();
                     String name = obj.has("bidderName") ? obj.get("bidderName").getAsString()
-                        : obj.has("bidder")     ? obj.get("bidder").getAsString() : "—";
+                            : obj.has("bidder")     ? obj.get("bidder").getAsString() : "—";
                     return new SimpleStringProperty(name);
                 });
                 colBidAmount.setCellValueFactory(param -> {
@@ -182,7 +470,7 @@ public class BiddingController implements BidUpdateListener {
                 colBidTime.setCellValueFactory(param -> {
                     JsonObject obj = param.getValue();
                     String ts = obj.has("timestamp") ? obj.get("timestamp").getAsString()
-                        : obj.has("time")      ? obj.get("time").getAsString() : "";
+                            : obj.has("time")      ? obj.get("time").getAsString() : "";
                     if (ts.contains("T")) ts = ts.replace("T", " ");
                     if (ts.length() > 19) ts = ts.substring(0, 19);
                     return new SimpleStringProperty(ts);
@@ -276,7 +564,7 @@ public class BiddingController implements BidUpdateListener {
         double minAllowed = currentPrice + minIncrement;
         if (bidAmount < minAllowed) {
             AlertUtil.showWarning("Giá quá thấp",
-                "Bạn phải đặt ít nhất: " + formatCurrency(minAllowed));
+                    "Bạn phải đặt ít nhất: " + formatCurrency(minAllowed));
             return;
         }
 
@@ -304,7 +592,7 @@ public class BiddingController implements BidUpdateListener {
 
                 // Gọi blocking send() an toàn trên background thread
                 JsonObject response = SocketClient.getInstance().send(
-                    Actions.PLACE_BID, payload, JsonObject.class);
+                        Actions.PLACE_BID, payload, JsonObject.class);
 
                 // Quay về JavaFX thread để update UI
                 Platform.runLater(() -> {
@@ -340,7 +628,7 @@ public class BiddingController implements BidUpdateListener {
     private void openWalletInsufficientMode(double requiredAmount) {
         try {
             ViewLoader.ViewResult<BidderWalletController> result =
-                ViewLoader.loadViewWithController("bidder-wallet.fxml");
+                    ViewLoader.loadViewWithController("bidder-wallet.fxml");
             if (result == null) return;
 
             result.getController().setInsufficientMode(requiredAmount);
@@ -351,8 +639,8 @@ public class BiddingController implements BidUpdateListener {
             stage.setTitle("💰 Ví Điện Tử – Nạp Tiền");
         } catch (Exception ex) {
             AlertUtil.showWarning("Số dư không đủ",
-                String.format("Số dư ví không đủ để đặt %s.\nVui lòng nạp thêm tiền trước khi đặt giá.",
-                    formatCurrency(requiredAmount)));
+                    String.format("Số dư ví không đủ để đặt %s.\nVui lòng nạp thêm tiền trước khi đặt giá.",
+                            formatCurrency(requiredAmount)));
         }
     }
 
@@ -361,15 +649,15 @@ public class BiddingController implements BidUpdateListener {
         new Thread(() -> {
             try {
                 WalletResponse resp = SocketClient.getInstance()
-                    .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
+                        .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
                 if (resp != null) {
                     walletBalance = resp.getBalance();
                     Platform.runLater(() -> {
                         if (lblMessage != null) {
                             lblMessage.setText("Số dư ví: " + formatCurrency(walletBalance));
                             lblMessage.setStyle(walletBalance < currentPrice + minIncrement
-                                ? "-fx-text-fill: #e74c3c;"
-                                : "-fx-text-fill: #27ae60;");
+                                    ? "-fx-text-fill: #e74c3c;"
+                                    : "-fx-text-fill: #27ae60;");
                             lblMessage.setVisible(true);
                         }
                     });
@@ -394,7 +682,7 @@ public class BiddingController implements BidUpdateListener {
         String incrementInput = txtIncrement.getText();
 
         if (maxBidInput == null || maxBidInput.trim().isEmpty()
-            || incrementInput == null || incrementInput.trim().isEmpty()) {
+                || incrementInput == null || incrementInput.trim().isEmpty()) {
             AlertUtil.showWarning("Thiếu thông tin", "Vui lòng nhập đầy đủ Giá tối đa và Bước giá tự động!");
             return;
         }
@@ -412,7 +700,7 @@ public class BiddingController implements BidUpdateListener {
         double minAllowed = currentPrice + minIncrement;
         if (maxBid < minAllowed) {
             AlertUtil.showWarning("Giá tối đa quá thấp",
-                "Giá tối đa phải ít nhất bằng: " + formatCurrency(minAllowed));
+                    "Giá tối đa phải ít nhất bằng: " + formatCurrency(minAllowed));
             return;
         }
 
@@ -436,7 +724,7 @@ public class BiddingController implements BidUpdateListener {
                 payload.put("incrementAmount",  capturedIncrement);
 
                 JsonObject response = SocketClient.getInstance()
-                    .send(Actions.SET_AUTO_BID, payload, JsonObject.class);
+                        .send(Actions.SET_AUTO_BID, payload, JsonObject.class);
 
                 Platform.runLater(() -> {
                     btnSetAutoBid.setDisable(false);
@@ -473,7 +761,7 @@ public class BiddingController implements BidUpdateListener {
                 payload.put("auctionId", capturedAuctionId);
 
                 JsonObject response = SocketClient.getInstance()
-                    .send(Actions.CANCEL_AUTO_BID, payload, JsonObject.class);
+                        .send(Actions.CANCEL_AUTO_BID, payload, JsonObject.class);
 
                 Platform.runLater(() -> {
                     btnCancelAutoBid.setDisable(false);
@@ -508,7 +796,7 @@ public class BiddingController implements BidUpdateListener {
     void handleOpenWallet(ActionEvent event) {
         try {
             ViewLoader.ViewResult<BidderWalletController> result =
-                ViewLoader.loadViewWithController("bidder-wallet.fxml");
+                    ViewLoader.loadViewWithController("bidder-wallet.fxml");
             if (result == null) return;
 
             result.getController().setReturnAuctionId(this.auctionId); // ← FIX: biết đường quay về
@@ -601,11 +889,11 @@ public class BiddingController implements BidUpdateListener {
         // Quay về auction-detail trên cùng cửa sổ (không đóng Stage)
         try {
             Stage stage = (Stage) (txtBidAmount != null
-                ? txtBidAmount.getScene().getWindow()
-                : btnConfirmBid.getScene().getWindow());
+                    ? txtBidAmount.getScene().getWindow()
+                    : btnConfirmBid.getScene().getWindow());
 
             ViewLoader.ViewResult<AuctionDetailController> result =
-                ViewLoader.loadViewWithController("auction-detail.fxml");
+                    ViewLoader.loadViewWithController("auction-detail.fxml");
 
             if (result != null && stage != null) {
                 result.getController().initData(auctionId);

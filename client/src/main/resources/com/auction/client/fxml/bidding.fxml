@@ -197,6 +197,58 @@
                 <VBox spacing="18.0" prefWidth="400.0"
                       style="-fx-padding: 0 4 8 0;">
 
+                    <!-- ─── Panel ảnh sản phẩm ─── -->
+                    <VBox fx:id="paneImages" spacing="8.0"
+                          styleClass="glass-box"
+                          visible="false" managed="false"
+                          style="-fx-background-radius: 20; -fx-padding: 14 14 10 14;">
+
+                        <Label text="Ảnh sản phẩm" styleClass="login-main-title"/>
+                        <Separator style="-fx-background-color: #9b59b630;"/>
+
+                        <!-- Ảnh chính + overlay arrows -->
+                        <StackPane fx:id="imgMainPane" prefHeight="230.0"
+                                   style="-fx-background-color: #111111;
+                                          -fx-background-radius: 12;
+                                          -fx-cursor: hand;">
+                            <ImageView fx:id="imgProductMain"
+                                       fitWidth="368.0" fitHeight="228.0"
+                                       preserveRatio="true"/>
+                            <!-- Prev arrow -->
+                            <Button fx:id="btnImgPrev" text="❮"
+                                    onAction="#handleImgPrev"
+                                    StackPane.alignment="CENTER_LEFT"
+                                    style="-fx-background-color: #00000088;
+                                           -fx-text-fill: white; -fx-font-size: 22px;
+                                           -fx-padding: 10 14; -fx-cursor: hand;
+                                           -fx-background-radius: 0 10 10 0;
+                                           -fx-border-width: 0;"/>
+                            <!-- Next arrow -->
+                            <Button fx:id="btnImgNext" text="❯"
+                                    onAction="#handleImgNext"
+                                    StackPane.alignment="CENTER_RIGHT"
+                                    style="-fx-background-color: #00000088;
+                                           -fx-text-fill: white; -fx-font-size: 22px;
+                                           -fx-padding: 10 14; -fx-cursor: hand;
+                                           -fx-background-radius: 10 0 0 10;
+                                           -fx-border-width: 0;"/>
+                            <!-- Counter badge -->
+                            <Label fx:id="lblImgCounter" text="1/1"
+                                   StackPane.alignment="BOTTOM_RIGHT"
+                                   style="-fx-background-color: #00000070;
+                                          -fx-text-fill: white; -fx-font-size: 11px;
+                                          -fx-padding: 3 10; -fx-background-radius: 8 0 0 0;"/>
+                        </StackPane>
+
+                        <!-- Thumbnail strip -->
+                        <ScrollPane hbarPolicy="AS_NEEDED" vbarPolicy="NEVER"
+                                    fitToHeight="true" prefHeight="68.0"
+                                    style="-fx-background: transparent; -fx-background-color: transparent;">
+                            <HBox fx:id="hboxThumbs" spacing="6.0" alignment="CENTER_LEFT"
+                                  style="-fx-padding: 4 0 0 0;"/>
+                        </ScrollPane>
+                    </VBox>
+
                     <!-- ─── Form đặt giá ─── -->
                     <VBox spacing="20.0"
                           styleClass="glass-box"

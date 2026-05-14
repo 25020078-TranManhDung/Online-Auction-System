@@ -162,12 +162,38 @@
                                       style="-fx-font-size: 14px;"/>
                         </VBox>
 
+                        <!-- Danh mục sản phẩm -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
                             <Label text="Danh mục sản phẩm" styleClass="field-label"/>
                             <ComboBox fx:id="cboCategory"
                                       promptText="Chọn danh mục..."
                                       styleClass="input-auction"
                                       maxWidth="Infinity"/>
+                        </VBox>
+
+                        <!-- Ảnh sản phẩm - nhiều ảnh -->
+                        <VBox alignment="CENTER_LEFT" spacing="6.0">
+                            <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                <Label text="Ảnh sản phẩm" styleClass="field-label"/>
+                                <Label text="(chọn nhiều, ảnh đầu làm đại diện)"
+                                       style="-fx-font-size: 10px; -fx-text-fill: #aaaaaa; -fx-font-style: italic;"/>
+                            </HBox>
+                            <ScrollPane hbarPolicy="AS_NEEDED" vbarPolicy="NEVER"
+                                        fitToHeight="true" prefHeight="148.0"
+                                        style="-fx-background: transparent;
+                                               -fx-background-color: transparent;
+                                               -fx-border-color: #9b59b6;
+                                               -fx-border-style: dashed;
+                                               -fx-border-width: 2;
+                                               -fx-border-radius: 12;
+                                               -fx-background-radius: 12;">
+                                <HBox fx:id="hboxImageRow" spacing="8.0" alignment="CENTER_LEFT"
+                                      style="-fx-padding: 8;
+                                             -fx-background-color: #9b59b608;
+                                             -fx-background-radius: 10;"/>
+                            </ScrollPane>
+                            <Label fx:id="lblImageName" text=""
+                                   style="-fx-font-size: 11px; -fx-text-fill: #27ae60; -fx-font-style: italic;"/>
                         </VBox>
 
                         <!-- Giá khởi điểm -->

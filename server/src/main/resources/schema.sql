@@ -6,22 +6,19 @@ CREATE TABLE users (
                        username VARCHAR(50) NOT NULL UNIQUE,
                        password VARCHAR(255) NOT NULL,
                        email VARCHAR(100) UNIQUE,
-                       full_name VARCHAR(100) DEFAULT NULL,   -- Họ và tên đầy đủ
                        role ENUM('BIDDER', 'SELLER', 'ADMIN') NOT NULL,
-                       admin_level INT DEFAULT 0,
-                       reputation_score DOUBLE DEFAULT 5.0,
-                       status VARCHAR(20) DEFAULT 'ACTIVE',   -- ACTIVE | TEMP_LOCKED | PERM_LOCKED
-                       violation_count INT DEFAULT 0,         -- Số lần vi phạm tích lũy
-                       locked_until DATETIME DEFAULT NULL,    -- NULL = không giới hạn (PERM_LOCKED) hoặc ACTIVE
+                       admin_level INT DEFAULT 0,          -- Thuộc tính của Admin.java
+                       reputation_score DOUBLE DEFAULT 5.0, -- Thuộc tính của Seller.java
+                       status VARCHAR(20) DEFAULT 'ACTIVE',
                        wallet_balance DOUBLE DEFAULT 0.0,
-                       held_amount DOUBLE DEFAULT 0.0
+                       held_amount DOUBLE DEFAULT 0.0      -- BỔ SUNG: Cột lưu số tiền đang bị tạm giữ khi đấu giá
 );
 
 -- 2. Bảng Items (Gộp Item.java và subclasses Electronics, Vehicle, Art)
 CREATE TABLE items (
                        id VARCHAR(50) PRIMARY KEY,
                        title VARCHAR(255) NOT NULL,
-                       description TEXT,
+                       description MEDIUMTEXT,             -- MEDIUMTEXT: chứa tối đa 16MB (đủ lưu Base64 ảnh đã nén)
                        category ENUM('ELECTRONICS', 'ART', 'VEHICLE', 'OTHER') NOT NULL,
                        seller_id VARCHAR(50) NOT NULL,
 
@@ -44,15 +41,13 @@ CREATE TABLE auctions (
                           start_time DATETIME NOT NULL,
                           end_time DATETIME NOT NULL,
                           status ENUM('OPEN', 'RUNNING', 'FINISHED', 'PAID', 'CANCELED') DEFAULT 'OPEN',
-                          current_leader VARCHAR(100), -- bidderName dẫn đầu (hiển thị)
+                          current_leader VARCHAR(100),-- bidderName dẫn đầu (hiển thị)
+                          current_leader_id VARCHAR(255),
                           winner_id VARCHAR(50) DEFAULT NULL, -- ID người thắng cuộc (FK, lưu vĩnh viễn)
                           bid_count INT DEFAULT 0,
-                          current_leader_id VARCHAR(50),
                           FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
                           FOREIGN KEY (seller_id) REFERENCES users(id),
-                          FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL,
-                          FOREIGN KEY (current_leader_id) REFERENCES users(id) ON DELETE SET NULL
-
+                          FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- 4. Bảng Bid Transactions (Khớp BidTransaction.java)
@@ -61,6 +56,7 @@ CREATE TABLE bid_transactions (
                                   auction_id VARCHAR(50) NOT NULL,
                                   bidder_id VARCHAR(50) NOT NULL,      -- ID người đặt giá (FK)
                                   bidder_name VARCHAR(100),            -- Tên hiển thị (cache)
+                                  current_leader_id VARCHAR(50) DEFAULT NULL,
                                   amount DOUBLE NOT NULL,
                                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                                   is_auto_bid BOOLEAN DEFAULT FALSE,

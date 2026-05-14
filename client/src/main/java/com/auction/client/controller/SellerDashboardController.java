@@ -14,6 +14,15 @@ import com.auction.shared.network.protocol.Actions;
 import com.google.gson.JsonObject;
 import javafx.application.Platform;
 import javafx.scene.control.DatePicker;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.geometry.Pos;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -47,6 +56,11 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     @FXML private ComboBox<String> cboCategory;
     @FXML private Button    btnAddItem;
     @FXML private Label     lblFormMessage;
+
+    // ===== Ảnh sản phẩm - nhiều ảnh =====
+    @FXML private HBox  hboxImageRow;
+    @FXML private Label lblImageName;
+    private final List<String> selectedImagesBase64 = new ArrayList<>();
 
     // ===== Header =====
     @FXML private Label  lblUser;
@@ -197,12 +211,59 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
             cboCategory.setValue(ItemCategory.OTHER.getDisplayName());
         }
         loadMyAuctions();
+        // Khởi tạo khung chọn ảnh
+        Platform.runLater(this::setupImageAddButton);
     }
 
     private MessageHandler getMessageHandlerSecurely() throws Exception {
         Field field = SocketClient.class.getDeclaredField("messageHandler");
         field.setAccessible(true);
         return (MessageHandler) field.get(SocketClient.getInstance());
+    }
+
+    @FXML
+    void handleImagePicker(javafx.scene.input.MouseEvent event) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Chọn ảnh sản phẩm (có thể chọn nhiều)");
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp")
+        );
+        javafx.stage.Stage stage = (javafx.stage.Stage) hboxImageRow.getScene().getWindow();
+        List<java.io.File> files = chooser.showOpenMultipleDialog(stage);
+        if (files == null || files.isEmpty()) return;
+        int added = 0;
+        for (java.io.File file : files) {
+            try {
+                java.awt.image.BufferedImage original = javax.imageio.ImageIO.read(file);
+                if (original == null) continue;
+                int maxSize = 600;
+                int w = original.getWidth(), h = original.getHeight();
+                if (w > maxSize || h > maxSize) {
+                    double ratio = Math.min((double)maxSize/w, (double)maxSize/h);
+                    w = (int)(w*ratio); h = (int)(h*ratio);
+                }
+                java.awt.image.BufferedImage resized = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_RGB);
+                java.awt.Graphics2D g2d = resized.createGraphics();
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2d.drawImage(original, 0, 0, w, h, null); g2d.dispose();
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                javax.imageio.ImageWriter writer = javax.imageio.ImageIO.getImageWritersByFormatName("jpg").next();
+                javax.imageio.ImageWriteParam param = writer.getDefaultWriteParam();
+                param.setCompressionMode(javax.imageio.ImageWriteParam.MODE_EXPLICIT);
+                param.setCompressionQuality(0.80f);
+                writer.setOutput(javax.imageio.ImageIO.createImageOutputStream(baos));
+                writer.write(null, new javax.imageio.IIOImage(resized, null, null), param);
+                writer.dispose();
+                byte[] compressed = baos.toByteArray();
+                int currentIdx = selectedImagesBase64.size();
+                selectedImagesBase64.add(Base64.getEncoder().encodeToString(compressed));
+                addImageThumbnail(compressed, currentIdx);
+                added++;
+            } catch (Exception e) {
+                AlertUtil.showError("Lỗi", "Không thể xử lý: " + file.getName());
+            }
+        }
+        if (added > 0) updateImageLabel();
     }
 
     @FXML
@@ -245,7 +306,15 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
 
             Map<String, Object> data = new HashMap<>();
             data.put("title",           title);
-            data.put("description",     txtDescription.getText());
+            String rawDesc = txtDescription.getText();
+            String descWithImage;
+            if (!selectedImagesBase64.isEmpty()) {
+                String joined = String.join("|", selectedImagesBase64);
+                descWithImage = "[IMGS:" + joined + "]" + rawDesc;
+            } else {
+                descWithImage = rawDesc;
+            }
+            data.put("description",     descWithImage);
             data.put("startingPrice",   startPrice);
             data.put("minBidIncrement", minIncrement);
             data.put("durationMinutes", duration);
@@ -269,12 +338,12 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
             }
 
             AuctionResponse response = SocketClient.getInstance().send(
-                Actions.CREATE_AUCTION, data, AuctionResponse.class);
+                    Actions.CREATE_AUCTION, data, AuctionResponse.class);
 
             if (response != null) {
                 String msg = startTimeStr != null
-                    ? "Đã đăng phiên đấu giá. Sẽ bắt đầu lúc " + startTimeStr.replace("T", " ")
-                    : "Đã đăng phiên đấu giá. Bắt đầu ngay lập tức.";
+                        ? "Đã đăng phiên đấu giá. Sẽ bắt đầu lúc " + startTimeStr.replace("T", " ")
+                        : "Đã đăng phiên đấu giá. Bắt đầu ngay lập tức.";
                 AlertUtil.showInfo("Thành công", msg);
                 clearFields();
                 loadMyAuctions();
@@ -317,7 +386,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
                 params.put("status", "ALL");
 
                 GetAuctionsResponse response = SocketClient.getInstance().send(
-                    Actions.GET_AUCTIONS, params, GetAuctionsResponse.class);
+                        Actions.GET_AUCTIONS, params, GetAuctionsResponse.class);
 
                 if (response != null && response.auctions != null) {
                     String myId = UserSession.getInstance().getUserId();
@@ -397,6 +466,8 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     @FXML
     private void handleRefresh(ActionEvent event) {
         loadMyAuctions();
+        // Khởi tạo khung chọn ảnh
+        Platform.runLater(this::setupImageAddButton);
     }
 
     @FXML
@@ -431,11 +502,11 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
 
         try {
             ViewLoader.ViewResult<SellerWalletController> result =
-                ViewLoader.loadViewWithController("seller-wallet.fxml");
+                    ViewLoader.loadViewWithController("seller-wallet.fxml");
 
             if (result != null) {
                 javafx.stage.Stage stage = (javafx.stage.Stage)
-                    ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+                        ((javafx.scene.Node) event.getSource()).getScene().getWindow();
                 stage.getScene().setRoot(result.getView());
                 stage.setTitle("💵 Ví Doanh Thu – Seller");
             } else {
@@ -450,7 +521,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     @FXML
     private void applyStatusFilter() {
         String status = (cboStatusFilter == null || cboStatusFilter.getValue() == null)
-            ? "Tất cả" : cboStatusFilter.getValue();
+                ? "Tất cả" : cboStatusFilter.getValue();
         filteredSellerAuctions.setPredicate(a -> {
             if (a == null) return false;
             if ("Tất cả".equals(status)) return true;
@@ -465,18 +536,18 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         int total = sellerAuctions.size();
 
         long active = sellerAuctions.stream()
-            .filter(a -> a.getStatus() != null && AuctionStatus.RUNNING.equals(a.getStatus()))
-            .count();
+                .filter(a -> a.getStatus() != null && AuctionStatus.RUNNING.equals(a.getStatus()))
+                .count();
 
         long closed = sellerAuctions.stream()
-            .filter(a -> a.getStatus() != null
-                && (AuctionStatus.FINISHED.equals(a.getStatus()) || AuctionStatus.PAID.equals(a.getStatus())))
-            .count();
+                .filter(a -> a.getStatus() != null
+                        && (AuctionStatus.FINISHED.equals(a.getStatus()) || AuctionStatus.PAID.equals(a.getStatus())))
+                .count();
 
         long revenue = sellerAuctions.stream()
-            .filter(a -> a.getCurrentPrice() != null)
-            .mapToLong(a -> Math.round(a.getCurrentPrice()))
-            .sum();
+                .filter(a -> a.getCurrentPrice() != null)
+                .mapToLong(a -> Math.round(a.getCurrentPrice()))
+                .sum();
 
         if (lblTotalItems  != null) lblTotalItems.setText(String.valueOf(total));
         if (lblActiveItems != null) lblActiveItems.setText(String.valueOf(active));
@@ -484,8 +555,82 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         if (lblTotalRevenue != null) lblTotalRevenue.setText(String.format("%,d VNĐ", revenue));
         if (lblItemCount != null)
             lblItemCount.setText(String.format("%d sản phẩm",
-                filteredSellerAuctions == null ? total : filteredSellerAuctions.size()));
+                    filteredSellerAuctions == null ? total : filteredSellerAuctions.size()));
     }
+
+    // ─────────────────── Multi-image helpers ───────────────────
+
+    private void setupImageAddButton() {
+        if (hboxImageRow == null) return;
+        hboxImageRow.getChildren().clear();
+        hboxImageRow.getChildren().add(createAddButton());
+    }
+
+    private StackPane createAddButton() {
+        StackPane pane = new StackPane();
+        pane.setPrefSize(128, 128); pane.setMinSize(128, 128);
+        pane.setStyle("-fx-border-color:#9b59b6;-fx-border-style:dashed;-fx-border-width:2;"
+                + "-fx-border-radius:10;-fx-background-radius:10;"
+                + "-fx-background-color:#9b59b610;-fx-cursor:hand;");
+        VBox inner = new VBox(6); inner.setAlignment(Pos.CENTER);
+        Label icon = new Label("📷"); icon.setStyle("-fx-font-size:30px;");
+        Label txt  = new Label("Thêm ảnh"); txt.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:#9b59b6;");
+        Label hint = new Label("(Click để chọn)"); hint.setStyle("-fx-font-size:10px;-fx-text-fill:#aaaaaa;-fx-font-style:italic;");
+        inner.getChildren().addAll(icon, txt, hint);
+        pane.getChildren().add(inner);
+        pane.setOnMouseClicked(e -> handleImagePicker(e));
+        return pane;
+    }
+
+    private void addImageThumbnail(byte[] bytes, int index) {
+        StackPane thumb = buildThumb(bytes, index);
+        int insertPos = hboxImageRow.getChildren().size() - 1;
+        hboxImageRow.getChildren().add(Math.max(0, insertPos), thumb);
+    }
+
+    private void refreshImageRow() {
+        if (hboxImageRow == null) return;
+        hboxImageRow.getChildren().clear();
+        for (int i = 0; i < selectedImagesBase64.size(); i++) {
+            try {
+                byte[] b = Base64.getDecoder().decode(selectedImagesBase64.get(i));
+                hboxImageRow.getChildren().add(buildThumb(b, i));
+            } catch (Exception ignored) {}
+        }
+        hboxImageRow.getChildren().add(createAddButton());
+        updateImageLabel();
+    }
+
+    private StackPane buildThumb(byte[] bytes, int index) {
+        StackPane thumb = new StackPane();
+        thumb.setPrefSize(128, 128); thumb.setMinSize(128, 128);
+        String border = index == 0 ? "#9b59b6" : "#44444460";
+        thumb.setStyle("-fx-background-color:#111;-fx-background-radius:10;"
+                + "-fx-border-color:" + border + ";-fx-border-radius:10;-fx-border-width:2;");
+        Image img = new Image(new java.io.ByteArrayInputStream(bytes));
+        ImageView iv = new ImageView(img);
+        iv.setFitWidth(128); iv.setFitHeight(128); iv.setPreserveRatio(true);
+        Label badge = new Label(index == 0 ? "Đại diện" : "");
+        badge.setStyle("-fx-background-color:#9b59b6;-fx-text-fill:white;"
+                + "-fx-font-size:10px;-fx-padding:2 6;-fx-background-radius:0 0 8 0;");
+        StackPane.setAlignment(badge, Pos.TOP_LEFT);
+        final int idx = index;
+        Button del = new Button("×");
+        del.setStyle("-fx-background-color:#e74c3c;-fx-text-fill:white;"
+                + "-fx-font-size:13px;-fx-padding:0 5;-fx-cursor:hand;"
+                + "-fx-background-radius:0 8 0 8;-fx-border-width:0;");
+        StackPane.setAlignment(del, Pos.TOP_RIGHT);
+        del.setOnAction(e -> { selectedImagesBase64.remove(idx); refreshImageRow(); });
+        thumb.getChildren().addAll(iv, badge, del);
+        return thumb;
+    }
+
+    private void updateImageLabel() {
+        if (lblImageName == null) return;
+        int n = selectedImagesBase64.size();
+        lblImageName.setText(n == 0 ? "" : "✓ " + n + " ảnh đã chọn");
+    }
+
 
     private void clearFields() {
         txtProductName.clear();
@@ -496,5 +641,9 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         if (txtStartTime != null) txtStartTime.clear();
         txtDuration.clear();
         lblFormMessage.setVisible(false);
+        // Reset ảnh
+        selectedImagesBase64.clear();
+        setupImageAddButton();
+        if (lblImageName != null) lblImageName.setText("");
     }
 }

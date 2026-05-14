@@ -88,6 +88,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
     private String currentProductName = "—";
     private String currentSellerId    = "—";
     private String currentStatus      = "—";
+    private String currentDescription = "";   // raw description (may contain [IMG:...] prefix)
     private int    currentBidCount    = 0;
     private com.google.gson.JsonArray currentBidHistory = null;
     private Timer countdownTimer;
@@ -205,8 +206,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Determine startPrice and currentPrice with multiple key fallbacks
             long startPrice = getLongSafe(item, "startPrice",
-                getLongSafe(auction, "startingPrice",
-                    getLongSafe(auction, "start_price", 0L)));
+                    getLongSafe(auction, "startingPrice",
+                            getLongSafe(auction, "start_price", 0L)));
             long currentPrice = getLongSafe(auction, "currentPrice", getLongSafe(auction, "current_price", startPrice));
             this.currentPriceValue = currentPrice;
 
@@ -214,8 +215,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
             // Server trả AuctionResponse flat (title, description ở root), không có nested "item"
             // → phải đọc từ auction (root) khi item == null
             this.currentProductName = getSafe(item, "title",
-                getSafe(item, "name",
-                    getSafe(auction, "title", "—")));
+                    getSafe(item, "name",
+                            getSafe(auction, "title", "—")));
             this.currentSellerId    = getSafe(auction, "sellerId", getSafe(auction, "seller", "—"));
             this.currentStatus      = getSafe(auction, "status", "—");
             this.currentBidCount    = getIntSafe(auction, "bidCount", getIntSafe(data, "bidCount", getIntSafe(auction, "bid_count", 0)));
@@ -229,7 +230,11 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
             lblCurrentPrice.setText(formatMoney(currentPrice));
             lblBidCount.setText(String.valueOf(this.currentBidCount));
             lblEndTime.setText(getSafe(auction, "endTime", getSafe(auction, "end_time", "—")));
-            lblDescription.setText(getSafe(item, "description", getSafe(auction, "description", "—")));
+            // Lưu rawDesc để truyền sang BiddingController
+            String rawDesc = getSafe(item, "description", getSafe(auction, "description", "—"));
+            this.currentDescription = rawDesc;
+            // Hiển thị mô tả (bỏ prefix [IMG:...] nếu có)
+            lblDescription.setText(stripImagePrefix(rawDesc));
 
             // Chart: initialize series if needed — dữ liệu sẽ được populate sau khi parse bids
             if (priceChart != null && priceSeries == null) {
@@ -272,7 +277,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                             // "timestamp" được serialize bởi JsonUtil thành ISO-8601 string
                             // → ChartUtil.normalizeLabel() cắt lấy HH:mm:ss
                             String raw = getSafe(b, "timestamp",
-                                getSafe(b, "time", getSafe(b, "createdAt", "")));
+                                    getSafe(b, "time", getSafe(b, "createdAt", "")));
                             String timeLabel = formatTimeOnly(raw); // Gọi hàm vừa tạo thay vì dùng ChartUtil
                             if (timeLabel.equals(raw) && raw.isEmpty()) {
                                 timeLabel = "Bid " + (limit - i); // fallback index khi không có timestamp
@@ -356,7 +361,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Tải bidding.fxml cùng controller để truyền dữ liệu, KHÔNG mở cửa sổ mới
             ViewLoader.ViewResult<BiddingController> result =
-                ViewLoader.loadViewWithController("bidding.fxml");
+                    ViewLoader.loadViewWithController("bidding.fxml");
 
             if (result == null || result.getController() == null) {
                 AlertUtil.showError("Lỗi giao diện", "Không thể khởi tạo màn hình đặt giá.");
@@ -365,17 +370,18 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Truyền dữ liệu phiên vào controller
             result.getController().setAuctionData(
-                currentAuctionId,
-                currentPriceValue,
-                minInc,
-                currentLeaderName,
-                currentLeaderBid,
-                currentProductName,
-                currentSellerId,
-                currentStatus,
-                currentBidCount,
-                secondsRemaining,
-                currentBidHistory
+                    currentAuctionId,
+                    currentPriceValue,
+                    minInc,
+                    currentLeaderName,
+                    currentLeaderBid,
+                    currentProductName,
+                    currentSellerId,
+                    currentStatus,
+                    currentBidCount,
+                    secondsRemaining,
+                    currentBidHistory,
+                    currentDescription
             );
 
             // Dọn dẹp timer và listener trước khi rời màn hình
@@ -505,7 +511,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
         // Cập nhật câu chữ để Bidder hiểu rõ luồng tiền
         boolean confirmed = AlertUtil.showConfirm("Xác nhận thanh toán",
-            "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
+                "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
         if (!confirmed) return;
 
         new Thread(() -> {
@@ -677,6 +683,20 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         } else {
             AlertUtil.showWarning("Thông báo", msg);
         }
+    }
+
+    /** Bỏ prefix [IMGS:...] hoặc [IMG:...] để chỉ lấy phần mô tả thật */
+    private String stripImagePrefix(String raw) {
+        if (raw == null) return "—";
+        // Hỗ trợ cả [IMGS:...] (nhiều ảnh, định dạng mới) và [IMG:...] (1 ảnh, cũ)
+        if (raw.startsWith("[IMGS:") || raw.startsWith("[IMG:")) {
+            int end = raw.indexOf("]");
+            if (end > 0) {
+                String clean = raw.substring(end + 1).trim();
+                return clean.isBlank() ? "—" : clean;
+            }
+        }
+        return raw.isBlank() ? "—" : raw;
     }
 
     private String formatTimeOnly(String rawTimestamp) {
