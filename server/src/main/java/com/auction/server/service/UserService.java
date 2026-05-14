@@ -43,6 +43,10 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPassword(PasswordUtil.hash(request.getPassword()));
         user.setRole(request.getRole());
+        // Lưu họ và tên (nếu client truyền lên, không bắt buộc)
+        if (request.getFullname() != null && !request.getFullname().isBlank()) {
+            user.setFullname(request.getFullname().trim());
+        }
 
         if (!userDao.save(user)) {
             throw new RuntimeException("Đã xảy ra lỗi khi lưu người dùng vào cơ sở dữ liệu.");

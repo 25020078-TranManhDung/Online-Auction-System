@@ -87,18 +87,19 @@ public class UserDaoImpl implements UserDAO {
     public boolean save(User user) {
         String sql = """
             INSERT INTO users
-              (id, username, password, email, role, admin_level, reputation_score)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+              (id, username, password, email, role, admin_level, reputation_score, full_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, user.getId());
             ps.setString(2, user.getUsername());
-            ps.setString(3, user.getPassword()); // Đã sửa thành getPassword
+            ps.setString(3, user.getPassword());
             ps.setString(4, user.getEmail());
             ps.setString(5, user.getRole().name());
             ps.setInt(6, (user instanceof Admin) ? ((Admin)user).getAdminLevel() : 0);
             ps.setDouble(7, (user instanceof Seller) ? ((Seller)user).getReputationScore() : 5.0);
+            ps.setString(8, user.getFullname()); // Họ và tên (nullable)
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("save user thất bại", e);
@@ -109,7 +110,7 @@ public class UserDaoImpl implements UserDAO {
     public boolean update(User user) {
         String sql = """
             UPDATE users
-            SET username=?, password=?, email=?, admin_level=?, reputation_score=?,
+            SET username=?, password=?, email=?, full_name=?, admin_level=?, reputation_score=?,
                 status=?, violation_count=?, locked_until=?
             WHERE id=?
             """;
@@ -118,16 +119,17 @@ public class UserDaoImpl implements UserDAO {
             ps.setString(1, user.getUsername());
             ps.setString(2, user.getPassword());
             ps.setString(3, user.getEmail());
-            ps.setInt(4, (user instanceof Admin) ? ((Admin)user).getAdminLevel() : 0);
-            ps.setDouble(5, (user instanceof Seller) ? ((Seller)user).getReputationScore() : 5.0);
-            ps.setString(6, user.getStatus());
-            ps.setInt(7, user.getViolationCount());
+            ps.setString(4, user.getFullname());
+            ps.setInt(5, (user instanceof Admin) ? ((Admin)user).getAdminLevel() : 0);
+            ps.setDouble(6, (user instanceof Seller) ? ((Seller)user).getReputationScore() : 5.0);
+            ps.setString(7, user.getStatus());
+            ps.setInt(8, user.getViolationCount());
             if (user.getLockedUntil() != null) {
-                ps.setTimestamp(8, Timestamp.valueOf(user.getLockedUntil()));
+                ps.setTimestamp(9, Timestamp.valueOf(user.getLockedUntil()));
             } else {
-                ps.setNull(8, Types.TIMESTAMP);
+                ps.setNull(9, Types.TIMESTAMP);
             }
-            ps.setString(9, user.getId());
+            ps.setString(10, user.getId());
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("update user thất bại", e);
@@ -166,6 +168,7 @@ public class UserDaoImpl implements UserDAO {
         user.setUsername(rs.getString("username"));
         user.setPassword(rs.getString("password"));
         user.setEmail(rs.getString("email"));
+        user.setFullname(rs.getString("full_name"));  // Họ và tên
         user.setRole(role);
 
         String status = rs.getString("status");

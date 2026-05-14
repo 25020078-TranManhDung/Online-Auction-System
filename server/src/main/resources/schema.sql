@@ -6,6 +6,7 @@ CREATE TABLE users (
                        username VARCHAR(50) NOT NULL UNIQUE,
                        password VARCHAR(255) NOT NULL,
                        email VARCHAR(100) UNIQUE,
+                       full_name VARCHAR(100) DEFAULT NULL,   -- Họ và tên đầy đủ
                        role ENUM('BIDDER', 'SELLER', 'ADMIN') NOT NULL,
                        admin_level INT DEFAULT 0,
                        reputation_score DOUBLE DEFAULT 5.0,
