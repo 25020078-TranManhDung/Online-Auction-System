@@ -103,6 +103,8 @@ public class BiddingController implements BidUpdateListener {
     @FXML private Label lblLeaderName;
     @FXML private Label lblLeaderBid;
 
+    @FXML private Label lblWalletBalance;
+
     // Internal state
     private String auctionId;
     private double currentPrice;
@@ -666,10 +668,18 @@ public class BiddingController implements BidUpdateListener {
                 WalletResponse resp = SocketClient.getInstance()
                         .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
                 if (resp != null) {
-                    walletBalance = resp.getBalance();
+                    // Dùng getAvailableBalance() để lấy Số dư khả dụng giống hệt trang Chi tiết
+                    walletBalance = resp.getAvailableBalance();
+
                     Platform.runLater(() -> {
+                        // 1. Cập nhật Số dư lên góc phải Header
+                        if (lblWalletBalance != null) {
+                            lblWalletBalance.setText("Số dư: " + formatCurrency(walletBalance));
+                        }
+
+                        // 2. Giữ nguyên logic cập nhật thông báo ở Form đặt giá bên dưới
                         if (lblMessage != null) {
-                            lblMessage.setText("Số dư ví: " + formatCurrency(walletBalance));
+                            lblMessage.setText("Số dư khả dụng: " + formatCurrency(walletBalance));
                             lblMessage.setStyle(walletBalance < currentPrice + minIncrement
                                     ? "-fx-text-fill: #e74c3c;"
                                     : "-fx-text-fill: #27ae60;");
