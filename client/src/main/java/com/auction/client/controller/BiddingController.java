@@ -598,8 +598,23 @@ public class BiddingController implements BidUpdateListener {
                 Platform.runLater(() -> {
                     if (response != null) {
                         walletBalance -= capturedBidAmount; // Cập nhật số dư tạm
-                        AlertUtil.showInfo("Chúc mừng", "Đặt giá thành công!");
-                        closeWindow();
+
+                        // 1. Hiển thị thông báo thành công ngay dưới form (Không dùng popup Alert gây vướng)
+                        if (lblMessage != null) {
+                            lblMessage.setText("✅ Đặt giá thành công! Đang chờ đối thủ...");
+                            lblMessage.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+                            lblMessage.setVisible(true);
+                        }
+
+                        // 2. Xóa trắng ô nhập tiền
+                        txtBidAmount.clear();
+
+                        // 3. Bật lại nút Xác nhận để họ có thể "chiến" tiếp vòng sau
+                        resetConfirmButton();
+
+                        // 4. Tự động trỏ chuột (focus) lại vào ô nhập tiền để sẵn sàng gõ
+                        txtBidAmount.requestFocus();
+
                     } else {
                         AlertUtil.showError("Lỗi", "Không nhận được phản hồi từ server.");
                         resetConfirmButton();

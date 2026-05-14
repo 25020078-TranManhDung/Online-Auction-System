@@ -1,99 +1,137 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.text.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.geometry.Pos?>
 
 <AnchorPane fx:id="registerPane" prefHeight="800.0" prefWidth="1400.0"
             styleClass="auction-bg"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.RegisterController">
 
-    <!-- Declare non-Node objects here -->
-    <fx:define>
-        <ToggleGroup fx:id="roleGroup"/>
-    </fx:define>
-
     <children>
-        <!-- Central column: header + centered register card -->
-        <VBox alignment="TOP_CENTER" spacing="18.0"
-              AnchorPane.topAnchor="50.0"
-              AnchorPane.leftAnchor="0.0"
-              AnchorPane.rightAnchor="0.0">
-            <!-- Banner / header (no image above title) -->
-            <VBox alignment="CENTER" spacing="6.0">
+        <HBox alignment="CENTER" AnchorPane.topAnchor="30.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+            <VBox alignment="CENTER" spacing="5.0">
                 <Label text="Online Auction System" styleClass="auction-title"/>
-                <Label text="Đăng ký thành viên – Đấu giá, săn cơ hội" styleClass="auction-subtitle"/>
+                <Label text="Nơi kết nối người bán và người mua uy tín" styleClass="auction-subtitle"/>
+            </VBox>
+        </HBox>
+
+        <StackPane AnchorPane.topAnchor="110.0" AnchorPane.bottomAnchor="50.0"
+                   AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+
+            <VBox fx:id="stepRoleSelection" alignment="CENTER" spacing="35.0">
+
+                <VBox alignment="CENTER" spacing="8.0">
+                    <Label text="Choose your account type to get started" styleClass="reg-title"/>
+                    <Label text="Vui lòng chọn vai trò bạn muốn tham gia trên nền tảng" styleClass="reg-subtitle"/>
+                </VBox>
+
+                <HBox alignment="CENTER" spacing="40.0">
+
+                    <VBox styleClass="role-card, glass-box" prefWidth="380.0" onMouseClicked="#selectBidderAndProceed">
+                        <VBox alignment="CENTER" spacing="8.0" styleClass="role-card-header, role-header-bidder">
+                            <padding><Insets top="25" right="20" bottom="25" left="20"/></padding>
+                            <Label text="🛒" styleClass="role-card-icon"/>
+                            <Label text="Register as Bidder" styleClass="role-card-title"/>
+                            <Label text="Browse and bid on amazing items" styleClass="role-card-desc"/>
+                        </VBox>
+                        <VBox spacing="14.0" styleClass="role-card-body" VBox.vgrow="ALWAYS">
+                            <padding><Insets top="25" right="30" bottom="25" left="30"/></padding>
+                            <Label text="✔ What you can do:" styleClass="role-feature-heading"/>
+                            <Label text="🔨 Tham gia đấu giá hàng ngàn sản phẩm" styleClass="role-feature-item"/>
+                            <Label text="🔍 Khám phá đa dạng các danh mục" styleClass="role-feature-item"/>
+                            <Label text="❤️ Lưu sản phẩm yêu thích" styleClass="role-feature-item"/>
+                            <Label text="🤖 Thiết lập đấu giá tự động" styleClass="role-feature-item"/>
+                            <Label text="🏆 Săn hàng hiếm với giá hời" styleClass="role-feature-item"/>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="12.0" styleClass="role-card-footer">
+                            <padding><Insets top="20" right="20" bottom="24" left="20"/></padding>
+                            <Button text="👤 Register as Bidder" styleClass="btn-role-bidder" onAction="#selectBidderAndProceedBtn" maxWidth="Infinity"/>
+                            <Label text="Thiết lập nhanh chóng và dễ dàng" styleClass="role-card-note"/>
+                        </VBox>
+                    </VBox>
+
+                    <VBox styleClass="role-card, glass-box" prefWidth="380.0" onMouseClicked="#selectSellerAndProceed">
+                        <VBox alignment="CENTER" spacing="8.0" styleClass="role-card-header, role-header-seller">
+                            <padding><Insets top="25" right="20" bottom="25" left="20"/></padding>
+                            <Label text="🏪" styleClass="role-card-icon"/>
+                            <Label text="Register as Seller" styleClass="role-card-title"/>
+                            <Label text="Create auctions and sell your items" styleClass="role-card-desc"/>
+                        </VBox>
+                        <VBox spacing="14.0" styleClass="role-card-body" VBox.vgrow="ALWAYS">
+                            <padding><Insets top="25" right="30" bottom="25" left="30"/></padding>
+                            <Label text="✔ What you can do:" styleClass="role-feature-heading-seller"/>
+                            <Label text="➕ Đăng bán không giới hạn sản phẩm" styleClass="role-feature-item"/>
+                            <Label text="🖼️ Giao diện tạo phiên đấu giá trực quan" styleClass="role-feature-item"/>
+                            <Label text="📈 Thống kê doanh thu &amp; Bảng điều khiển" styleClass="role-feature-item"/>
+                            <Label text="🤝 Quản lý phiên đấu giá theo thời gian thực" styleClass="role-feature-item"/>
+                            <Label text="💰 Rút tiền an toàn qua Ví điện tử" styleClass="role-feature-item"/>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="12.0" styleClass="role-card-footer">
+                            <padding><Insets top="20" right="20" bottom="24" left="20"/></padding>
+                            <Button text="🏪 Register as Seller" styleClass="btn-role-seller" onAction="#selectSellerAndProceedBtn" maxWidth="Infinity"/>
+                            <Label text="Yêu cầu thông tin chi tiết hơn" styleClass="role-card-note"/>
+                        </VBox>
+                    </VBox>
+                </HBox>
+
+                <HBox alignment="CENTER" spacing="5.0">
+                    <Label text="Bạn đã có tài khoản?" styleClass="reg-back-label"/>
+                    <Hyperlink text="Đăng nhập ngay" onAction="#goBackToLogin" styleClass="hyperlink"/>
+                </HBox>
             </VBox>
 
-            <!-- Centered register card -->
-            <!-- Thay thế phần "Centered register card" bằng đoạn này -->
-            <StackPane fx:id="registerCard"
-                       prefWidth="520.0" prefHeight="560.0"
-                       minWidth="420.0" minHeight="420.0"
-                       maxWidth="520.0" maxHeight="560.0"
-                       styleClass="glass-box">
-                <VBox alignment="TOP_CENTER" spacing="14.0" maxWidth="420.0">
-                    <padding>
-                        <Insets top="22" right="20" bottom="18" left="20"/>
-                    </padding>
+            <VBox fx:id="stepForm" alignment="CENTER" visible="false" managed="false">
 
-                    <Label text="TẠO TÀI KHOẢN MỚI" styleClass="login-main-title"/>
+                <VBox styleClass="form-card, glass-box" maxWidth="480.0" spacing="18.0">
+                    <padding><Insets top="30" right="35" bottom="30" left="35"/></padding>
 
-                    <VBox alignment="CENTER_LEFT" spacing="10.0" maxWidth="360.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Hyperlink text="← Chọn lại loại tài khoản" onAction="#goBackToRoleSelection" styleClass="hyperlink"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblRoleBadge" text="Badge" styleClass="role-badge-bidder"/>
+                    </HBox>
+
+                    <VBox alignment="CENTER" spacing="5.0">
+                        <Label text="Tạo tài khoản mới" styleClass="form-card-title"/>
+                        <Label text="Điền các thông tin dưới đây để bắt đầu" styleClass="reg-subtitle"/>
+                    </VBox>
+
+                    <Separator style="-fx-opacity: 0.3;"/>
+
+                    <VBox spacing="10.0">
                         <Label text="Họ và tên" styleClass="field-label"/>
                         <TextField fx:id="txtFullname" promptText="Nhập họ tên đầy đủ" styleClass="input-auction"/>
 
                         <Label text="Tên đăng nhập" styleClass="field-label"/>
-                        <TextField fx:id="txtUsername" promptText="Tên tài khoản (chỉ chữ, số, không dấu)" styleClass="input-auction"/>
+                        <TextField fx:id="txtUsername" promptText="Chỉ chữ, số, không dấu" styleClass="input-auction"/>
 
                         <Label text="Email" styleClass="field-label"/>
-                        <TextField fx:id="txtEmail" promptText="Địa chỉ email" styleClass="input-auction"/>
+                        <TextField fx:id="txtEmail" promptText="Địa chỉ email hợp lệ" styleClass="input-auction"/>
 
                         <Label text="Mật khẩu" styleClass="field-label"/>
-                        <PasswordField fx:id="txtPassword" promptText="Tạo mật khẩu mới" styleClass="input-auction"/>
+                        <PasswordField fx:id="txtPassword" promptText="Tạo mật khẩu (tối thiểu 6 ký tự)" styleClass="input-auction"/>
 
                         <Label text="Xác nhận mật khẩu" styleClass="field-label"/>
                         <PasswordField fx:id="txtConfirmPassword" promptText="Nhập lại mật khẩu" styleClass="input-auction"/>
                     </VBox>
 
-                    <HBox alignment="CENTER_LEFT" spacing="18.0" maxWidth="360.0">
-                        <Label text="Tôi là:" styleClass="field-label"/>
-                        <RadioButton fx:id="radioBidder" text="Người tham gia" toggleGroup="$roleGroup" selected="true"/>
-                        <RadioButton fx:id="radioSeller" text="Người bán" toggleGroup="$roleGroup"/>
-                    </HBox>
+                    <Label fx:id="lblError" visible="false" wrapText="true" alignment="CENTER"
+                           style="-fx-text-fill:#e74c3c; -fx-font-size: 13.5px; -fx-font-weight:bold;" maxWidth="Infinity"/>
 
-                    <Button fx:id="btnRegister"
-                            text="TẠO TÀI KHOẢN"
-                            maxWidth="260.0"
-                            styleClass="btn-auction-primary"
-                            onAction="#handleRegister"/>
+                    <Button fx:id="btnRegister" text="ĐANG XỬ LÝ..." onAction="#handleRegister"
+                            maxWidth="Infinity" styleClass="btn-register-bidder">
+                        <VBox.margin><Insets top="10"/></VBox.margin>
+                    </Button>
 
-                    <Label fx:id="lblError"
-                           visible="false"
-                           wrapText="true"
-                           alignment="CENTER"
-                           style="-fx-text-fill:#e74c3c; -fx-font-size: 13.2px; -fx-padding:7 0 0 0;"/>
-
-                    <HBox alignment="CENTER" spacing="6.0">
-                        <padding>
-                            <Insets top="8" right="0" bottom="0" left="0"/>
-                        </padding>
-                        <Label text="Đã có tài khoản?"/>
+                    <HBox alignment="CENTER" spacing="5.0">
+                        <Label text="Đã có tài khoản?" styleClass="reg-back-label"/>
                         <Hyperlink text="Đăng nhập" onAction="#goBackToLogin" styleClass="hyperlink"/>
                     </HBox>
                 </VBox>
-            </StackPane>
-        </VBox>
+            </VBox>
 
-        <!-- Footer -->
-        <HBox alignment="CENTER" AnchorPane.bottomAnchor="20.0"
-              AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
-            <Label text="© 2026 Online Auction System - Nơi kết nối người bán và người mua uy tín"
-                   style="-fx-font-size: 13px; -fx-text-fill: #7f8c8d88;"/>
-        </HBox>
+        </StackPane>
     </children>
 </AnchorPane>

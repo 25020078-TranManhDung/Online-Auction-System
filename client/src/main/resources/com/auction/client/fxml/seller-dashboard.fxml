@@ -29,7 +29,7 @@
                        preserveRatio="true"
                        style="-fx-effect: dropshadow(gaussian, #9b59b640, 8, 0, 0, 2);">
                 <image>
-                    <Image url="@/com/auction/client/images/bg_login.jpg"/>
+                    <Image url="@/com/auction/client/images/logo.png"/>
                 </image>
             </ImageView>
 
@@ -145,7 +145,7 @@
 
                         <!-- Tên sản phẩm -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Tên sản phẩm" styleClass="field-label"/>
+                            <Label text="Tên sản phẩm" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtProductName"
                                        promptText="Nhập tên sản phẩm"
                                        styleClass="input-auction"/>
@@ -153,7 +153,7 @@
 
                         <!-- Mô tả -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Mô tả chi tiết" styleClass="field-label"/>
+                            <Label text="Mô tả chi tiết" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextArea fx:id="txtDescription"
                                       promptText="Mô tả tình trạng, xuất xứ, đặc điểm sản phẩm..."
                                       styleClass="input-auction"
@@ -164,7 +164,7 @@
 
                         <!-- Danh mục sản phẩm -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Danh mục sản phẩm" styleClass="field-label"/>
+                            <Label text="Danh mục sản phẩm" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <ComboBox fx:id="cboCategory"
                                       promptText="Chọn danh mục..."
                                       styleClass="input-auction"
@@ -198,7 +198,7 @@
 
                         <!-- Giá khởi điểm -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Giá khởi điểm (VNĐ)" styleClass="field-label"/>
+                            <Label text="Giá khởi điểm (VNĐ)" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtStartPrice"
                                        promptText="Ví dụ: 500000"
                                        styleClass="input-auction"/>
@@ -206,7 +206,7 @@
 
                         <!-- Bước giá -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Bước giá tối thiểu (VNĐ)" styleClass="field-label"/>
+                            <Label text="Bước giá tối thiểu (VNĐ)" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtMinIncrement"
                                        promptText="Ví dụ: 50000"
                                        styleClass="input-auction"/>
@@ -214,7 +214,7 @@
 
                         <!-- Thời gian bắt đầu -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Thời gian bắt đầu" styleClass="field-label"/>
+                            <Label text="Thời gian bắt đầu" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <HBox spacing="8.0">
                                 <DatePicker fx:id="dpStartDate"
                                             promptText="Chọn ngày"
@@ -232,7 +232,7 @@
 
                         <!-- Thời gian đấu giá -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Thời gian đấu giá (phút)" styleClass="field-label"/>
+                            <Label text="Thời gian đấu giá (phút)" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtDuration"
                                        promptText="Ví dụ: 60"
                                        styleClass="input-auction"/>
