@@ -53,7 +53,12 @@ public class UserService {
         }
 
         String token = TokenUtil.generate(user.getId(), user.getRole().name());
-        return new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
+
+        AuthResponse auth = new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
+        auth.setFullName(user.getFullname());
+        auth.setEmail(user.getEmail());
+
+        return auth;
     }
 
     /**
@@ -105,7 +110,15 @@ public class UserService {
         }
 
         String token = TokenUtil.generate(user.getId(), user.getRole().name());
-        return new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
+
+        // Tạo túi AuthResponse
+        AuthResponse auth = new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
+
+        // NHÉT THÊM HỌ TÊN VÀ EMAIL VÀO TÚI
+        auth.setFullName(user.getFullname());
+        auth.setEmail(user.getEmail());
+
+        return auth;
     }
 
     public User getById(String userId) {
