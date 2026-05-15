@@ -89,6 +89,9 @@ public class MessageRouter {
                 case Actions.BAN_USER           -> userCtrl.banUser(msg);
                 case Actions.UNLOCK_USER        -> userCtrl.banUser(msg);
 
+                // [MỚI THÊM] Bắt gói tin Đổi mật khẩu và đẩy cho UserController xử lý
+                case Actions.CHANGE_PASSWORD    -> userCtrl.changePassword(msg);
+
                 // Auction Operations
                 case Actions.GET_AUCTIONS        -> auctionCtrl.getList(msg);
                 case Actions.GET_AUCTION_DETAIL  -> auctionCtrl.getDetail(msg, sender);

@@ -19,6 +19,19 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import com.auction.client.model.UserSession;
+import javafx.scene.input.MouseEvent;
+import javafx.stage.Popup;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -75,6 +88,11 @@ public class AdminDashboardController {
     @FXML private TextField txtBidSearch;
     @FXML private Label lblBidHistoryCount;
 
+    // ===== Profile Popup & User =====
+    @FXML private Label lblUser;
+    @FXML private HBox headerUserArea;
+    private Popup profilePopup;
+
     // Data lists
     private final ObservableList<JsonObject> userList    = FXCollections.observableArrayList();
     private final ObservableList<JsonObject> auctionList = FXCollections.observableArrayList();
@@ -87,6 +105,19 @@ public class AdminDashboardController {
 
     @FXML
     public void initialize() {
+        // Load tên Admin hiện tại
+        if (lblUser != null) {
+            String username = UserSession.getInstance().getUsername();
+            lblUser.setText(username != null ? username : "Quản trị viên");
+        }
+
+        // Hiệu ứng hover cho vùng Avatar
+        if (headerUserArea != null) {
+            headerUserArea.setOnMouseEntered(e ->
+                    headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: rgba(155,89,182,0.12);"));
+            headerUserArea.setOnMouseExited(e ->
+                    headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: transparent;"));
+        }
         setupUserTable();
         setupAuctionTable();
         setupBidTable();   // FIX: khởi tạo bảng bid history
@@ -735,5 +766,133 @@ public class AdminDashboardController {
         if (lblTotalAuctions  != null) lblTotalAuctions.setText(String.valueOf(totalAuctions));
         if (lblActiveAuctions != null) lblActiveAuctions.setText(String.valueOf(activeAuctions));
         if (lblTotalBids      != null) lblTotalBids.setText(String.valueOf(totalBids));
+    }
+
+    // ==========================================================
+    //  PROFILE POPUP & ĐỔI MẬT KHẨU
+    // ==========================================================
+
+    @FXML
+    private void handleProfileClick(MouseEvent event) {
+        if (profilePopup == null) {
+            profilePopup = buildProfilePopup();
+        }
+
+        if (profilePopup.isShowing()) {
+            profilePopup.hide();
+            return;
+        }
+
+        javafx.scene.Node source = (javafx.scene.Node) event.getSource();
+        double anchorX = source.localToScreen(source.getBoundsInLocal()).getMinX() - 40;
+        double anchorY = source.localToScreen(source.getBoundsInLocal()).getMaxY() + 8;
+        profilePopup.show(source, anchorX, anchorY);
+    }
+
+    private Popup buildProfilePopup() {
+        UserSession session = UserSession.getInstance();
+        Popup popup = new Popup();
+        popup.setAutoHide(true);
+        popup.setAutoFix(true);
+
+        StackPane wrapper = new StackPane();
+        wrapper.setPadding(new Insets(8));
+
+        VBox card = new VBox(0);
+        card.setPrefWidth(300);
+        card.setStyle("-fx-background-color: rgba(35, 10, 60, 0.93); -fx-background-radius: 18; -fx-border-color: rgba(155, 89, 182, 0.40); -fx-border-width: 1.5; -fx-border-radius: 18;");
+
+        DropShadow ds = new DropShadow();
+        ds.setColor(Color.rgb(67, 20, 118, 0.55)); ds.setRadius(28); ds.setOffsetY(8);
+        card.setEffect(ds);
+
+        // TOP SECTION
+        VBox topSection = new VBox(6);
+        topSection.setAlignment(Pos.CENTER);
+        topSection.setPadding(new Insets(24, 20, 18, 20));
+
+        ImageView popupAvatar = new ImageView();
+        popupAvatar.setFitWidth(64); popupAvatar.setFitHeight(64); popupAvatar.setPreserveRatio(true);
+        try { popupAvatar.setImage(new Image(getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png"), 64, 64, true, true)); } catch (Exception ignored) {}
+        popupAvatar.setClip(new Circle(32, 32, 32));
+
+        DropShadow avatarGlow = new DropShadow(); avatarGlow.setColor(Color.rgb(155, 89, 182, 0.70)); avatarGlow.setRadius(14);
+        popupAvatar.setEffect(avatarGlow);
+
+        Label lblFullName = new Label(nullSafe(session.getFullName(), session.getUsername()));
+        lblFullName.setStyle("-fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: #f0e6ff; -fx-padding: 8 0 2 0;");
+
+        Label lblAtUsername = new Label("@" + nullSafe(session.getUsername(), "—"));
+        lblAtUsername.setStyle("-fx-font-size: 13px; -fx-text-fill: #9b59b6;");
+
+        topSection.getChildren().addAll(popupAvatar, lblFullName, lblAtUsername);
+
+        // INFO SECTION
+        VBox infoSection = new VBox(10);
+        infoSection.setPadding(new Insets(14, 24, 14, 24));
+        infoSection.getChildren().addAll(
+                infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
+                infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
+                infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
+        );
+
+        // ACTION SECTION
+        VBox actionSection = new VBox(10);
+        actionSection.setAlignment(Pos.CENTER);
+        actionSection.setPadding(new Insets(14, 20, 20, 20));
+
+        Button btnChangePassword = new Button("🔐  Đổi mật khẩu");
+        btnChangePassword.setMaxWidth(Double.MAX_VALUE);
+        btnChangePassword.setStyle("-fx-background-color: linear-gradient(to right, #6c3483, #8e44ad); -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px; -fx-background-radius: 10; -fx-cursor: hand; -fx-padding: 10 20;");
+        btnChangePassword.setOnMouseEntered(e -> btnChangePassword.setStyle("-fx-background-color: linear-gradient(to right, #7d3c98, #9b59b6); -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px; -fx-background-radius: 10; -fx-cursor: hand; -fx-padding: 10 20; -fx-effect: dropshadow(gaussian, rgba(142,68,173,0.55), 10, 0, 0, 2);"));
+        btnChangePassword.setOnMouseExited(e -> btnChangePassword.setStyle("-fx-background-color: linear-gradient(to right, #6c3483, #8e44ad); -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px; -fx-background-radius: 10; -fx-cursor: hand; -fx-padding: 10 20;"));
+
+        btnChangePassword.setOnAction(e -> {
+            popup.hide();
+            handleChangePassword();
+        });
+
+        actionSection.getChildren().add(btnChangePassword);
+        card.getChildren().addAll(topSection, styledDivider(), infoSection, styledDivider(), actionSection);
+        wrapper.getChildren().add(card);
+        popup.getContent().add(wrapper);
+
+        return popup;
+    }
+
+    private HBox infoRow(String icon, String labelText, String value) {
+        Label iconLbl = new Label(icon); iconLbl.setStyle("-fx-font-size: 14px;"); iconLbl.setMinWidth(22);
+        Label keyLbl = new Label(labelText + ":"); keyLbl.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #9b59b6; -fx-min-width: 70;");
+        Label valLbl = new Label(value); valLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #dcd0ff; -fx-font-weight: bold;"); valLbl.setWrapText(true);
+        HBox row = new HBox(8, iconLbl, keyLbl, valLbl); row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    private Separator styledDivider() {
+        Separator sep = new Separator(); sep.setStyle("-fx-background-color: rgba(155,89,182,0.30); -fx-padding: 0 20;");
+        VBox.setMargin(sep, new Insets(0, 20, 0, 20)); return sep;
+    }
+
+    private String nullSafe(String value, String fallback) {
+        return (value != null && !value.isBlank()) ? value : fallback;
+    }
+
+    private void handleChangePassword() {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/auction/client/fxml/change-password.fxml"));
+            javafx.scene.Parent root = loader.load();
+            javafx.stage.Stage modalStage = new javafx.stage.Stage();
+            modalStage.setTitle("Đổi mật khẩu");
+            modalStage.setScene(new javafx.scene.Scene(root));
+            modalStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            if (lblUser != null && lblUser.getScene() != null) {
+                modalStage.initOwner(lblUser.getScene().getWindow());
+            }
+            modalStage.setResizable(false);
+            modalStage.showAndWait();
+        } catch (Exception e) {
+            e.printStackTrace();
+            AlertUtil.showError("Lỗi", "Không thể mở màn hình đổi mật khẩu: " + e.getMessage());
+        }
     }
 }

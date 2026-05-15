@@ -9,6 +9,7 @@ import com.auction.shared.dto.request.RegisterRequest;
 import com.auction.shared.dto.response.AuthResponse;
 import com.auction.shared.network.protocol.Message;
 import com.auction.shared.network.protocol.ServerResponse;
+import com.auction.shared.dto.request.ChangePasswordRequest;
 
 import java.util.Map;
 
@@ -130,6 +131,31 @@ public class UserController {
         } catch (Exception e) {
             e.printStackTrace();
             return ServerResponse.fail(msg.getRequestId(), "SERVER_ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Xử lý yêu cầu Đổi mật khẩu từ Client
+     */
+    public ServerResponse changePassword(Message msg) {
+        try {
+            // 1. Tận dụng JsonUtil/Gson (thông qua getData) để ép kiểu payload thành ChangePasswordRequest
+            ChangePasswordRequest req = msg.getData(ChangePasswordRequest.class);
+
+            if (req == null || req.getUserId() == null || req.getOldPassword() == null || req.getNewPassword() == null) {
+                return ServerResponse.fail(msg.getRequestId(), "BAD_REQUEST", "Dữ liệu đổi mật khẩu không hợp lệ hoặc bị thiếu.");
+            }
+
+            // 2. Gọi tầng Service để xử lý logic (so sánh hash, lưu db...)
+            userService.changePassword(req);
+
+            // 3. Trả về thông báo thành công cho Client
+            return ServerResponse.ok(msg.getRequestId(), Map.of("message", "Đổi mật khẩu thành công!"));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Nếu sai mật khẩu cũ hoặc lỗi DB, Service sẽ ném Exception, ta bắt ở đây và gửi lỗi về Client
+            return ServerResponse.fail(msg.getRequestId(), "CHANGE_PASSWORD_FAILED", e.getMessage());
         }
     }
 }

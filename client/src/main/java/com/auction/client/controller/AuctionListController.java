@@ -353,13 +353,35 @@ public class AuctionListController {
     // ==========================================================
 
     /**
-     * Called when the "Đổi mật khẩu" button inside the popup is pressed.
-     * Loads change-password.fxml in a new window via ViewLoader.
-     * Adjust the fxml filename / title to match your project.
+     * Mở form Đổi mật khẩu dưới dạng Modal (Khóa màn hình chính)
      */
     private void handleChangePassword() {
         try {
-            ViewLoader.openInNewWindow("change-password.fxml", "Đổi mật khẩu");
+            // Nhớ kiểm tra lại đường dẫn FXML cho khớp với thư mục của em nhé
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    getClass().getResource("/com/auction/client/fxml/change-password.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            javafx.stage.Stage modalStage = new javafx.stage.Stage();
+            modalStage.setTitle("Đổi mật khẩu");
+            modalStage.setScene(new javafx.scene.Scene(root));
+
+            // --- 2 DÒNG QUAN TRỌNG NHẤT ĐỂ TẠO MODAL ---
+            // 1. Khai báo chế độ Modal (Chặn tương tác với các cửa sổ khác)
+            modalStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+            // 2. Gắn Modal này vào cửa sổ mẹ (lấy lblUser làm mỏ neo để tìm cửa sổ hiện tại)
+            if (lblUser != null && lblUser.getScene() != null) {
+                modalStage.initOwner(lblUser.getScene().getWindow());
+            }
+            // -------------------------------------------
+
+            // Khóa kích thước để giữ bố cục Form Glassmorphism luôn đẹp
+            modalStage.setResizable(false);
+
+            // Mở cửa sổ lên và chờ (chặn mã tại đây cho đến khi cửa sổ bị đóng)
+            modalStage.showAndWait();
+
         } catch (Exception e) {
             e.printStackTrace();
             AlertUtil.showError("Lỗi", "Không thể mở màn hình đổi mật khẩu: " + e.getMessage());

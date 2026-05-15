@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import com.auction.shared.dto.request.ChangePasswordRequest;
 
 public class UserService {
 
@@ -242,6 +243,39 @@ public class UserService {
         if (!userDao.update(user)) {
             throw new RuntimeException("Lỗi khi cập nhật trạng thái người dùng vào cơ sở dữ liệu.");
         }
+    }
+
+    /**
+     * Xử lý logic Đổi mật khẩu:
+     * 1. Tìm User theo ID.
+     * 2. Kiểm tra mật khẩu cũ có khớp không.
+     * 3. Băm mật khẩu mới và lưu xuống Database.
+     */
+    public void changePassword(ChangePasswordRequest req) {
+        // 1. Tìm người dùng trong DB
+        User user = userDao.findById(req.getUserId());
+        if (user == null) {
+            throw new ResourceNotFoundException("USER_NOT_FOUND", "Không tìm thấy người dùng với ID này.");
+        }
+
+        // 2. Kiểm tra mật khẩu cũ
+        if (!PasswordUtil.verify(req.getOldPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Mật khẩu hiện tại không chính xác!");
+        }
+
+        // 3. (Tùy chọn) Kiểm tra xem mật khẩu mới có trùng với mật khẩu cũ không
+        if (PasswordUtil.verify(req.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu mới không được trùng với mật khẩu cũ!");
+        }
+
+        // 4. Băm mật khẩu mới và cập nhật
+        user.setPassword(PasswordUtil.hash(req.getNewPassword()));
+
+        if (!userDao.update(user)) {
+            throw new RuntimeException("Đã xảy ra lỗi khi cập nhật mật khẩu vào cơ sở dữ liệu.");
+        }
+
+        System.out.println("[UserService] Đổi mật khẩu thành công cho user: " + user.getUsername());
     }
 }
 

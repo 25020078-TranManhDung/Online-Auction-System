@@ -57,4 +57,6 @@ public final class Actions {
     public static final String GET_WALLET = "GET_WALLET"; // Xem số dư & lịch sử
     public static final String TOP_UP     = "TOP_UP";     // Bidder nạp tiền
     public static final String WITHDRAW   = "WITHDRAW";   // Seller rút tiền
+
+    public static final String CHANGE_PASSWORD = "CHANGE_PASSWORD";
 }
