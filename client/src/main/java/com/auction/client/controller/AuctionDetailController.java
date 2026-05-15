@@ -64,6 +64,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
     @FXML private Label lblDescription;
     @FXML private Button btnPlaceBid;
     @FXML private Button btnMarkAsPaid;   // FIX #1: nút thanh toán cho winner/admin
+    @FXML private Button btnReload;       // Hiện khi seller cập nhật thông tin phiên
     @FXML private Label lblMessage;
     @FXML private ImageView imgProduct;
     @FXML private Button btnPrevImage;
@@ -218,8 +219,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Determine startPrice and currentPrice with multiple key fallbacks
             long startPrice = getLongSafe(item, "startPrice",
-                    getLongSafe(auction, "startingPrice",
-                            getLongSafe(auction, "start_price", 0L)));
+                getLongSafe(auction, "startingPrice",
+                    getLongSafe(auction, "start_price", 0L)));
             long currentPrice = getLongSafe(auction, "currentPrice", getLongSafe(auction, "current_price", startPrice));
             this.currentPriceValue = currentPrice;
 
@@ -227,8 +228,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
             // Server trả AuctionResponse flat (title, description ở root), không có nested "item"
             // → phải đọc từ auction (root) khi item == null
             this.currentProductName = getSafe(item, "title",
-                    getSafe(item, "name",
-                            getSafe(auction, "title", "—")));
+                getSafe(item, "name",
+                    getSafe(auction, "title", "—")));
             this.currentSellerId    = getSafe(auction, "sellerId", getSafe(auction, "seller", "—"));
             this.currentStatus      = getSafe(auction, "status", "—");
             this.currentBidCount    = getIntSafe(auction, "bidCount", getIntSafe(data, "bidCount", getIntSafe(auction, "bid_count", 0)));
@@ -320,7 +321,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                             // "timestamp" được serialize bởi JsonUtil thành ISO-8601 string
                             // → ChartUtil.normalizeLabel() cắt lấy HH:mm:ss
                             String raw = getSafe(b, "timestamp",
-                                    getSafe(b, "time", getSafe(b, "createdAt", "")));
+                                getSafe(b, "time", getSafe(b, "createdAt", "")));
                             String timeLabel = formatTimeOnly(raw); // Gọi hàm vừa tạo thay vì dùng ChartUtil
                             if (timeLabel.equals(raw) && raw.isEmpty()) {
                                 timeLabel = "Bid " + (limit - i); // fallback index khi không có timestamp
@@ -404,7 +405,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Tải bidding.fxml cùng controller để truyền dữ liệu, KHÔNG mở cửa sổ mới
             ViewLoader.ViewResult<BiddingController> result =
-                    ViewLoader.loadViewWithController("bidding.fxml");
+                ViewLoader.loadViewWithController("bidding.fxml");
 
             if (result == null || result.getController() == null) {
                 AlertUtil.showError("Lỗi giao diện", "Không thể khởi tạo màn hình đặt giá.");
@@ -413,18 +414,18 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Truyền dữ liệu phiên vào controller
             result.getController().setAuctionData(
-                    currentAuctionId,
-                    currentPriceValue,
-                    minInc,
-                    currentLeaderName,
-                    currentLeaderBid,
-                    currentProductName,
-                    currentSellerId,
-                    currentStatus,
-                    currentBidCount,
-                    secondsRemaining,
-                    currentBidHistory,
-                    currentDescription
+                currentAuctionId,
+                currentPriceValue,
+                minInc,
+                currentLeaderName,
+                currentLeaderBid,
+                currentProductName,
+                currentSellerId,
+                currentStatus,
+                currentBidCount,
+                secondsRemaining,
+                currentBidHistory,
+                currentDescription
             );
 
             // Dọn dẹp timer và listener trước khi rời màn hình
@@ -488,7 +489,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         new Thread(() -> {
             try {
                 WalletResponse resp = SocketClient.getInstance()
-                        .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
+                    .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
                 if (resp != null) {
                     Platform.runLater(() -> {
                         if (lblWalletBalance != null) {
@@ -522,7 +523,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         // 2. Chuyển sang màn hình Ví điện tử
         try {
             ViewLoader.ViewResult<BidderWalletController> result =
-                    ViewLoader.loadViewWithController("bidder-wallet.fxml");
+                ViewLoader.loadViewWithController("bidder-wallet.fxml");
 
             if (result != null && result.getController() != null) {
                 // TRUYỀN ID PHIÊN ĐẤU GIÁ: Để lúc nạp tiền xong, ví biết đường quay lại đúng sản phẩm này!
@@ -613,7 +614,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
         // Cập nhật câu chữ để Bidder hiểu rõ luồng tiền
         boolean confirmed = AlertUtil.showConfirm("Xác nhận thanh toán",
-                "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
+            "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
         if (!confirmed) return;
 
         new Thread(() -> {
@@ -657,6 +658,12 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             String event     = getSafe(eventData, "event", "");
             String newStatus = getSafe(data, "newStatus", getSafe(data, "status", ""));
+
+            if (Actions.AUCTION_INFO_UPDATED.equals(event)) {
+                // Seller vừa cập nhật thông tin phiên → hiện banner reload
+                Platform.runLater(() -> showReloadBanner());
+                return;
+            }
 
             if (Actions.AUCTION_CLOSED.equals(event) || "FINISHED".equalsIgnoreCase(newStatus)) {
                 // Phiên vừa kết thúc → lưu winnerId từ push
@@ -776,6 +783,29 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
     private String formatMoney(long amount) {
         return String.format("%,d VNĐ", amount);
+    }
+
+    /**
+     * Hiện banner thông báo seller vừa cập nhật thông tin phiên.
+     * Banner gồm text + nút "Tải lại" — khi nhấn sẽ reload dữ liệu phiên.
+     */
+    private void showReloadBanner() {
+        showMessage("ℹ️ Thông tin phiên đấu giá vừa được người bán cập nhật. Nhấn để tải lại.");
+        if (btnReload != null) {
+            btnReload.setVisible(true);
+            btnReload.setManaged(true);
+        }
+    }
+
+    /** Xử lý khi bidder nhấn nút "Tải lại" */
+    @FXML
+    void handleReload(javafx.event.ActionEvent event) {
+        if (btnReload != null) btnReload.setVisible(false);
+        if (lblMessage != null) lblMessage.setVisible(false);
+        // Reload toàn bộ dữ liệu phiên từ server
+        if (currentAuctionId != null) {
+            initData(currentAuctionId);
+        }
     }
 
     private void showMessage(String msg) {

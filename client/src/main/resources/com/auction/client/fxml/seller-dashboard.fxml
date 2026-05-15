@@ -304,7 +304,7 @@
                         <TableColumn fx:id="colBidCount" text="Lượt Đặt"      prefWidth="90.0"  style="-fx-alignment: CENTER;"/>
                         <TableColumn fx:id="colStatus"   text="Trạng Thái"    prefWidth="115.0" style="-fx-alignment: CENTER;"/>
                         <TableColumn fx:id="colEndTime"  text="Kết Thúc"      prefWidth="140.0" style="-fx-alignment: CENTER;"/>
-                        <TableColumn fx:id="colAction"   text="Thao Tác"      prefWidth="120.0" style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colAction"   text="Thao Tác"      prefWidth="180.0" style="-fx-alignment: CENTER;"/>
                     </columns>
                     <placeholder>
                         <VBox alignment="CENTER" spacing="10.0">

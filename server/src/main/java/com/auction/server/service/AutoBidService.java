@@ -233,8 +233,7 @@ public class AutoBidService implements AuctionObserver {
     }
 
     @Override
-    public void onAuctionStarted(Auction auction) {
-        // AutoBidService không cần quan tâm lúc phiên mới mở, để trống.
+    public void onAuctionStarted(Auction auction) {        // AutoBidService không cần quan tâm lúc phiên mới mở, để trống.
     }
 
     @Override
@@ -242,6 +241,11 @@ public class AutoBidService implements AuctionObserver {
         // Dọn dẹp RAM khi phiên kết thúc
         queues.remove(auction.getId());
         processing.remove(auction.getId());
+    }
+
+    @Override
+    public void onAuctionInfoUpdated(Auction auction) {
+        // AutoBidService không cần xử lý khi seller cập nhật thông tin phiên
     }
 
     @Override

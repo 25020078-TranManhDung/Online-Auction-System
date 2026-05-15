@@ -87,17 +87,17 @@ public class MessageRouter {
                 case Actions.GET_ALL_USERS      -> userCtrl.getAllUsers(msg);
                 case Actions.TOGGLE_USER_STATUS -> userCtrl.toggleStatus(msg);
                 case Actions.BAN_USER           -> userCtrl.banUser(msg);
-                case Actions.UNLOCK_USER        -> userCtrl.banUser(msg); // reuse banUser với action=UNLOCK
+                case Actions.UNLOCK_USER        -> userCtrl.banUser(msg);
 
                 // Auction Operations
                 case Actions.GET_AUCTIONS        -> auctionCtrl.getList(msg);
                 case Actions.GET_AUCTION_DETAIL  -> auctionCtrl.getDetail(msg, sender);
                 case Actions.CREATE_AUCTION      -> auctionCtrl.create(msg);
+                case Actions.UPDATE_AUCTION      -> auctionCtrl.update(msg);   // [MỚI]
                 case Actions.START_AUCTION       -> auctionCtrl.start(msg);
                 case Actions.CLOSE_AUCTION       -> auctionCtrl.close(msg);
                 case Actions.ADMIN_CLOSE_AUCTION -> auctionCtrl.close(msg);
 
-                // [MERGE] Giữ MARK_AS_PAID (Admin thủ công) + thêm CONFIRM_PAYMENT (Winner tự xác nhận)
                 case Actions.MARK_AS_PAID    -> auctionCtrl.markAsPaid(msg);
                 case Actions.CONFIRM_PAYMENT -> auctionCtrl.confirmPayment(msg);
 
@@ -108,7 +108,7 @@ public class MessageRouter {
                 case Actions.SET_AUTO_BID    -> bidCtrl.setAutoBid(msg);
                 case Actions.CANCEL_AUTO_BID -> bidCtrl.cancelAutoBid(msg);
                 case Actions.GET_BID_HISTORY -> bidCtrl.getHistory(msg);
-                case Actions.GET_ALL_BIDS    -> bidCtrl.getAllBids(msg); // [GIỮ LẠI] Admin
+                case Actions.GET_ALL_BIDS    -> bidCtrl.getAllBids(msg);
 
                 // Item
                 case Actions.CREATE_ITEM -> itemCtrl.create(msg);

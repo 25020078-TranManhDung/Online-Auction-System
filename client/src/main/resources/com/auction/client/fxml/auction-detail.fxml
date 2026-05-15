@@ -218,11 +218,21 @@
                        -fx-background-color: #8e44ad; -fx-text-fill: white;
                        -fx-background-radius: 12; -fx-cursor: hand;"/>
 
+                    <!-- Nút tải lại khi seller cập nhật thông tin phiên -->
+                    <Button fx:id="btnReload"
+                            text="🔄 Tải lại thông tin phiên"
+                            onAction="#handleReload"
+                            visible="false"
+                            maxWidth="Infinity"
+                            style="-fx-font-size: 13px; -fx-padding: 11 0; -fx-font-weight: bold;
+                       -fx-background-color: #2980b9; -fx-text-fill: white;
+                       -fx-background-radius: 12; -fx-cursor: hand;"/>
+
                     <Label fx:id="lblMessage"
                            visible="false"
                            wrapText="true"
                            alignment="CENTER"
-                           style="-fx-font-size: 13.5px; -fx-text-fill: #e74c3c;"/>
+                           style="-fx-font-size: 13.5px; -fx-text-fill: #2980b9; -fx-font-style: italic;"/>
                 </VBox>
 
             </VBox>

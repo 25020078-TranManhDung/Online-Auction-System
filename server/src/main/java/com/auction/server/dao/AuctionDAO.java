@@ -17,4 +17,11 @@ public interface AuctionDAO {
 
     boolean save(Auction auction);
     boolean update(Auction auction);
+
+    /**
+     * [MỚI] Cập nhật thông tin cơ bản của phiên đấu giá.
+     * Chỉ thực thi khi phiên đang ở trạng thái OPEN (kiểm tra ngay trong SQL WHERE).
+     * Nếu phiên không còn OPEN, trả về false (không throw exception).
+     */
+    boolean updateBasicInfo(Auction auction);
 }
