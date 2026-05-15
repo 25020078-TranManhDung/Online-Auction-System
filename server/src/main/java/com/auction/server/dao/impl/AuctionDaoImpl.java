@@ -120,12 +120,41 @@ public class AuctionDaoImpl implements AuctionDAO {
             ps.setInt(4, auction.getBidCount());
             ps.setTimestamp(5, Timestamp.valueOf(auction.getEndTime()));
             ps.setString(6, auction.getWinnerId());
-            ps.setString(7, auction.getCurrentLeaderId()); // [MỚI]
+            ps.setString(7, auction.getCurrentLeaderId());
             ps.setString(8, auction.getId());
 
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("update auction thất bại", e);
+        }
+    }
+
+    /**
+     * [MỚI] Cập nhật thông tin cơ bản (giá, thời gian, bước giá) cho phiên đang OPEN.
+     * WHERE ... AND status='OPEN' đảm bảo tự fail nếu phiên đã chuyển sang RUNNING trở lên.
+     */
+    @Override
+    public boolean updateBasicInfo(Auction auction) {
+        String sql = """
+            UPDATE auctions
+            SET start_price = ?,
+                current_price = ?,
+                min_bid_increment = ?,
+                start_time = ?,
+                end_time = ?
+            WHERE id = ? AND status = 'OPEN'
+            """;
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDouble(1, auction.getStartPrice());
+            ps.setDouble(2, auction.getStartPrice());   // current_price = start_price vì chưa có bid
+            ps.setDouble(3, auction.getMinBidIncrement());
+            ps.setTimestamp(4, toTs(auction.getStartTime()));
+            ps.setTimestamp(5, toTs(auction.getEndTime()));
+            ps.setString(6, auction.getId());
+            return ps.executeUpdate() == 1;
+        } catch (SQLException e) {
+            throw new RuntimeException("updateBasicInfo auction thất bại", e);
         }
     }
 
@@ -144,9 +173,14 @@ public class AuctionDaoImpl implements AuctionDAO {
         a.setStatus(AuctionStatus.valueOf(rs.getString("status")));
         a.setCurrentLeader(rs.getString("current_leader"));
         a.setBidCount(rs.getInt("bid_count"));
-        a.setWinnerId(rs.getString("winner_id"));
-        a.setCurrentLeaderId(rs.getString("current_leader_id"));
-        a.setCurrentLeaderAmount(rs.getDouble("current_price"));
+
+        // Đọc defensive — các cột này có thể chưa tồn tại trên DB cũ
+        try { a.setWinnerId(rs.getString("winner_id")); }
+        catch (SQLException ignored) { /* cột chưa được ALTER TABLE */ }
+        try { a.setCurrentLeaderId(rs.getString("current_leader_id")); }
+        catch (SQLException ignored) { /* cột chưa được ALTER TABLE */ }
+        try { a.setCurrentLeaderAmount(rs.getDouble("current_leader_amount")); }
+        catch (SQLException ignored) { a.setCurrentLeaderAmount(rs.getDouble("current_price")); }
 
         return a;
     }
@@ -161,7 +195,6 @@ public class AuctionDaoImpl implements AuctionDAO {
 
     @Override
     public List<Auction> findAuctions(AuctionStatus status, int offset, int limit) {
-        // Tự động build câu lệnh SQL tùy vào việc có status hay không
         StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM auctions ");
 
         if (status != null) {
@@ -172,14 +205,12 @@ public class AuctionDaoImpl implements AuctionDAO {
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())) {
 
-            int paramIndex = 1; // Biến đếm vị trí tham số (?)
+            int paramIndex = 1;
 
-            // Nếu có truyền trạng thái lên thì gán vào dấu ? đầu tiên
             if (status != null) {
                 ps.setString(paramIndex++, status.name());
             }
 
-            // Gán limit và offset vào các dấu ? tiếp theo
             ps.setInt(paramIndex++, limit);
             ps.setInt(paramIndex, offset);
 

@@ -44,6 +44,18 @@ public class BidNotifier implements AuctionObserver {
     }
 
     @Override
+    public void onAuctionInfoUpdated(Auction auction) {
+        // Push cho tất cả client đang xem phiên này — yêu cầu reload thông tin
+        // Auction model không có title (title nằm trong Item) → dùng auctionId
+        PushMessage push = new PushMessage("AUCTION_INFO_UPDATED", Map.of(
+            "auctionId", auction.getId(),
+            "message",   "Thông tin phiên đấu giá vừa được cập nhật bởi người bán."
+        ));
+        socketServer.broadcastToAuction(auction.getId(), JsonUtil.toJson(push));
+        System.out.println("[BidNotifier] AUCTION_INFO_UPDATED broadcast: " + auction.getId());
+    }
+
+    @Override
     public void onAuctionClosed(Auction auction) {
         // Dùng ternary operator (toán tử 3 ngôi) để tránh NullPointerException trong Map.of
         PushMessage push = new PushMessage("AUCTION_CLOSED", Map.of(
