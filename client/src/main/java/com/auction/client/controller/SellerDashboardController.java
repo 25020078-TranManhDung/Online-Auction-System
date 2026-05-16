@@ -152,6 +152,12 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         // 🌟 KÍCH HOẠT SIÊU QUYỀN NĂNG AVATAR (Load ảnh, Hover, Mở Popup)
         com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
 
+        // 🌟 [MỚI BỔ SUNG] Đổ tên tài khoản đăng nhập hiện tại lên nhãn tên người dùng
+        if (lblUser != null) {
+            String username = com.auction.client.model.UserSession.getInstance().getUsername();
+            lblUser.setText(username != null && !username.isEmpty() ? username : "Seller");
+        }
+
         DateTimeFormatter dtFmt = DateTimeFormatter.ofPattern("dd/MM HH:mm");
 
         if (colNo != null) {

@@ -27,6 +27,7 @@ import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
 import com.auction.shared.dto.response.WalletResponse;
 import com.auction.client.controller.BidderWalletController;
+import javafx.scene.layout.StackPane;
 
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -138,6 +139,14 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         if (priceChart != null) {
             priceChart.getData().clear();
             priceChart.getData().add(priceSeries);
+        }
+
+        // 🌟 KÍCH HOẠT LIGHTBOX DÙNG CHUNG (Hỗ trợ Zoom, Kéo thả, Xem nhiều ảnh)
+        if (imgProduct != null) {
+            imgProduct.setCursor(javafx.scene.Cursor.HAND);
+            imgProduct.setOnMouseClicked(e -> {
+                com.auction.client.util.LightboxUtil.show(productImages, currentImageIndex);
+            });
         }
 
         // Default UI state

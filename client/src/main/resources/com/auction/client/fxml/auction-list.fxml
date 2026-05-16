@@ -44,7 +44,7 @@
                 <HBox alignment="CENTER_RIGHT" spacing="6.0">
                     <Label text="Số dư:" style="-fx-font-size: 12px; -fx-text-fill: #7f8c8d;"/>
                     <Label fx:id="lblWalletBalance" text="Đang tải..."
-                           style="-fx-font-weight: bold; -fx-text-fill: #f39c12; -fx-font-size: 14px;"/>
+                           style="-fx-font-weight: bold; -fx-text-fill: #27ae60; -fx-font-size: 14px;"/>
                 </HBox>
                 <Button text="💳 Chi tiết ví" onAction="#handleOpenWallet"
                         style="-fx-background-color: #8e44ad; -fx-text-fill: white;
@@ -53,21 +53,26 @@
             </VBox>
 
             <!-- Profile -->
-            <HBox fx:id="headerUserArea" alignment="CENTER" spacing="10.0"
+            <HBox fx:id="headerUserArea" alignment="CENTER_LEFT" spacing="12.0"
                   onMouseClicked="#handleProfileClick"
-                  style="-fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 12;
-                         -fx-background-color: transparent;">
+                  style="-fx-cursor: hand; -fx-padding: 4 6; -fx-background-color: transparent;">
+
                 <ImageView fx:id="imgAvatar" fitHeight="38.0" fitWidth="38.0" preserveRatio="true"
                            style="-fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
                     <image><Image url="@/com/auction/client/images/default_avatar.png"/></image>
                 </ImageView>
-                <VBox alignment="CENTER_LEFT" spacing="1.0">
+
+                <VBox alignment="CENTER_LEFT" spacing="3.0">
                     <Label fx:id="lblUser"
                            style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
-                    <Label fx:id="lblRole"
-                           style="-fx-font-size: 11px; -fx-text-fill: #9b59b6;"/>
+
+                    <HBox alignment="CENTER" style="-fx-background-color: #9b59b6; -fx-background-radius: 6; -fx-padding: 2 10;">
+                        <Label fx:id="lblRole"
+                               style="-fx-font-size: 11px; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                    </HBox>
                 </VBox>
-                <Label text="▾" style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
+
+                <Label text="▼" style="-fx-font-size: 11px; -fx-text-fill: #7f8c8d; -fx-padding: 0 0 0 2;"/>
             </HBox>
 
             <Button fx:id="btnTheme" onAction="#handleToggleTheme" styleClass="btn-auction-primary"

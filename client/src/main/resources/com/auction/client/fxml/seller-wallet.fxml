@@ -33,24 +33,31 @@
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <HBox fx:id="headerUserArea" alignment="CENTER_LEFT" spacing="10.0" style="-fx-padding: 4 8;">
+            <HBox fx:id="headerUserArea"
+                  alignment="CENTER_LEFT" spacing="12.0"
+                  style="-fx-cursor: hand; -fx-padding: 4 6; -fx-background-color: transparent;">
 
                 <ImageView fx:id="imgAvatar"
                            fitHeight="40.0" fitWidth="40.0"
                            preserveRatio="true"
                            style="-fx-border-radius: 50; -fx-background-radius: 50;
-                                  -fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
+                          -fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
                     <image>
                         <Image url="@/com/auction/client/images/default_avatar.png"/>
                     </image>
                 </ImageView>
 
-                <VBox alignment="CENTER_LEFT" spacing="2.0">
+                <VBox alignment="CENTER_LEFT" spacing="3.0">
                     <Label fx:id="lblUser" text="Người dùng"
-                           style="-fx-text-fill: #2c3e50; -fx-font-weight: bold; -fx-font-size: 14px;"/>
-                    <Label fx:id="lblRole" text="Seller"
-                           style="-fx-text-fill: #7f8c8d; -fx-font-size: 12px;"/>
+                           style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
+
+                    <HBox alignment="CENTER" style="-fx-background-color: #9b59b6; -fx-background-radius: 6; -fx-padding: 2 10;">
+                        <Label fx:id="lblRole" text="SELLER"
+                               style="-fx-font-size: 11px; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                    </HBox>
                 </VBox>
+
+                <Label text="▼" style="-fx-font-size: 11px; -fx-text-fill: #7f8c8d; -fx-padding: 0 0 0 2;"/>
             </HBox>
 
             <Button fx:id="btnTheme"

@@ -107,6 +107,7 @@ public class AdminDashboardController {
 
     @FXML private Button btnTheme;  // Dark/Light mode toggle
 
+    @FXML
     public void initialize() {
         if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
 
@@ -123,13 +124,20 @@ public class AdminDashboardController {
             applyCenterCrop(this.imgAvatar, img);
         }
 
-        // Hiệu ứng hover cho vùng Avatar
+        // 🌟 [MỚI BỔ SUNG] Đổ tên tài khoản Admin đăng nhập hiện tại lên nhãn tên người dùng
+        if (lblUser != null) {
+            String username = com.auction.client.model.UserSession.getInstance().getUsername();
+            lblUser.setText(username != null && !username.isEmpty() ? username : "Admin");
+        }
+
+        // 🌟 [TINH CHỈNH] Hiệu ứng hover cho vùng Avatar (Đồng bộ padding 4 6 với FXML mới để tránh giật hình)
         if (headerUserArea != null) {
             headerUserArea.setOnMouseEntered(e ->
-                headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: rgba(155,89,182,0.12);"));
+                    headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 6; -fx-background-radius: 12; -fx-background-color: rgba(155,89,182,0.12);"));
             headerUserArea.setOnMouseExited(e ->
-                headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: transparent;"));
+                    headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 6; -fx-background-radius: 12; -fx-background-color: transparent;"));
         }
+
         setupUserTable();
         setupAuctionTable();
         setupBidTable();   // FIX: khởi tạo bảng bid history
