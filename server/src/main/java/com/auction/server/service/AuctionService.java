@@ -388,23 +388,29 @@ public class AuctionService {
     // CANCEL — [MERGE]
     // =========================================================================
     public void cancelAuction(String auctionId, String token) {
-        String requesterId = TokenUtil.getUserId(token);
-        if (requesterId == null) {
-            throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ.");
-        }
+        // token = null khi được gọi từ AuctionTimerService (system auto-cancel)
+        boolean isSystemCall = (token == null);
 
-        String role = TokenUtil.getRole(token);
+        if (!isSystemCall) {
+            String requesterId = TokenUtil.getUserId(token);
+            if (requesterId == null) {
+                throw new AuctionException("UNAUTHORIZED", "Token không hợp lệ.");
+            }
+            String role = TokenUtil.getRole(token);
+            Auction auctionCheck = auctionDao.findById(auctionId);
+            if (auctionCheck != null) {
+                boolean isAdmin  = "ADMIN".equals(role);
+                boolean isSeller = "SELLER".equals(role) && auctionCheck.getSellerId().equals(requesterId);
+                if (!isAdmin && !isSeller) {
+                    throw new UnauthorizedException("Bạn không có quyền hủy phiên đấu giá này.");
+                }
+            }
+        }
 
         Auction auction = auctionDao.findById(auctionId);
         if (auction == null) {
             throw new ResourceNotFoundException("AUCTION_NOT_FOUND",
                 "Không tìm thấy phiên đấu giá có ID: " + auctionId);
-        }
-
-        boolean isAdmin  = "ADMIN".equals(role);
-        boolean isSeller = "SELLER".equals(role) && auction.getSellerId().equals(requesterId);
-        if (!isAdmin && !isSeller) {
-            throw new UnauthorizedException("Bạn không có quyền hủy phiên đấu giá này.");
         }
 
         if (auction.getStatus() == AuctionStatus.PAID) {

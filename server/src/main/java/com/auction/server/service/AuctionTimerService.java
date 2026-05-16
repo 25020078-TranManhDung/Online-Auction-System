@@ -36,8 +36,8 @@ public class AuctionTimerService {
 
         // Quét mỗi 1 giây
         scheduler.scheduleAtFixedRate(
-                this::checkExpiredAuctions,
-                0, 1, TimeUnit.SECONDS
+            this::checkExpiredAuctions,
+            0, 1, TimeUnit.SECONDS
         );
 
         System.out.println("✅ AuctionTimerService đã khởi động (Chế độ Real-time: 1s/lần).");
@@ -54,12 +54,13 @@ public class AuctionTimerService {
         try {
             LocalDateTime now = LocalDateTime.now();
 
-            // === 1. Tự động chuyển OPEN -> RUNNING khi startTime đã đến ===
+            // === 1. OPEN → RUNNING: startTime đã đến và endTime chưa qua ===
             List<Auction> pendingAuctions = manager.getAll().stream()
-                    .filter(a -> a.getStatus() == AuctionStatus.OPEN)
-                    .filter(a -> a.getStartTime() != null &&
-                            (a.getStartTime().isBefore(now) || a.getStartTime().isEqual(now)))
-                    .collect(Collectors.toList());
+                .filter(a -> a.getStatus() == AuctionStatus.OPEN)
+                .filter(a -> a.getStartTime() != null &&
+                    (a.getStartTime().isBefore(now) || a.getStartTime().isEqual(now)))
+                .filter(a -> a.getEndTime() != null && a.getEndTime().isAfter(now)) // endTime chưa qua
+                .collect(Collectors.toList());
 
             for (Auction auction : pendingAuctions) {
                 try {
@@ -70,26 +71,42 @@ public class AuctionTimerService {
                 }
             }
 
-            // === 2. Lọc các phiên đang chạy và đã qua thời gian kết thúc ===
+            // === 2. OPEN nhưng endTime đã qua (bỏ lỡ cả window RUNNING) → đóng luôn ===
+            // Trường hợp này xảy ra khi server restart sau khi phiên đã hết hạn mà chưa được xử lý
+            List<Auction> stalledOpenAuctions = manager.getAll().stream()
+                .filter(a -> a.getStatus() == AuctionStatus.OPEN)
+                .filter(a -> a.getEndTime() != null &&
+                    (a.getEndTime().isBefore(now) || a.getEndTime().isEqual(now)))
+                .collect(Collectors.toList());
+
+            for (Auction auction : stalledOpenAuctions) {
+                try {
+                    // Phiên này không có bidder nào (chưa RUNNING) → đóng thành CANCELED
+                    auctionService.cancelAuction(auction.getId(), null);
+                    System.out.println("🚫 Tự động hủy phiên OPEN hết hạn: " + auction.getId()
+                        + " (endTime=" + auction.getEndTime() + ")");
+                } catch (Exception e) {
+                    System.err.println("❌ Lỗi khi hủy phiên OPEN hết hạn [" + auction.getId() + "]: " + e.getMessage());
+                }
+            }
+
+            // === 3. RUNNING hết hạn → đóng thành FINISHED ===
             List<Auction> expiredAuctions = manager.getAll().stream()
-                    .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
-                    .filter(a -> a.getEndTime().isBefore(now) || a.getEndTime().isEqual(now))
-                    .collect(Collectors.toList());
+                .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
+                .filter(a -> a.getEndTime() != null &&
+                    (a.getEndTime().isBefore(now) || a.getEndTime().isEqual(now)))
+                .collect(Collectors.toList());
 
             if (!expiredAuctions.isEmpty()) {
                 System.out.println("⏳ Phát hiện " + expiredAuctions.size() + " phiên đấu giá hết hạn lúc " + now);
             }
 
-            // === 3. Tiến hành đóng từng phiên ===
             for (Auction auction : expiredAuctions) {
                 try {
-                    // Gọi sang AuctionService để kết thúc phiên.
-                    // LƯU Ý CHO LUỒNG MỚI: Hàm closeAuction này sẽ chỉ đổi trạng thái thành FINISHED,
-                    // lưu người thắng cuộc, và KHÔNG trừ tiền ngay.
                     auctionService.closeAuction(auction.getId());
-                    System.out.println("🔒 Đã kết thúc phiên đấu giá: " + auction.getId() + " (Đang chờ người thắng thanh toán)");
+                    System.out.println("🔒 Đã kết thúc phiên: " + auction.getId());
                 } catch (Exception e) {
-                    System.err.println("❌ Lỗi khi đóng phiên đấu giá [" + auction.getId() + "]: " + e.getMessage());
+                    System.err.println("❌ Lỗi khi đóng phiên [" + auction.getId() + "]: " + e.getMessage());
                 }
             }
         } catch (Exception e) {
