@@ -20,6 +20,7 @@ public class UserSession {
     private String token;
     private String role;
     private String expiresAt;
+    private String avatarBase64;
 
     private UserSession() {}
 
@@ -80,4 +81,12 @@ public class UserSession {
     public String getToken()     { return token;     }
     public String getRole()      { return role;      }
     public String getExpiresAt() { return expiresAt; }
+
+    public String getAvatarBase64() {
+        return avatarBase64;
+    }
+
+    public void setAvatarBase64(String avatarBase64) {
+        this.avatarBase64 = avatarBase64;
+    }
 }

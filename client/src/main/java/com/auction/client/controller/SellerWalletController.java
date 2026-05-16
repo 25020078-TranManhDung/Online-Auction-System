@@ -58,13 +58,16 @@ public class SellerWalletController {
 
     @FXML private Button btnRefresh;
 
+    @FXML private javafx.scene.layout.HBox headerUserArea;
+    @FXML private javafx.scene.image.ImageView imgAvatar;
+
     private double currentBalance = 0;
     private final ObservableList<WalletTransaction> txList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
         if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
-
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
         loadUserInfo();
         setupTable();
         loadWallet();

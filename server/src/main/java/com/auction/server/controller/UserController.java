@@ -158,4 +158,32 @@ public class UserController {
             return ServerResponse.fail(msg.getRequestId(), "CHANGE_PASSWORD_FAILED", e.getMessage());
         }
     }
+
+    /**
+     * Xử lý yêu cầu Cập nhật hoặc Xóa ảnh đại diện (Avatar)
+     */
+    public ServerResponse updateAvatar(Message msg) {
+        try {
+            // Lấy dữ liệu từ gói tin gửi lên
+            com.auction.shared.dto.request.UpdateAvatarRequest req =
+                    msg.getData(com.auction.shared.dto.request.UpdateAvatarRequest.class);
+
+            if (req == null || req.getUserId() == null) {
+                return ServerResponse.fail(msg.getRequestId(), "BAD_REQUEST", "Thiếu thông tin User ID.");
+            }
+
+            // Gọi tầng Service để cập nhật DB
+            userService.updateAvatar(req.getUserId(), req.getAvatarBase64());
+
+            // Phản hồi thành công
+            String responseMsg = req.isRemoveRequest() ? "Đã xóa ảnh đại diện!" : "Cập nhật ảnh đại diện thành công!";
+
+            // ✅ ĐÃ SỬA: Trả về thẳng chuỗi String thay vì bọc trong Map.of("message", responseMsg)
+            return ServerResponse.ok(msg.getRequestId(), responseMsg);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ServerResponse.fail(msg.getRequestId(), "UPDATE_AVATAR_FAILED", "Lỗi khi cập nhật ảnh: " + e.getMessage());
+        }
+    }
 }

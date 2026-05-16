@@ -119,6 +119,9 @@ public class UserService {
         auth.setFullName(user.getFullname());
         auth.setEmail(user.getEmail());
 
+        // ✅ THÊM DÒNG NÀY: Lấy chuỗi ảnh từ Database nhét vào túi để gửi về Client
+        auth.setAvatarBase64(user.getAvatar());
+
         return auth;
     }
 
@@ -276,6 +279,30 @@ public class UserService {
         }
 
         System.out.println("[UserService] Đổi mật khẩu thành công cho user: " + user.getUsername());
+    }
+
+    /**
+     * Xử lý logic Cập nhật ảnh đại diện:
+     * 1. Tìm User theo ID.
+     * 2. Gán chuỗi Base64 mới (hoặc null nếu xóa).
+     * 3. Lưu xuống Database.
+     */
+    public void updateAvatar(String userId, String avatarBase64) {
+        // 1. Tìm người dùng trong DB
+        User user = userDao.findById(userId);
+        if (user == null) {
+            throw new ResourceNotFoundException("USER_NOT_FOUND", "Không tìm thấy người dùng với ID này.");
+        }
+
+        // 2. Cập nhật trường avatar
+        user.setAvatar(avatarBase64);
+
+        // 3. Lưu xuống cơ sở dữ liệu
+        if (!userDao.update(user)) {
+            throw new RuntimeException("Đã xảy ra lỗi khi cập nhật ảnh đại diện vào cơ sở dữ liệu.");
+        }
+
+        System.out.println("[UserService] Cập nhật ảnh đại diện thành công cho user: " + user.getUsername());
     }
 }
 

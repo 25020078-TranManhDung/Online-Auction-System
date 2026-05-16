@@ -46,6 +46,8 @@ public class LoginController {
 
         @com.google.gson.annotations.SerializedName(value = "email", alternate = {"user_email", "mail"})
         public String email;
+
+        public String avatarBase64;
     }
 
     /**
@@ -90,6 +92,8 @@ public class LoginController {
                             response.role,
                             response.expiresAt
                     );
+
+                    UserSession.getInstance().setAvatarBase64(response.avatarBase64);
 
                     try {
                         if ("SELLER".equals(response.role)) {

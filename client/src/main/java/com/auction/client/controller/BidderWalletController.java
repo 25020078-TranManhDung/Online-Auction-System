@@ -66,6 +66,9 @@ public class BidderWalletController {
 
     @FXML private Label lblAvailableBalance;
 
+    @FXML private javafx.scene.layout.HBox headerUserArea;
+    @FXML private javafx.scene.image.ImageView imgAvatar;
+
     // Nội bộ
     private double requiredAmount = 0;   // Số tiền cần để đặt giá (nếu mở từ BiddingController)
     private double currentBalance = 0;
@@ -76,6 +79,7 @@ public class BidderWalletController {
     @FXML
     public void initialize() {
         if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
 
         loadUserInfo();
         setupTable();

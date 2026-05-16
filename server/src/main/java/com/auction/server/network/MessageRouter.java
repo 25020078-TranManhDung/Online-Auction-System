@@ -92,6 +92,8 @@ public class MessageRouter {
                 // [MỚI THÊM] Bắt gói tin Đổi mật khẩu và đẩy cho UserController xử lý
                 case Actions.CHANGE_PASSWORD    -> userCtrl.changePassword(msg);
 
+                case Actions.UPDATE_AVATAR      -> userCtrl.updateAvatar(msg);
+
                 // Auction Operations
                 case Actions.GET_AUCTIONS        -> auctionCtrl.getList(msg);
                 case Actions.GET_AUCTION_DETAIL  -> auctionCtrl.getDetail(msg, sender);

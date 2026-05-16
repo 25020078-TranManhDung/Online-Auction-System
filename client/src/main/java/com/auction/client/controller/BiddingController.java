@@ -107,6 +107,8 @@ public class BiddingController implements BidUpdateListener {
 
     @FXML private Label lblWalletBalance;
 
+    @FXML private javafx.scene.layout.HBox headerUserArea;
+
     // Internal state
     private String auctionId;
     private double currentPrice;
@@ -133,6 +135,7 @@ public class BiddingController implements BidUpdateListener {
         if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
 
         loadUserInfo();
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
 
         // Đăng ký listener real-time (nếu có)
         MessageHandler handler = getMessageHandlerSecurely();

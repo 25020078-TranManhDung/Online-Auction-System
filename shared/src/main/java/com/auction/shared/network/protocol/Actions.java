@@ -59,4 +59,5 @@ public final class Actions {
     public static final String WITHDRAW   = "WITHDRAW";   // Seller rút tiền
 
     public static final String CHANGE_PASSWORD = "CHANGE_PASSWORD";
+    public static final String UPDATE_AVATAR = "UPDATE_AVATAR";
 }

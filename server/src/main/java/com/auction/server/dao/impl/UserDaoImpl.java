@@ -87,8 +87,8 @@ public class UserDaoImpl implements UserDAO {
     public boolean save(User user) {
         String sql = """
             INSERT INTO users
-              (id, username, password, email, role, admin_level, reputation_score, full_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              (id, username, password, email, role, admin_level, reputation_score, full_name, avatar)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -99,7 +99,8 @@ public class UserDaoImpl implements UserDAO {
             ps.setString(5, user.getRole().name());
             ps.setInt(6, (user instanceof Admin) ? ((Admin)user).getAdminLevel() : 0);
             ps.setDouble(7, (user instanceof Seller) ? ((Seller)user).getReputationScore() : 5.0);
-            ps.setString(8, user.getFullname()); // Họ và tên (nullable)
+            ps.setString(8, user.getFullname()); // Họ và tên
+            ps.setString(9, user.getAvatar());   // [MỚI] Thêm lưu Avatar
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("save user thất bại", e);
@@ -111,7 +112,7 @@ public class UserDaoImpl implements UserDAO {
         String sql = """
             UPDATE users
             SET username=?, password=?, email=?, full_name=?, admin_level=?, reputation_score=?,
-                status=?, violation_count=?, locked_until=?
+                status=?, violation_count=?, locked_until=?, avatar=?
             WHERE id=?
             """;
         try (Connection conn = db.getConnection();
@@ -129,7 +130,8 @@ public class UserDaoImpl implements UserDAO {
             } else {
                 ps.setNull(9, Types.TIMESTAMP);
             }
-            ps.setString(10, user.getId());
+            ps.setString(10, user.getAvatar()); // [MỚI] Cập nhật Avatar
+            ps.setString(11, user.getId());     // [LƯU Ý] ID bị đẩy xuống vị trí 11
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             throw new RuntimeException("update user thất bại", e);
@@ -168,7 +170,11 @@ public class UserDaoImpl implements UserDAO {
         user.setUsername(rs.getString("username"));
         user.setPassword(rs.getString("password"));
         user.setEmail(rs.getString("email"));
-        user.setFullname(rs.getString("full_name"));  // Họ và tên
+        user.setFullname(rs.getString("full_name"));
+
+        // [MỚI] Đọc chuỗi Avatar từ CSDL
+        user.setAvatar(rs.getString("avatar"));
+
         user.setRole(role);
 
         String status = rs.getString("status");

@@ -52,22 +52,24 @@
                        -fx-background-radius: 8; -fx-cursor: hand;"/>
                 </VBox>
 
-                <ImageView fx:id="imgAvatar"
-                           fitHeight="40.0" fitWidth="40.0"
-                           preserveRatio="true"
-                           style="-fx-border-radius: 50; -fx-background-radius: 50;
-                      -fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
-                    <image>
-                        <Image url="@/com/auction/client/images/default_avatar.png"/>
-                    </image>
-                </ImageView>
+                <HBox fx:id="headerUserArea" alignment="CENTER_LEFT" spacing="10.0" style="-fx-padding: 4 8;">
+                    <ImageView fx:id="imgAvatar"
+                               fitHeight="40.0" fitWidth="40.0"
+                               preserveRatio="true"
+                               style="-fx-border-radius: 50; -fx-background-radius: 50;
+                                      -fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
+                        <image>
+                            <Image url="@/com/auction/client/images/default_avatar.png"/>
+                        </image>
+                    </ImageView>
 
-                <VBox alignment="CENTER_LEFT" spacing="1.0">
-                    <Label fx:id="lblUser"
-                           style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
-                    <Label fx:id="lblRole"
-                           style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
-                </VBox>
+                    <VBox alignment="CENTER_LEFT" spacing="1.0">
+                        <Label fx:id="lblUser"
+                               style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
+                        <Label fx:id="lblRole"
+                               style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
+                    </VBox>
+                </HBox>
 
                 <Button fx:id="btnTheme"
                         onAction="#handleToggleTheme"

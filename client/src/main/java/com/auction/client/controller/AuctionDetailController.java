@@ -46,6 +46,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
     // ===== Header / Navigation =====
     @FXML private ImageView imgAvatar;
+    @FXML private javafx.scene.layout.HBox headerUserArea;
     @FXML private Label lblUser;
     @FXML private Label lblRole;
     @FXML private Button btnBack;
@@ -128,6 +129,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
 
         loadUserInfo();
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
         loadWalletBalance();
 
         // Initialize chart series early to avoid race with realtime updates
