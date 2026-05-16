@@ -49,6 +49,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
     @FXML private Label lblUser;
     @FXML private Label lblRole;
     @FXML private Button btnBack;
+    @FXML private Button btnTheme;  // Dark/Light mode toggle
+
     @FXML private Label lblWalletBalance;
 
     // ===== Left column (product + bid) =====
@@ -123,6 +125,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
     @FXML
     public void initialize() {
+        if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+
         loadUserInfo();
         loadWalletBalance();
 
@@ -911,4 +915,13 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         currentImageIndex = (currentImageIndex + 1) % productImages.size();
         updateImageDisplay();
     }
+
+    @FXML
+    private void handleToggleTheme(javafx.event.ActionEvent event) {
+        com.auction.client.util.ThemeManager tm =
+            com.auction.client.util.ThemeManager.getInstance();
+        tm.toggle();
+        if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
+    }
+
 }

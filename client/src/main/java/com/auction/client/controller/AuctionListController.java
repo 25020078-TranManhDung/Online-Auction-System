@@ -43,6 +43,8 @@ public class AuctionListController {
     @FXML private Label     lblUser;
     @FXML private Label     lblRole;
     @FXML private Button    btnLogout;
+    @FXML private Button btnTheme;  // Dark/Light mode toggle
+
     @FXML private Label     lblWalletBalance;
 
     // ─── Toolbar / filters ────────────────────────────────────
@@ -80,6 +82,8 @@ public class AuctionListController {
 
     @FXML
     public void initialize() {
+        if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+
         setupTableColumns();
         loadUserInfo();
 
@@ -112,15 +116,15 @@ public class AuctionListController {
         // Hover highlight on the profile click zone
         if (headerUserArea != null) {
             headerUserArea.setOnMouseEntered(e ->
-                    headerUserArea.setStyle(
-                            "-fx-cursor: hand; -fx-padding: 6 12 6 12; " +
-                                    "-fx-background-radius: 14; " +
-                                    "-fx-background-color: rgba(155,89,182,0.12);"));
+                headerUserArea.setStyle(
+                    "-fx-cursor: hand; -fx-padding: 6 12 6 12; " +
+                        "-fx-background-radius: 14; " +
+                        "-fx-background-color: rgba(155,89,182,0.12);"));
             headerUserArea.setOnMouseExited(e ->
-                    headerUserArea.setStyle(
-                            "-fx-cursor: hand; -fx-padding: 6 12 6 12; " +
-                                    "-fx-background-radius: 14; " +
-                                    "-fx-background-color: transparent;"));
+                headerUserArea.setStyle(
+                    "-fx-cursor: hand; -fx-padding: 6 12 6 12; " +
+                        "-fx-background-radius: 14; " +
+                        "-fx-background-color: transparent;"));
         }
 
         loadAuctions();
@@ -203,11 +207,11 @@ public class AuctionListController {
         VBox card = new VBox(0);
         card.setPrefWidth(300);
         card.setStyle(
-                "-fx-background-color: rgba(35, 10, 60, 0.93);" +
-                        "-fx-background-radius: 18;" +
-                        "-fx-border-color: rgba(155, 89, 182, 0.40);" +
-                        "-fx-border-width: 1.5;" +
-                        "-fx-border-radius: 18;"
+            "-fx-background-color: rgba(35, 10, 60, 0.93);" +
+                "-fx-background-radius: 18;" +
+                "-fx-border-color: rgba(155, 89, 182, 0.40);" +
+                "-fx-border-width: 1.5;" +
+                "-fx-border-radius: 18;"
         );
 
         // Drop-shadow
@@ -230,8 +234,8 @@ public class AuctionListController {
         popupAvatar.setPreserveRatio(true);
         try {
             Image avatarImg = new Image(
-                    getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png"),
-                    64, 64, true, true);
+                getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png"),
+                64, 64, true, true);
             popupAvatar.setImage(avatarImg);
         } catch (Exception ignored) {}
 
@@ -247,8 +251,8 @@ public class AuctionListController {
         // Full name
         Label lblFullName = new Label(nullSafe(session.getFullName(), session.getUsername()));
         lblFullName.setStyle(
-                "-fx-font-size: 17px; -fx-font-weight: bold; " +
-                        "-fx-text-fill: #f0e6ff; -fx-padding: 8 0 2 0;");
+            "-fx-font-size: 17px; -fx-font-weight: bold; " +
+                "-fx-text-fill: #f0e6ff; -fx-padding: 8 0 2 0;");
 
         // @username
         Label lblAtUsername = new Label("@" + nullSafe(session.getUsername(), "—"));
@@ -264,9 +268,9 @@ public class AuctionListController {
         infoSection.setPadding(new Insets(14, 24, 14, 24));
 
         infoSection.getChildren().addAll(
-                infoRow("👤", "User ID",  nullSafe(session.getUserId(), "—")),
-                infoRow("✉",  "Email",    nullSafe(session.getEmail(),  "Chưa cập nhật")),
-                infoRow("🏷", "Vai trò",  nullSafe(session.getRole(),   "—"))
+            infoRow("👤", "User ID",  nullSafe(session.getUserId(), "—")),
+            infoRow("✉",  "Email",    nullSafe(session.getEmail(),  "Chưa cập nhật")),
+            infoRow("🏷", "Vai trò",  nullSafe(session.getRole(),   "—"))
         );
 
         /* ── DIVIDER ── */
@@ -280,27 +284,27 @@ public class AuctionListController {
         Button btnChangePassword = new Button("🔐  Đổi mật khẩu");
         btnChangePassword.setMaxWidth(Double.MAX_VALUE);
         btnChangePassword.setStyle(
-                "-fx-background-color: linear-gradient(to right, #6c3483, #8e44ad);" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-font-size: 13.5px;" +
-                        "-fx-background-radius: 10;" +
-                        "-fx-border-radius: 10;" +
-                        "-fx-cursor: hand;" +
-                        "-fx-padding: 10 20;"
+            "-fx-background-color: linear-gradient(to right, #6c3483, #8e44ad);" +
+                "-fx-text-fill: white;" +
+                "-fx-font-weight: bold;" +
+                "-fx-font-size: 13.5px;" +
+                "-fx-background-radius: 10;" +
+                "-fx-border-radius: 10;" +
+                "-fx-cursor: hand;" +
+                "-fx-padding: 10 20;"
         );
         btnChangePassword.setOnMouseEntered(e -> btnChangePassword.setStyle(
-                "-fx-background-color: linear-gradient(to right, #7d3c98, #9b59b6);" +
-                        "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px;" +
-                        "-fx-background-radius: 10; -fx-border-radius: 10;" +
-                        "-fx-cursor: hand; -fx-padding: 10 20;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(142,68,173,0.55), 10, 0, 0, 2);"
+            "-fx-background-color: linear-gradient(to right, #7d3c98, #9b59b6);" +
+                "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px;" +
+                "-fx-background-radius: 10; -fx-border-radius: 10;" +
+                "-fx-cursor: hand; -fx-padding: 10 20;" +
+                "-fx-effect: dropshadow(gaussian, rgba(142,68,173,0.55), 10, 0, 0, 2);"
         ));
         btnChangePassword.setOnMouseExited(e -> btnChangePassword.setStyle(
-                "-fx-background-color: linear-gradient(to right, #6c3483, #8e44ad);" +
-                        "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px;" +
-                        "-fx-background-radius: 10; -fx-border-radius: 10;" +
-                        "-fx-cursor: hand; -fx-padding: 10 20;"
+            "-fx-background-color: linear-gradient(to right, #6c3483, #8e44ad);" +
+                "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px;" +
+                "-fx-background-radius: 10; -fx-border-radius: 10;" +
+                "-fx-cursor: hand; -fx-padding: 10 20;"
         ));
         btnChangePassword.setOnAction(e -> {
             popup.hide();
@@ -359,7 +363,7 @@ public class AuctionListController {
         try {
             // Nhớ kiểm tra lại đường dẫn FXML cho khớp với thư mục của em nhé
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-                    getClass().getResource("/com/auction/client/fxml/change-password.fxml"));
+                getClass().getResource("/com/auction/client/fxml/change-password.fxml"));
             javafx.scene.Parent root = loader.load();
 
             javafx.stage.Stage modalStage = new javafx.stage.Stage();
@@ -395,34 +399,34 @@ public class AuctionListController {
     private void setupTableColumns() {
         if (colNo != null) {
             colNo.setCellValueFactory(data ->
-                    new SimpleStringProperty(String.valueOf(tbAuctions.getItems().indexOf(data.getValue()) + 1)));
+                new SimpleStringProperty(String.valueOf(tbAuctions.getItems().indexOf(data.getValue()) + 1)));
         }
         if (colName != null) {
             colName.setCellValueFactory(data ->
-                    new SimpleStringProperty(getJsonString(data.getValue(), "title")));
+                new SimpleStringProperty(getJsonString(data.getValue(), "title")));
         }
         if (colSeller != null) {
             colSeller.setCellValueFactory(data ->
-                    new SimpleStringProperty(getJsonString(data.getValue(), "sellerId")));
+                new SimpleStringProperty(getJsonString(data.getValue(), "sellerId")));
         }
         if (colPrice != null) {
             colPrice.setCellValueFactory(data -> {
                 long price = data.getValue().has("currentPrice")
-                        ? data.getValue().get("currentPrice").getAsLong() : 0;
+                    ? data.getValue().get("currentPrice").getAsLong() : 0;
                 return new SimpleStringProperty(formatMoney(price));
             });
         }
         if (colEndTime != null) {
             colEndTime.setCellValueFactory(data ->
-                    new SimpleStringProperty(getJsonString(data.getValue(), "endTime")));
+                new SimpleStringProperty(getJsonString(data.getValue(), "endTime")));
         }
         if (colBidCount != null) {
             colBidCount.setCellValueFactory(data ->
-                    new SimpleStringProperty(getJsonString(data.getValue(), "bidCount")));
+                new SimpleStringProperty(getJsonString(data.getValue(), "bidCount")));
         }
         if (colStatus != null) {
             colStatus.setCellValueFactory(data ->
-                    new SimpleStringProperty(getJsonString(data.getValue(), "status")));
+                new SimpleStringProperty(getJsonString(data.getValue(), "status")));
         }
 
         if (colAction != null) {
@@ -466,11 +470,11 @@ public class AuctionListController {
 
         try {
             ViewLoader.ViewResult<com.auction.client.controller.AuctionDetailController> result =
-                    ViewLoader.loadViewWithController("auction-detail.fxml");
+                ViewLoader.loadViewWithController("auction-detail.fxml");
             if (result != null) {
                 result.getController().initData(auctionId);
                 javafx.stage.Stage stage =
-                        (javafx.stage.Stage) ((Node) event.getSource()).getScene().getWindow();
+                    (javafx.stage.Stage) ((Node) event.getSource()).getScene().getWindow();
                 stage.getScene().setRoot(result.getView());
                 stage.setTitle("Chi tiết phiên đấu giá - " + (title.isEmpty() ? auctionId : title));
             }
@@ -515,7 +519,7 @@ public class AuctionListController {
     private void updateAuctionCount() {
         if (lblAuctionCount != null) {
             lblAuctionCount.setText(String.format("%d phiên",
-                    filteredAuctions == null ? auctionList.size() : filteredAuctions.size()));
+                filteredAuctions == null ? auctionList.size() : filteredAuctions.size()));
         }
     }
 
@@ -571,7 +575,7 @@ public class AuctionListController {
                 params.put("status", "ALL");
 
                 com.google.gson.JsonElement response = SocketClient.getInstance().send(
-                        "GET_AUCTIONS", params, com.google.gson.JsonElement.class);
+                    "GET_AUCTIONS", params, com.google.gson.JsonElement.class);
 
                 Platform.runLater(() -> {
                     if (response != null) {
@@ -631,10 +635,10 @@ public class AuctionListController {
     public void handleOpenWallet(ActionEvent event) {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-                    getClass().getResource("/com/auction/client/fxml/bidder-wallet.fxml"));
+                getClass().getResource("/com/auction/client/fxml/bidder-wallet.fxml"));
             javafx.scene.Parent root = loader.load();
             javafx.stage.Stage stage =
-                    (javafx.stage.Stage) ((Node) event.getSource()).getScene().getWindow();
+                (javafx.stage.Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
             stage.setTitle("Ví Điện Tử - Quản lý số dư");
         } catch (Exception e) {
@@ -649,10 +653,19 @@ public class AuctionListController {
 
     private String getJsonString(JsonObject obj, String key) {
         return (obj != null && obj.has(key) && !obj.get(key).isJsonNull())
-                ? obj.get(key).getAsString() : "";
+            ? obj.get(key).getAsString() : "";
     }
 
     private String formatMoney(long amount) {
         return String.format("%,d VNĐ", amount);
     }
+
+    @FXML
+    private void handleToggleTheme(javafx.event.ActionEvent event) {
+        com.auction.client.util.ThemeManager tm =
+            com.auction.client.util.ThemeManager.getInstance();
+        tm.toggle();
+        if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
+    }
+
 }

@@ -120,6 +120,13 @@ public class ViewLoader {
 
     /**
      * Hàm hỗ trợ (Helper method) để tránh lặp lại code nạp CSS và set Scene.
+     *
+     * ★ FIX DARK MODE: Sau khi nạp style.css, gọi ThemeManager.applyToScene(scene)
+     * để:
+     *   1. Cập nhật ThemeManager.currentScene = scene mới này
+     *   2. Tự động thêm dark-mode.css nếu dark mode đang bật
+     * Nếu thiếu bước này, ThemeManager vẫn giữ tham chiếu đến Scene cũ đã bị
+     * detach khỏi Stage → toggle() không ảnh hưởng gì đến màn hình đang hiển thị.
      */
     private static void setSceneAndShow(Stage stage, Parent root, String title) {
         Scene scene = new Scene(root);
@@ -131,6 +138,11 @@ public class ViewLoader {
         } catch (Exception e) {
             System.out.println("Cảnh báo: Không tìm thấy style.css");
         }
+
+        // ★ FIX: Đồng bộ ThemeManager với Scene mới —
+        // applyToScene() vừa cập nhật currentScene vừa thêm/bỏ dark-mode.css
+        ThemeManager.getInstance().applyToScene(scene);
+
         stage.setTitle(title);
         stage.setScene(scene);
         stage.show();

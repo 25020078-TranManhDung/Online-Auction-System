@@ -67,6 +67,11 @@
                            style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
                 </VBox>
 
+                <Button fx:id="btnTheme"
+                        onAction="#handleToggleTheme"
+                        styleClass="btn-auction-primary"
+                        style="-fx-font-size: 12px; -fx-padding: 7 16;
+                               -fx-background-color: rgba(80,30,120,0.7);"/>
                 <Button fx:id="btnBack" text="← Danh sách"
                         onAction="#handleBack"
                         styleClass="btn-auction-primary"

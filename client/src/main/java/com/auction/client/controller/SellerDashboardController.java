@@ -71,6 +71,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     // ===== Header =====
     @FXML private Label  lblUser;
     @FXML private Label  lblRole;
+    @FXML private Button btnTheme;  // Dark/Light mode toggle
     @FXML private Button btnLogout;
 
     // ===== Thống kê nhanh =====
@@ -110,15 +111,17 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
 
     @FXML
     public void initialize() {
+        if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+
         if (lblUser != null) {
             String username = UserSession.getInstance().getUsername();
             lblUser.setText(username != null ? username : "Người bán");
             // Hiệu ứng hover cho vùng Avatar
             if (headerUserArea != null) {
                 headerUserArea.setOnMouseEntered(e ->
-                        headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: rgba(155,89,182,0.12);"));
+                    headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: rgba(155,89,182,0.12);"));
                 headerUserArea.setOnMouseExited(e ->
-                        headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: transparent;"));
+                    headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: transparent;"));
             }
         }
 
@@ -1070,9 +1073,9 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         VBox infoSection = new VBox(10);
         infoSection.setPadding(new Insets(14, 24, 14, 24));
         infoSection.getChildren().addAll(
-                infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
-                infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
-                infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
+            infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
+            infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
+            infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
         );
 
         // ACTION SECTION
@@ -1134,4 +1137,13 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
             AlertUtil.showError("Lỗi", "Không thể mở màn hình đổi mật khẩu: " + e.getMessage());
         }
     }
+
+    @FXML
+    private void handleToggleTheme(javafx.event.ActionEvent event) {
+        com.auction.client.util.ThemeManager tm =
+            com.auction.client.util.ThemeManager.getInstance();
+        tm.toggle();
+        if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
+    }
+
 }

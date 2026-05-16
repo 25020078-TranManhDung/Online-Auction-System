@@ -42,6 +42,11 @@
                        style="-fx-text-fill: #7f8c8d; -fx-font-size: 12px;"/>
             </VBox>
 
+            <Button fx:id="btnTheme"
+                    onAction="#handleToggleTheme"
+                    styleClass="btn-auction-primary"
+                    style="-fx-font-size: 12px; -fx-padding: 7 16;
+                               -fx-background-color: rgba(80,30,120,0.7);"/>
             <Button fx:id="btnClose" text="← Quay lại" onAction="#handleClose"
                     style="-fx-background-color: #8e44ad; -fx-text-fill: white;
                            -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 6 14;"/>
