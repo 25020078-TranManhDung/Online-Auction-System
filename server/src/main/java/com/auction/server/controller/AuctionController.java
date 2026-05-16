@@ -3,6 +3,10 @@ package com.auction.server.controller;
 import com.auction.server.network.ClientHandler;
 import com.auction.server.service.AuctionService;
 import com.auction.shared.dto.request.CreateAuctionRequest;
+import com.auction.shared.dto.request.UpdateAuctionRequest;
+import com.auction.shared.exception.AuctionException;
+import com.auction.shared.exception.ResourceNotFoundException;
+import com.auction.shared.exception.UnauthorizedException;
 import com.auction.shared.network.protocol.Message;
 import com.auction.shared.network.protocol.ServerResponse;
 
@@ -27,32 +31,26 @@ public class AuctionController {
   public ServerResponse getList(Message msg) {
     Map payload = msg.getData(Map.class);
 
-    // Trích xuất tham số an toàn từ payload
     String status = payload != null ? (String) payload.get("status") : null;
     int page = payload != null && payload.get("page") != null ? ((Number) payload.get("page")).intValue() : 0;
     int size = payload != null && payload.get("size") != null ? ((Number) payload.get("size")).intValue() : 20;
 
-    // 1. Lấy dữ liệu dạng mảng (List) từ Service
     List<?> auctionList = auctionService.getList(status, page, size);
 
-    // 2. Bọc mảng đó vào trong một cái Hộp (Map) để Client hứng bằng Object GetAuctionsResponse
     Map<String, Object> responseData = new HashMap<>();
     responseData.put("auctions", auctionList);
-    responseData.put("total", auctionList != null ? auctionList.size() : 0); // Tạm gán số lượng tổng
+    responseData.put("total", auctionList != null ? auctionList.size() : 0);
 
-    // 3. Gửi Hộp dữ liệu về Client
     return ServerResponse.ok(msg.getRequestId(), responseData);
   }
 
   /**
    * Xem chi tiết một phiên đấu giá.
-   * Đồng thời "subscribe" client vào luồng theo dõi để nhận thông báo realtime (Push notification).
    */
   public ServerResponse getDetail(Message msg, ClientHandler sender) {
     Map payload = msg.getData(Map.class);
     String auctionId = (String) payload.get("auctionId");
 
-    // Đăng ký Client này vào danh sách theo dõi phiên đấu giá để nhận cập nhật (Bid mới, đóng phiên...)
     sender.setWatchingAuction(auctionId);
 
     return ServerResponse.ok(msg.getRequestId(), auctionService.getDetail(auctionId));
@@ -64,6 +62,33 @@ public class AuctionController {
   public ServerResponse create(Message msg) {
     CreateAuctionRequest req = msg.getData(CreateAuctionRequest.class);
     return ServerResponse.ok(msg.getRequestId(), auctionService.createAuction(req, msg.getToken()));
+  }
+
+  /**
+   * [MỚI] Dành cho Seller sửa thông tin phiên đấu giá khi còn ở trạng thái OPEN.
+   * Bắt đầy đủ exception để trả lỗi rõ ràng về Client.
+   */
+  public ServerResponse update(Message msg) {
+    try {
+      UpdateAuctionRequest req = msg.getData(UpdateAuctionRequest.class);
+      if (req == null || req.getAuctionId() == null || req.getAuctionId().isBlank()) {
+        return ServerResponse.fail(msg.getRequestId(), "BAD_REQUEST",
+            "Thiếu auctionId trong yêu cầu cập nhật.");
+      }
+      return ServerResponse.ok(msg.getRequestId(),
+          auctionService.updateAuction(req, msg.getToken()));
+    } catch (UnauthorizedException e) {
+      return ServerResponse.fail(msg.getRequestId(), "UNAUTHORIZED", e.getMessage());
+    } catch (ResourceNotFoundException e) {
+      return ServerResponse.fail(msg.getRequestId(), e.getCode(), e.getMessage());
+    } catch (AuctionException e) {
+      return ServerResponse.fail(msg.getRequestId(), e.getCode(), e.getMessage());
+    } catch (Exception e) {
+      System.err.println("[AuctionController.update] " + e.getMessage());
+      e.printStackTrace();
+      return ServerResponse.fail(msg.getRequestId(), "INTERNAL_SERVER_ERROR",
+          "Lỗi hệ thống khi cập nhật phiên đấu giá: " + e.getMessage());
+    }
   }
 
   /**
@@ -89,7 +114,6 @@ public class AuctionController {
 
   /**
    * Admin xác nhận thanh toán thủ công: FINISHED → PAID (không qua settle ví).
-   * Dùng cho trường hợp Admin can thiệp trực tiếp.
    */
   public ServerResponse markAsPaid(Message msg) {
     Map payload = msg.getData(Map.class);
@@ -101,8 +125,7 @@ public class AuctionController {
   }
 
   /**
-   * CẬP NHẬT: Winner xác nhận thanh toán (FINISHED → PAID).
-   * Gọi hàm confirmPayment bên Service để trừ tiền Tạm giữ và chuyển cho Seller.
+   * Winner xác nhận thanh toán (FINISHED → PAID).
    */
   public ServerResponse confirmPayment(Message msg) {
     Map payload = msg.getData(Map.class);
@@ -115,7 +138,7 @@ public class AuctionController {
   }
 
   /**
-   * Admin hủy phiên đấu giá (bất kỳ trạng thái nào trừ PAID): → CANCELED.
+   * Admin/Seller hủy phiên đấu giá.
    */
   public ServerResponse cancelAuction(Message msg) {
     Map payload = msg.getData(Map.class);

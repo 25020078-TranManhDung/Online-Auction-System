@@ -19,6 +19,19 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import com.auction.client.model.UserSession;
+import javafx.scene.input.MouseEvent;
+import javafx.stage.Popup;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +62,8 @@ public class AdminDashboardController {
     @FXML private ComboBox<String> cboRoleFilter;
     @FXML private Label lblUserCount;
 
+    @FXML private ImageView imgAvatar;
+
     // --- TAB QUẢN LÝ PHIÊN ĐẤU GIÁ ---
     @FXML private TableView<JsonObject> tvAllAuctions;
     @FXML private TableColumn<JsonObject, String> colAuctionId;
@@ -75,6 +90,11 @@ public class AdminDashboardController {
     @FXML private TextField txtBidSearch;
     @FXML private Label lblBidHistoryCount;
 
+    // ===== Profile Popup & User =====
+    @FXML private Label lblUser;
+    @FXML private HBox headerUserArea;
+    private Popup profilePopup;
+
     // Data lists
     private final ObservableList<JsonObject> userList    = FXCollections.observableArrayList();
     private final ObservableList<JsonObject> auctionList = FXCollections.observableArrayList();
@@ -85,8 +105,31 @@ public class AdminDashboardController {
     private FilteredList<JsonObject> filteredAuctions;
     private FilteredList<JsonObject> filteredBids;
 
-    @FXML
+    @FXML private Button btnTheme;  // Dark/Light mode toggle
+
     public void initialize() {
+        if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+
+        // [MỚI] Hiển thị ảnh đại diện nhỏ (góc trái) ngay khi đăng nhập vào
+        if (this.imgAvatar != null) {
+            UserSession s = UserSession.getInstance();
+            javafx.scene.image.Image img;
+            if (s.getAvatarBase64() != null && !s.getAvatarBase64().isBlank()) {
+                byte[] imageBytes = com.auction.client.util.ImageUtil.decodeToBytes(s.getAvatarBase64());
+                img = new javafx.scene.image.Image(new java.io.ByteArrayInputStream(imageBytes));
+            } else {
+                img = new javafx.scene.image.Image(getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png"));
+            }
+            applyCenterCrop(this.imgAvatar, img);
+        }
+
+        // Hiệu ứng hover cho vùng Avatar
+        if (headerUserArea != null) {
+            headerUserArea.setOnMouseEntered(e ->
+                headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: rgba(155,89,182,0.12);"));
+            headerUserArea.setOnMouseExited(e ->
+                headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: transparent;"));
+        }
         setupUserTable();
         setupAuctionTable();
         setupBidTable();   // FIX: khởi tạo bảng bid history
@@ -735,5 +778,286 @@ public class AdminDashboardController {
         if (lblTotalAuctions  != null) lblTotalAuctions.setText(String.valueOf(totalAuctions));
         if (lblActiveAuctions != null) lblActiveAuctions.setText(String.valueOf(activeAuctions));
         if (lblTotalBids      != null) lblTotalBids.setText(String.valueOf(totalBids));
+    }
+
+    // ==========================================================
+    //  PROFILE POPUP & ĐỔI MẬT KHẨU
+    // ==========================================================
+
+    @FXML
+    private void handleProfileClick(MouseEvent event) {
+        if (profilePopup == null) {
+            profilePopup = buildProfilePopup();
+        }
+
+        if (profilePopup.isShowing()) {
+            profilePopup.hide();
+            return;
+        }
+
+        javafx.scene.Node source = (javafx.scene.Node) event.getSource();
+        double anchorX = source.localToScreen(source.getBoundsInLocal()).getMinX() - 40;
+        double anchorY = source.localToScreen(source.getBoundsInLocal()).getMaxY() + 8;
+        profilePopup.show(source, anchorX, anchorY);
+    }
+
+    private Popup buildProfilePopup() {
+        UserSession session = UserSession.getInstance();
+        Popup popup = new Popup();
+        popup.setAutoHide(true);
+        popup.setAutoFix(true);
+
+        StackPane wrapper = new StackPane();
+        wrapper.setPadding(new Insets(8));
+
+        VBox card = new VBox(0);
+        card.setPrefWidth(300);
+        card.setStyle("-fx-background-color: rgba(35, 10, 60, 0.93); -fx-background-radius: 18; -fx-border-color: rgba(155, 89, 182, 0.40); -fx-border-width: 1.5; -fx-border-radius: 18;");
+
+        DropShadow ds = new DropShadow();
+        ds.setColor(Color.rgb(67, 20, 118, 0.55)); ds.setRadius(28); ds.setOffsetY(8);
+        card.setEffect(ds);
+
+        // TOP SECTION
+        VBox topSection = new VBox(6);
+        topSection.setAlignment(Pos.CENTER);
+        topSection.setPadding(new Insets(24, 20, 18, 20));
+
+        ImageView popupAvatar = new ImageView();
+        popupAvatar.setFitWidth(64); popupAvatar.setFitHeight(64); popupAvatar.setPreserveRatio(true);
+
+        // [MỚI] Load ảnh to từ Session thay vì luôn để mặc định
+        if (session.getAvatarBase64() != null && !session.getAvatarBase64().isBlank()) {
+            byte[] imageBytes = com.auction.client.util.ImageUtil.decodeToBytes(session.getAvatarBase64());
+            javafx.scene.image.Image img = new javafx.scene.image.Image(new java.io.ByteArrayInputStream(imageBytes));
+            applyCenterCrop(popupAvatar, img);
+        } else {
+            try {
+                javafx.scene.image.Image defaultImg = new javafx.scene.image.Image(getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png"));
+                applyCenterCrop(popupAvatar, defaultImg);
+            } catch (Exception ignored) {}
+        }
+        popupAvatar.setClip(new Circle(32, 32, 32));
+
+        DropShadow avatarGlow = new DropShadow();
+        avatarGlow.setColor(Color.rgb(155, 89, 182, 0.70));
+        avatarGlow.setRadius(14);
+        popupAvatar.setEffect(avatarGlow);
+
+        // ========================================================
+        // [MỚI] TẠO HIỆU ỨNG HOVER NHẬN DIỆN CHO AVATAR
+        // ========================================================
+        StackPane avatarContainer = new StackPane();
+        avatarContainer.setMaxSize(64, 64); // Khóa kích thước khớp với ImageView
+
+        // 1. Tạo lớp phủ màu đen bán trong suốt
+        StackPane overlay = new StackPane();
+        // Bo góc 32 (một nửa của 64) để khớp tuyệt đối với hình tròn của avatar
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.6); -fx-background-radius: 32;");
+        overlay.setOpacity(0); // Mặc định ẩn đi
+
+        // 2. Tạo Icon Camera
+        Label editIcon = new Label("📷");
+        editIcon.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        overlay.getChildren().add(editIcon);
+
+        // Ghép ImageView và Overlay vào chung một Container
+        avatarContainer.getChildren().addAll(popupAvatar, overlay);
+
+        // 3. Gắn sự kiện Hover và Click
+        avatarContainer.setCursor(javafx.scene.Cursor.HAND);
+
+        // Khi di chuột vào: Hiện lớp phủ mờ + Đổi viền sáng thành màu Xanh Cyan cho nổi bật
+        avatarContainer.setOnMouseEntered(e -> {
+            overlay.setOpacity(1);
+            popupAvatar.setEffect(new DropShadow(javafx.scene.effect.BlurType.THREE_PASS_BOX, Color.web("#00ffff"), 12, 0.3, 0, 0));
+        });
+
+        // Khi chuột rời đi: Ẩn lớp phủ + Trả lại viền Tím ban đầu
+        avatarContainer.setOnMouseExited(e -> {
+            overlay.setOpacity(0);
+            popupAvatar.setEffect(avatarGlow);
+        });
+
+        // Khi click chuột: Gọi menu Tải ảnh
+        avatarContainer.setOnMouseClicked(e -> {
+            handleAvatarClick(popupAvatar);
+        });
+        // ========================================================
+
+        Label lblFullName = new Label(nullSafe(session.getFullName(), session.getUsername()));
+        lblFullName.setStyle("-fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: #f0e6ff; -fx-padding: 8 0 2 0;");
+
+        Label lblAtUsername = new Label("@" + nullSafe(session.getUsername(), "—"));
+        lblAtUsername.setStyle("-fx-font-size: 13px; -fx-text-fill: #9b59b6;");
+
+        // LƯU Ý: Thêm 'avatarContainer' thay vì 'popupAvatar'
+        topSection.getChildren().addAll(avatarContainer, lblFullName, lblAtUsername);
+
+        // INFO SECTION
+        VBox infoSection = new VBox(10);
+        infoSection.setPadding(new Insets(14, 24, 14, 24));
+        infoSection.getChildren().addAll(
+                infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
+                infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
+                infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
+        );
+
+        // ACTION SECTION
+        VBox actionSection = new VBox(10);
+        actionSection.setAlignment(Pos.CENTER);
+        actionSection.setPadding(new Insets(14, 20, 20, 20));
+
+        Button btnChangePassword = new Button("🔐  Đổi mật khẩu");
+        btnChangePassword.setMaxWidth(Double.MAX_VALUE);
+        btnChangePassword.setStyle("-fx-background-color: linear-gradient(to right, #6c3483, #8e44ad); -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px; -fx-background-radius: 10; -fx-cursor: hand; -fx-padding: 10 20;");
+        btnChangePassword.setOnMouseEntered(e -> btnChangePassword.setStyle("-fx-background-color: linear-gradient(to right, #7d3c98, #9b59b6); -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px; -fx-background-radius: 10; -fx-cursor: hand; -fx-padding: 10 20; -fx-effect: dropshadow(gaussian, rgba(142,68,173,0.55), 10, 0, 0, 2);"));
+        btnChangePassword.setOnMouseExited(e -> btnChangePassword.setStyle("-fx-background-color: linear-gradient(to right, #6c3483, #8e44ad); -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13.5px; -fx-background-radius: 10; -fx-cursor: hand; -fx-padding: 10 20;"));
+
+        btnChangePassword.setOnAction(e -> {
+            popup.hide();
+            handleChangePassword();
+        });
+
+        actionSection.getChildren().add(btnChangePassword);
+        card.getChildren().addAll(topSection, styledDivider(), infoSection, styledDivider(), actionSection);
+        wrapper.getChildren().add(card);
+        popup.getContent().add(wrapper);
+
+        return popup;
+    }
+
+    private HBox infoRow(String icon, String labelText, String value) {
+        Label iconLbl = new Label(icon); iconLbl.setStyle("-fx-font-size: 14px;"); iconLbl.setMinWidth(22);
+        Label keyLbl = new Label(labelText + ":"); keyLbl.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #9b59b6; -fx-min-width: 70;");
+        Label valLbl = new Label(value); valLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #dcd0ff; -fx-font-weight: bold;"); valLbl.setWrapText(true);
+        HBox row = new HBox(8, iconLbl, keyLbl, valLbl); row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    private Separator styledDivider() {
+        Separator sep = new Separator(); sep.setStyle("-fx-background-color: rgba(155,89,182,0.30); -fx-padding: 0 20;");
+        VBox.setMargin(sep, new Insets(0, 20, 0, 20)); return sep;
+    }
+
+    private String nullSafe(String value, String fallback) {
+        return (value != null && !value.isBlank()) ? value : fallback;
+    }
+
+    private void handleChangePassword() {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/auction/client/fxml/change-password.fxml"));
+            javafx.scene.Parent root = loader.load();
+            javafx.stage.Stage modalStage = new javafx.stage.Stage();
+            modalStage.setTitle("Đổi mật khẩu");
+            modalStage.setScene(new javafx.scene.Scene(root));
+            modalStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            if (lblUser != null && lblUser.getScene() != null) {
+                modalStage.initOwner(lblUser.getScene().getWindow());
+            }
+            modalStage.setResizable(false);
+            modalStage.showAndWait();
+        } catch (Exception e) {
+            e.printStackTrace();
+            AlertUtil.showError("Lỗi", "Không thể mở màn hình đổi mật khẩu: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleToggleTheme(javafx.event.ActionEvent event) {
+        com.auction.client.util.ThemeManager tm =
+            com.auction.client.util.ThemeManager.getInstance();
+        tm.toggle();
+        if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
+    }
+
+    // ========================================================
+    // 1. HÀM GỌI MENU
+    // ========================================================
+    private void handleAvatarClick(ImageView popupAvatar) {
+        javafx.scene.control.ContextMenu menu = new javafx.scene.control.ContextMenu();
+
+        javafx.scene.control.MenuItem uploadItem = new javafx.scene.control.MenuItem("📷  Tải ảnh lên...");
+        uploadItem.setOnAction(e -> {
+            // [ĐÃ SỬA BỆNH MINIMIZE]: Truyền null vào đây thay vì lấy Window của Popup
+            // Điều này tách FileChooser ra khỏi Popup, giúp App không bị văng xuống Taskbar nữa.
+            String base64 = com.auction.client.util.ImageUtil.pickAndEncodeAvatar(null);
+            if (base64 == null) return;
+
+            // Truyền luôn cái khung ảnh (popupAvatar) vào để tí nữa có cái mà cập nhật
+            sendAvatarUpdate(base64, popupAvatar);
+        });
+
+        javafx.scene.control.MenuItem removeItem = new javafx.scene.control.MenuItem("🗑  Xóa ảnh");
+        removeItem.setOnAction(e -> sendAvatarUpdate(null, popupAvatar)); // null = xóa ảnh
+
+        menu.getItems().addAll(uploadItem, removeItem);
+        menu.show(popupAvatar, javafx.geometry.Side.BOTTOM, 0, 4);
+    }
+
+    // ========================================================
+    // 2. HÀM GỬI LÊN SERVER VÀ CẬP NHẬT GIAO DIỆN
+    // ========================================================
+    private void sendAvatarUpdate(String base64, javafx.scene.image.ImageView popupAvatar) {
+        com.auction.client.model.UserSession session = com.auction.client.model.UserSession.getInstance();
+        if (session.getUserId() == null) return;
+
+        com.auction.shared.dto.request.UpdateAvatarRequest req =
+                new com.auction.shared.dto.request.UpdateAvatarRequest(session.getUserId(), base64);
+
+        new Thread(() -> {
+            try {
+                String serverMsg = com.auction.client.network.SocketClient.getInstance()
+                        .send(com.auction.shared.network.protocol.Actions.UPDATE_AVATAR, req, String.class);
+
+                javafx.application.Platform.runLater(() -> {
+                    session.setAvatarBase64(base64);
+
+                    // 1. Tạo đối tượng Image mới từ Base64
+                    javafx.scene.image.Image newImg;
+                    if (base64 == null) {
+                        newImg = new javafx.scene.image.Image(getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png"));
+                    } else {
+                        byte[] imageBytes = com.auction.client.util.ImageUtil.decodeToBytes(base64);
+                        newImg = new javafx.scene.image.Image(new java.io.ByteArrayInputStream(imageBytes));
+                    }
+
+                    // 2. Cập nhật ảnh to trong Popup (Áp dụng Center Crop chống méo)
+                    applyCenterCrop(popupAvatar, newImg);
+
+                    // 3. Cập nhật ảnh nhỏ bên ngoài
+                    if (this.imgAvatar != null) {
+                        applyCenterCrop(this.imgAvatar, newImg);
+                    }
+
+                    // 🌟 LỰA CHỌN 1: Đã tắt thông báo thành công (Silent UX)
+                    // com.auction.client.util.AlertUtil.showInfo("Thành công", serverMsg);
+                });
+
+            } catch (Exception ex) {
+                javafx.application.Platform.runLater(() -> {
+                    // Tuy ẩn thông báo thành công, nhưng lỗi thì vẫn nên giữ để người dùng biết nếu mất mạng nhé!
+                    com.auction.client.util.AlertUtil.showError("Lỗi", "Không thể cập nhật ảnh: " + ex.getMessage());
+                });
+            }
+        }).start();
+    }
+
+    /**
+     * Hàm tự động cắt ảnh (Center Crop) thành hình vuông chuẩn trước khi hiển thị.
+     * Hoạt động giống hệt thuộc tính 'object-fit: cover' trong CSS.
+     */
+    private void applyCenterCrop(javafx.scene.image.ImageView imageView, javafx.scene.image.Image img) {
+        imageView.setImage(img);
+        double w = img.getWidth();
+        double h = img.getHeight();
+        if (w > 0 && h > 0) {
+            // Lấy kích thước cạnh nhỏ nhất để tạo hình vuông
+            double size = Math.min(w, h);
+            // Tính tọa độ cắt để lấy đúng tâm bức ảnh
+            double x = (w - size) / 2.0;
+            double y = (h - size) / 2.0;
+            imageView.setViewport(new javafx.geometry.Rectangle2D(x, y, size, size));
+        }
     }
 }

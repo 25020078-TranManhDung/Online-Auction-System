@@ -29,7 +29,7 @@
                        preserveRatio="true"
                        style="-fx-effect: dropshadow(gaussian, #9b59b640, 8, 0, 0, 2);">
                 <image>
-                    <Image url="@/com/auction/client/images/bg_login.jpg"/>
+                    <Image url="@/com/auction/client/images/logo.png"/>
                 </image>
             </ImageView>
 
@@ -42,20 +42,31 @@
             <Region HBox.hgrow="ALWAYS"/>
 
             <HBox alignment="CENTER" spacing="14.0">
-                <ImageView fx:id="imgAvatar"
-                           fitHeight="40.0" fitWidth="40.0"
-                           preserveRatio="true"
-                           style="-fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
-                    <image>
-                        <Image url="@/com/auction/client/images/default_avatar.png"/>
-                    </image>
-                </ImageView>
-                <VBox alignment="CENTER_LEFT" spacing="1.0">
-                    <Label fx:id="lblUser"
-                           style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
-                    <Label text="Người bán"
-                           style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
-                </VBox>
+
+                <HBox fx:id="headerUserArea"
+                      alignment="CENTER" spacing="10.0"
+                      style="-fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 12; -fx-background-color: transparent;">
+
+                    <ImageView fx:id="imgAvatar"
+                               fitHeight="40.0" fitWidth="40.0"
+                               preserveRatio="true"
+                               style="-fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
+                        <image>
+                            <Image url="@/com/auction/client/images/default_avatar.png"/>
+                        </image>
+                    </ImageView>
+                    <VBox alignment="CENTER_LEFT" spacing="1.0">
+                        <Label fx:id="lblUser"
+                               style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
+                        <Label text="Người bán"
+                               style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
+                    </VBox>
+                </HBox>
+                <Button fx:id="btnTheme"
+                        onAction="#handleToggleTheme"
+                        styleClass="btn-auction-primary"
+                        style="-fx-font-size: 12px; -fx-padding: 7 16;
+                               -fx-background-color: rgba(80,30,120,0.7);"/>
                 <Button fx:id="btnLogout" text="Đăng xuất"
                         onAction="#handleLogout"
                         styleClass="btn-auction-primary"
@@ -145,7 +156,7 @@
 
                         <!-- Tên sản phẩm -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Tên sản phẩm" styleClass="field-label"/>
+                            <Label text="Tên sản phẩm" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtProductName"
                                        promptText="Nhập tên sản phẩm"
                                        styleClass="input-auction"/>
@@ -153,7 +164,7 @@
 
                         <!-- Mô tả -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Mô tả chi tiết" styleClass="field-label"/>
+                            <Label text="Mô tả chi tiết" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextArea fx:id="txtDescription"
                                       promptText="Mô tả tình trạng, xuất xứ, đặc điểm sản phẩm..."
                                       styleClass="input-auction"
@@ -164,7 +175,7 @@
 
                         <!-- Danh mục sản phẩm -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Danh mục sản phẩm" styleClass="field-label"/>
+                            <Label text="Danh mục sản phẩm" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <ComboBox fx:id="cboCategory"
                                       promptText="Chọn danh mục..."
                                       styleClass="input-auction"
@@ -198,7 +209,7 @@
 
                         <!-- Giá khởi điểm -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Giá khởi điểm (VNĐ)" styleClass="field-label"/>
+                            <Label text="Giá khởi điểm (VNĐ)" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtStartPrice"
                                        promptText="Ví dụ: 500000"
                                        styleClass="input-auction"/>
@@ -206,7 +217,7 @@
 
                         <!-- Bước giá -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Bước giá tối thiểu (VNĐ)" styleClass="field-label"/>
+                            <Label text="Bước giá tối thiểu (VNĐ)" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtMinIncrement"
                                        promptText="Ví dụ: 50000"
                                        styleClass="input-auction"/>
@@ -214,7 +225,7 @@
 
                         <!-- Thời gian bắt đầu -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Thời gian bắt đầu" styleClass="field-label"/>
+                            <Label text="Thời gian bắt đầu" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <HBox spacing="8.0">
                                 <DatePicker fx:id="dpStartDate"
                                             promptText="Chọn ngày"
@@ -232,7 +243,7 @@
 
                         <!-- Thời gian đấu giá -->
                         <VBox alignment="CENTER_LEFT" spacing="5.0">
-                            <Label text="Thời gian đấu giá (phút)" styleClass="field-label"/>
+                            <Label text="Thời gian đấu giá (phút)" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtDuration"
                                        promptText="Ví dụ: 60"
                                        styleClass="input-auction"/>
@@ -304,7 +315,7 @@
                         <TableColumn fx:id="colBidCount" text="Lượt Đặt"      prefWidth="90.0"  style="-fx-alignment: CENTER;"/>
                         <TableColumn fx:id="colStatus"   text="Trạng Thái"    prefWidth="115.0" style="-fx-alignment: CENTER;"/>
                         <TableColumn fx:id="colEndTime"  text="Kết Thúc"      prefWidth="140.0" style="-fx-alignment: CENTER;"/>
-                        <TableColumn fx:id="colAction"   text="Thao Tác"      prefWidth="120.0" style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colAction"   text="Thao Tác"      prefWidth="180.0" style="-fx-alignment: CENTER;"/>
                     </columns>
                     <placeholder>
                         <VBox alignment="CENTER" spacing="10.0">

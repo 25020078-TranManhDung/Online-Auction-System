@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import com.auction.shared.dto.request.ChangePasswordRequest;
 
 public class UserService {
 
@@ -53,7 +54,12 @@ public class UserService {
         }
 
         String token = TokenUtil.generate(user.getId(), user.getRole().name());
-        return new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
+
+        AuthResponse auth = new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
+        auth.setFullName(user.getFullname());
+        auth.setEmail(user.getEmail());
+
+        return auth;
     }
 
     /**
@@ -105,7 +111,18 @@ public class UserService {
         }
 
         String token = TokenUtil.generate(user.getId(), user.getRole().name());
-        return new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
+
+        // Tạo túi AuthResponse
+        AuthResponse auth = new AuthResponse(user.getId(), user.getUsername(), user.getRole(), token);
+
+        // NHÉT THÊM HỌ TÊN VÀ EMAIL VÀO TÚI
+        auth.setFullName(user.getFullname());
+        auth.setEmail(user.getEmail());
+
+        // ✅ THÊM DÒNG NÀY: Lấy chuỗi ảnh từ Database nhét vào túi để gửi về Client
+        auth.setAvatarBase64(user.getAvatar());
+
+        return auth;
     }
 
     public User getById(String userId) {
@@ -229,6 +246,63 @@ public class UserService {
         if (!userDao.update(user)) {
             throw new RuntimeException("Lỗi khi cập nhật trạng thái người dùng vào cơ sở dữ liệu.");
         }
+    }
+
+    /**
+     * Xử lý logic Đổi mật khẩu:
+     * 1. Tìm User theo ID.
+     * 2. Kiểm tra mật khẩu cũ có khớp không.
+     * 3. Băm mật khẩu mới và lưu xuống Database.
+     */
+    public void changePassword(ChangePasswordRequest req) {
+        // 1. Tìm người dùng trong DB
+        User user = userDao.findById(req.getUserId());
+        if (user == null) {
+            throw new ResourceNotFoundException("USER_NOT_FOUND", "Không tìm thấy người dùng với ID này.");
+        }
+
+        // 2. Kiểm tra mật khẩu cũ
+        if (!PasswordUtil.verify(req.getOldPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Mật khẩu hiện tại không chính xác!");
+        }
+
+        // 3. (Tùy chọn) Kiểm tra xem mật khẩu mới có trùng với mật khẩu cũ không
+        if (PasswordUtil.verify(req.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu mới không được trùng với mật khẩu cũ!");
+        }
+
+        // 4. Băm mật khẩu mới và cập nhật
+        user.setPassword(PasswordUtil.hash(req.getNewPassword()));
+
+        if (!userDao.update(user)) {
+            throw new RuntimeException("Đã xảy ra lỗi khi cập nhật mật khẩu vào cơ sở dữ liệu.");
+        }
+
+        System.out.println("[UserService] Đổi mật khẩu thành công cho user: " + user.getUsername());
+    }
+
+    /**
+     * Xử lý logic Cập nhật ảnh đại diện:
+     * 1. Tìm User theo ID.
+     * 2. Gán chuỗi Base64 mới (hoặc null nếu xóa).
+     * 3. Lưu xuống Database.
+     */
+    public void updateAvatar(String userId, String avatarBase64) {
+        // 1. Tìm người dùng trong DB
+        User user = userDao.findById(userId);
+        if (user == null) {
+            throw new ResourceNotFoundException("USER_NOT_FOUND", "Không tìm thấy người dùng với ID này.");
+        }
+
+        // 2. Cập nhật trường avatar
+        user.setAvatar(avatarBase64);
+
+        // 3. Lưu xuống cơ sở dữ liệu
+        if (!userDao.update(user)) {
+            throw new RuntimeException("Đã xảy ra lỗi khi cập nhật ảnh đại diện vào cơ sở dữ liệu.");
+        }
+
+        System.out.println("[UserService] Cập nhật ảnh đại diện thành công cho user: " + user.getUsername());
     }
 }
 

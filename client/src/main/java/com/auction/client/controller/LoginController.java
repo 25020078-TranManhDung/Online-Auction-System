@@ -11,6 +11,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +40,14 @@ public class LoginController {
         public String username;
         public String role;
         public String expiresAt;
+
+        @com.google.gson.annotations.SerializedName(value = "fullName", alternate = {"full_name", "name"})
+        public String fullName;
+
+        @com.google.gson.annotations.SerializedName(value = "email", alternate = {"user_email", "mail"})
+        public String email;
+
+        public String avatarBase64;
     }
 
     /**
@@ -73,13 +82,18 @@ public class LoginController {
 
                 // Đăng nhập thành công
                 Platform.runLater(() -> {
+                    // THAY MỚI: Gọi hàm initSession 7 tham số (có fullName và email)
                     UserSession.getInstance().initSession(
-                        response.userId,
-                        response.username,
-                        response.token,
-                        response.role,
-                        response.expiresAt
+                            response.userId,
+                            response.username,
+                            response.fullName, // Truyền Họ tên thật vào đây
+                            response.email,    // Truyền Email vào đây
+                            response.token,
+                            response.role,
+                            response.expiresAt
                     );
+
+                    UserSession.getInstance().setAvatarBase64(response.avatarBase64);
 
                     try {
                         if ("SELLER".equals(response.role)) {

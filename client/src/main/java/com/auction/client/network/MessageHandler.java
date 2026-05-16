@@ -96,6 +96,12 @@ public class MessageHandler implements Runnable {
                 Platform.runLater(() -> auctionListeners.forEach(l -> l.onAuctionStatusChanged(rawJsonObject)));
             }
 
+            // Seller cập nhật thông tin phiên OPEN → tái dùng onAuctionStatusChanged
+            // với event = AUCTION_INFO_UPDATED để AuctionDetailController hiện banner reload
+            case Actions.AUCTION_INFO_UPDATED -> {
+                Platform.runLater(() -> auctionListeners.forEach(l -> l.onAuctionStatusChanged(rawJsonObject)));
+            }
+
             // FIX REQ-3: Xử lý push khi server đổi trạng thái phiên sang PAID hoặc CANCELED.
             // Trước đây bị rơi vào default → bị bỏ qua hoàn toàn, UI không cập nhật gì.
             // Dùng cùng callback onAuctionStatusChanged() để UI (AuctionDetailController) tự

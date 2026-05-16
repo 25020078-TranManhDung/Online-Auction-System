@@ -16,6 +16,9 @@ public interface AuctionObserver {
     // Khi phiên đấu giá kết thúc (RUNNING -> FINISHED)
     void onAuctionClosed(Auction auction);
 
+    // Khi Seller cập nhật thông tin phiên (OPEN, chưa chạy) → notify bidder đang xem
+    void onAuctionInfoUpdated(Auction auction);
+
     // Khi trạng thái phiên đổi thành PAID hoặc CANCELED (FINISHED -> PAID/CANCELED)
     void onAuctionStatusChanged(Auction auction, String newStatus);
 

@@ -1,0 +1,249 @@
+/* ============================================================
+   DARK MODE OVERRIDES
+   Chỉ ghi đè các selector có màu sắc khác Light mode.
+   style.css vẫn load trước, file này load sau để override.
+   ============================================================ */
+
+/* ── 1. NỀN TOÀN MÀN HÌNH ── */
+.auction-bg,
+#loginPane,
+#auctionListPane,
+#biddingPane,
+#auctionDetailPane,
+#sellerDashboardPane,
+#adminDashboardPane,
+#registerPane {
+    -fx-background-image: url("/com/auction/client/images/bg_dark.jpg");
+}
+/*
+   Nếu chưa có bg_dark.jpg, xóa dòng -fx-background-image trên
+   và bỏ comment phần dưới để dùng màu tối thay thế:
+
+.auction-bg,
+#loginPane, #auctionListPane, #biddingPane,
+#auctionDetailPane, #sellerDashboardPane, #adminDashboardPane, #registerPane {
+    -fx-background-image: none;
+    -fx-background-color: #1a0d2e;
+}
+*/
+
+/* ── 2. GLASS-BOX ── */
+.glass-box {
+    -fx-background-color: rgba(20, 8, 40, 0.82);
+    -fx-border-color: rgba(155, 89, 182, 0.25);
+    -fx-effect: dropshadow(gaussian, rgba(155, 89, 182, 0.15), 18, 0, 0, 6);
+}
+
+/* ── 3. TYPOGRAPHY ── */
+.auction-title {
+    -fx-text-fill: #e8d5f5;
+    -fx-effect: dropshadow(gaussian, rgba(155, 89, 182, 0.6), 10, 0.5, 0, 0);
+}
+
+.auction-subtitle {
+    -fx-text-fill: #c39bd3;
+    -fx-effect: none;
+}
+
+.login-main-title {
+    -fx-text-fill: #ddb6f2;
+}
+
+.field-label {
+    -fx-text-fill: #a569bd;
+}
+
+/* ── 4. INPUT ── */
+.input-auction {
+    -fx-background-color: rgba(40, 15, 70, 0.90);
+    -fx-border-color: rgba(155, 89, 182, 0.40);
+    -fx-text-fill: #e8d5f5;
+    -fx-prompt-text-fill: rgba(165, 105, 189, 0.60);
+}
+
+.input-auction:focused {
+    -fx-border-color: #9b59b6;
+    -fx-background-color: rgba(50, 20, 85, 0.95);
+    -fx-effect: dropshadow(gaussian, rgba(155, 89, 182, 0.35), 8, 0, 0, 0);
+}
+
+.input-auction:hover {
+    -fx-border-color: rgba(155, 89, 182, 0.65);
+}
+
+/* ── 5. TABLE VIEW ── */
+.table-row-cell {
+    -fx-background-color: rgba(20, 8, 40, 0.70);
+    -fx-border-color: transparent transparent rgba(155, 89, 182, 0.15) transparent;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: rgba(40, 15, 65, 0.55);
+}
+
+.table-row-cell:hover {
+    -fx-background-color: rgba(155, 89, 182, 0.22);
+}
+
+.table-row-cell:selected {
+    -fx-background-color: rgba(142, 68, 173, 0.38);
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: #e8d5f5;
+}
+
+.table-cell {
+    -fx-text-fill: #d7bde2;
+}
+
+.table-view .placeholder .label {
+    -fx-text-fill: #9b59b6;
+}
+
+/* ── 6. LIST VIEW ── */
+.list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d7bde2;
+    -fx-border-color: transparent transparent rgba(155, 89, 182, 0.15) transparent;
+}
+
+.list-cell:odd {
+    -fx-background-color: rgba(40, 15, 65, 0.40);
+}
+
+.list-cell:hover {
+    -fx-background-color: rgba(155, 89, 182, 0.20);
+}
+
+.list-cell:selected {
+    -fx-background-color: rgba(142, 68, 173, 0.35);
+    -fx-text-fill: #e8d5f5;
+}
+
+/* ── 7. COMBO BOX ── */
+.combo-box-popup .list-view {
+    -fx-background-color: #2c1050;
+    -fx-border-color: rgba(155, 89, 182, 0.40);
+}
+
+.combo-box-popup .list-cell {
+    -fx-text-fill: #d7bde2;
+    -fx-background-color: transparent;
+}
+
+.combo-box-popup .list-cell:filled:hover {
+    -fx-background-color: rgba(155, 89, 182, 0.28);
+    -fx-text-fill: #e8d5f5;
+}
+
+.combo-box-popup .list-cell:filled:selected {
+    -fx-background-color: #6c3483;
+    -fx-text-fill: white;
+}
+
+/* ── 8. TAB PANE ── */
+.tab {
+    -fx-background-color: rgba(50, 15, 80, 0.55);
+}
+
+.tab:hover {
+    -fx-background-color: rgba(100, 40, 140, 0.45);
+}
+
+.tab:selected {
+    -fx-background-color: rgba(20, 8, 40, 0.88);
+    -fx-border-color: rgba(155, 89, 182, 0.40)
+    rgba(155, 89, 182, 0.40)
+    transparent
+    rgba(155, 89, 182, 0.40);
+}
+
+.tab .tab-label {
+    -fx-text-fill: #c39bd3;
+}
+
+.tab:selected .tab-label {
+    -fx-text-fill: #e8d5f5;
+}
+
+/* ── 9. CHART ── */
+.chart-plot-background {
+    -fx-background-color: rgba(20, 8, 40, 0.60);
+}
+
+.chart-vertical-grid-lines {
+    -fx-stroke: rgba(155, 89, 182, 0.10);
+}
+
+.chart-horizontal-grid-lines {
+    -fx-stroke: rgba(155, 89, 182, 0.16);
+}
+
+.axis {
+    -fx-tick-label-fill: #a569bd;
+}
+
+.axis-label {
+    -fx-text-fill: #9b59b6;
+}
+
+.chart-legend {
+    -fx-background-color: rgba(20, 8, 40, 0.80);
+}
+
+/* ── 10. SCROLL BAR ── */
+.scroll-bar .thumb {
+    -fx-background-color: rgba(155, 89, 182, 0.45);
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: rgba(155, 89, 182, 0.75);
+}
+
+/* ── 11. SEPARATOR ── */
+.separator .line {
+    -fx-background-color: rgba(155, 89, 182, 0.30);
+}
+
+/* ── 12. TOOLTIP ── */
+.tooltip {
+    -fx-background-color: #1a0833;
+    -fx-text-fill: #e8d5f5;
+    -fx-border-color: rgba(155, 89, 182, 0.50);
+    -fx-border-width: 1;
+}
+
+/* ── 13. REGISTER SCREEN ── */
+.register-bg,
+#registerPane {
+    -fx-background-color: #0f0520;
+}
+
+.role-card-body,
+.role-card-footer {
+    -fx-background-color: rgba(10, 3, 25, 0.75);
+}
+
+.form-card {
+    -fx-border-color: rgba(155, 89, 182, 0.30);
+}
+
+.form-card-title {
+    -fx-text-fill: #e8d5f5;
+}
+
+.form-card .field-label {
+    -fx-text-fill: #a569bd;
+}
+
+.form-card .input-auction {
+    -fx-border-color: rgba(155, 89, 182, 0.35);
+    -fx-background-color: rgba(40, 15, 70, 0.90);
+    -fx-text-fill: #e8d5f5;
+}
+
+.form-card .input-auction:focused {
+    -fx-border-color: #9b59b6;
+    -fx-background-color: rgba(50, 20, 85, 0.95);
+}

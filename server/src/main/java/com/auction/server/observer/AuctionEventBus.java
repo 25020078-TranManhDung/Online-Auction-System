@@ -56,6 +56,11 @@ public class AuctionEventBus {
         observers.forEach(o -> o.onAuctionClosed(a));
     }
 
+    /** Seller cập nhật thông tin phiên OPEN → push cho tất cả client đang xem phiên */
+    public void publishAuctionInfoUpdated(Auction a) {
+        observers.forEach(o -> o.onAuctionInfoUpdated(a));
+    }
+
     /**
      * Phát sự kiện khi phiên đổi sang PAID hoặc CANCELED.
      * @param newStatus "PAID" hoặc "CANCELED"

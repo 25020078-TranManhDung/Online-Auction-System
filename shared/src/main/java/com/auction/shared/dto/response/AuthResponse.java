@@ -9,6 +9,9 @@ public class AuthResponse implements Serializable {
     private String username;
     private UserRole role;
     private String token;     // Thêm trường token để dùng cho các request sau
+    private String fullName;
+    private String email;
+    private String avatarBase64;
 
     public AuthResponse() {}
 
@@ -30,4 +33,13 @@ public class AuthResponse implements Serializable {
 
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getAvatarBase64() { return avatarBase64; }
+    public void setAvatarBase64(String avatarBase64) { this.avatarBase64 = avatarBase64; }
 }

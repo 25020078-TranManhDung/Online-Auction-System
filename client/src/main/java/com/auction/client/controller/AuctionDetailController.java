@@ -25,6 +25,8 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
+import com.auction.shared.dto.response.WalletResponse;
+import com.auction.client.controller.BidderWalletController;
 
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -44,9 +46,13 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
     // ===== Header / Navigation =====
     @FXML private ImageView imgAvatar;
+    @FXML private javafx.scene.layout.HBox headerUserArea;
     @FXML private Label lblUser;
     @FXML private Label lblRole;
     @FXML private Button btnBack;
+    @FXML private Button btnTheme;  // Dark/Light mode toggle
+
+    @FXML private Label lblWalletBalance;
 
     // ===== Left column (product + bid) =====
     @FXML private Label lblProductName;
@@ -61,7 +67,16 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
     @FXML private Label lblDescription;
     @FXML private Button btnPlaceBid;
     @FXML private Button btnMarkAsPaid;   // FIX #1: nút thanh toán cho winner/admin
+    @FXML private Button btnReload;       // Hiện khi seller cập nhật thông tin phiên
     @FXML private Label lblMessage;
+    @FXML private ImageView imgProduct;
+    @FXML private Button btnPrevImage;
+    @FXML private Button btnNextImage;
+    @FXML private Label lblImageIndex;
+
+    // Lưu danh sách ảnh và vị trí hiện tại
+    private final java.util.List<Image> productImages = new java.util.ArrayList<>();
+    private int currentImageIndex = 0;
 
     // ===== Middle column (chart) =====
     @FXML private LineChart<String, Number> priceChart;
@@ -111,7 +126,11 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
     @FXML
     public void initialize() {
+        if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+
         loadUserInfo();
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
+        loadWalletBalance();
 
         // Initialize chart series early to avoid race with realtime updates
         priceSeries = new XYChart.Series<>();
@@ -206,8 +225,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Determine startPrice and currentPrice with multiple key fallbacks
             long startPrice = getLongSafe(item, "startPrice",
-                    getLongSafe(auction, "startingPrice",
-                            getLongSafe(auction, "start_price", 0L)));
+                getLongSafe(auction, "startingPrice",
+                    getLongSafe(auction, "start_price", 0L)));
             long currentPrice = getLongSafe(auction, "currentPrice", getLongSafe(auction, "current_price", startPrice));
             this.currentPriceValue = currentPrice;
 
@@ -215,8 +234,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
             // Server trả AuctionResponse flat (title, description ở root), không có nested "item"
             // → phải đọc từ auction (root) khi item == null
             this.currentProductName = getSafe(item, "title",
-                    getSafe(item, "name",
-                            getSafe(auction, "title", "—")));
+                getSafe(item, "name",
+                    getSafe(auction, "title", "—")));
             this.currentSellerId    = getSafe(auction, "sellerId", getSafe(auction, "seller", "—"));
             this.currentStatus      = getSafe(auction, "status", "—");
             this.currentBidCount    = getIntSafe(auction, "bidCount", getIntSafe(data, "bidCount", getIntSafe(auction, "bid_count", 0)));
@@ -235,6 +254,37 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
             this.currentDescription = rawDesc;
             // Hiển thị mô tả (bỏ prefix [IMG:...] nếu có)
             lblDescription.setText(stripImagePrefix(rawDesc));
+            // ────────────────────────────────────────────────────────
+            // THAY MỚI: Bóc tách TẤT CẢ ảnh Base64 từ description
+            // ────────────────────────────────────────────────────────
+            productImages.clear();
+            currentImageIndex = 0;
+
+            if (rawDesc != null && rawDesc.startsWith("[IMGS:")) {
+                int endIdx = rawDesc.indexOf("]");
+                if (endIdx > 0) {
+                    String allImages = rawDesc.substring(6, endIdx);
+                    String[] parts = allImages.split("\\|");
+                    for (String base64 : parts) {
+                        try {
+                            byte[] imageBytes = java.util.Base64.getDecoder().decode(base64.trim());
+                            productImages.add(new Image(new java.io.ByteArrayInputStream(imageBytes)));
+                        } catch (Exception ignored) {}
+                    }
+                }
+            } else if (rawDesc != null && rawDesc.startsWith("[IMG:")) {
+                int endIdx = rawDesc.indexOf("]");
+                if (endIdx > 0) {
+                    try {
+                        byte[] imageBytes = java.util.Base64.getDecoder().decode(rawDesc.substring(5, endIdx).trim());
+                        productImages.add(new Image(new java.io.ByteArrayInputStream(imageBytes)));
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            // Gọi hàm cập nhật hiển thị
+            updateImageDisplay();
+            // ────────────────────────────────────────────────────────
 
             // Chart: initialize series if needed — dữ liệu sẽ được populate sau khi parse bids
             if (priceChart != null && priceSeries == null) {
@@ -277,7 +327,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                             // "timestamp" được serialize bởi JsonUtil thành ISO-8601 string
                             // → ChartUtil.normalizeLabel() cắt lấy HH:mm:ss
                             String raw = getSafe(b, "timestamp",
-                                    getSafe(b, "time", getSafe(b, "createdAt", "")));
+                                getSafe(b, "time", getSafe(b, "createdAt", "")));
                             String timeLabel = formatTimeOnly(raw); // Gọi hàm vừa tạo thay vì dùng ChartUtil
                             if (timeLabel.equals(raw) && raw.isEmpty()) {
                                 timeLabel = "Bid " + (limit - i); // fallback index khi không có timestamp
@@ -347,7 +397,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         }
     }
 
-    // ----------------- User actions -----------------
+    // ----------------- User actions -----------------//
 
     @FXML
     void handlePlaceBid(ActionEvent event) {
@@ -361,7 +411,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Tải bidding.fxml cùng controller để truyền dữ liệu, KHÔNG mở cửa sổ mới
             ViewLoader.ViewResult<BiddingController> result =
-                    ViewLoader.loadViewWithController("bidding.fxml");
+                ViewLoader.loadViewWithController("bidding.fxml");
 
             if (result == null || result.getController() == null) {
                 AlertUtil.showError("Lỗi giao diện", "Không thể khởi tạo màn hình đặt giá.");
@@ -370,18 +420,18 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             // Truyền dữ liệu phiên vào controller
             result.getController().setAuctionData(
-                    currentAuctionId,
-                    currentPriceValue,
-                    minInc,
-                    currentLeaderName,
-                    currentLeaderBid,
-                    currentProductName,
-                    currentSellerId,
-                    currentStatus,
-                    currentBidCount,
-                    secondsRemaining,
-                    currentBidHistory,
-                    currentDescription
+                currentAuctionId,
+                currentPriceValue,
+                minInc,
+                currentLeaderName,
+                currentLeaderBid,
+                currentProductName,
+                currentSellerId,
+                currentStatus,
+                currentBidCount,
+                secondsRemaining,
+                currentBidHistory,
+                currentDescription
             );
 
             // Dọn dẹp timer và listener trước khi rời màn hình
@@ -433,6 +483,65 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         } catch (Exception e) {
             e.printStackTrace();
             AlertUtil.showError("Lỗi", "Không thể quay lại danh sách: " + e.getMessage());
+        }
+    }
+
+    // ----------------- Khối chức năng Ví -----------------
+
+    /**
+     * Tải số dư ví ngầm để không làm đơ giao diện
+     */
+    private void loadWalletBalance() {
+        new Thread(() -> {
+            try {
+                WalletResponse resp = SocketClient.getInstance()
+                    .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
+                if (resp != null) {
+                    Platform.runLater(() -> {
+                        if (lblWalletBalance != null) {
+                            // Cập nhật số dư lên giao diện
+                            lblWalletBalance.setText("Số dư: " + formatMoney(Math.round(resp.getAvailableBalance())));
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Không thể tải số dư ví: " + e.getMessage());
+            }
+        }, "detail-wallet-preload-thread").start();
+    }
+
+    /**
+     * Xử lý khi bấm nút "Chi tiết ví"
+     */
+    @FXML
+    void handleOpenWallet(ActionEvent event) {
+        // 1. DỌN DẸP tài nguyên (Hủy đếm ngược và Ngắt kết nối Realtime) trước khi đi
+        if (countdownTimer != null) {
+            countdownTimer.cancel();
+            countdownTimer = null;
+        }
+        MessageHandler handler = getMessageHandlerByReflection();
+        if (handler != null) {
+            handler.removeBidListener(this);
+            handler.removeAuctionListener(this);
+        }
+
+        // 2. Chuyển sang màn hình Ví điện tử
+        try {
+            ViewLoader.ViewResult<BidderWalletController> result =
+                ViewLoader.loadViewWithController("bidder-wallet.fxml");
+
+            if (result != null && result.getController() != null) {
+                // TRUYỀN ID PHIÊN ĐẤU GIÁ: Để lúc nạp tiền xong, ví biết đường quay lại đúng sản phẩm này!
+                result.getController().setReturnAuctionId(this.currentAuctionId);
+
+                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                stage.getScene().setRoot(result.getView());
+                stage.setTitle("💰 Ví Điện Tử");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            AlertUtil.showError("Lỗi", "Không thể mở màn hình ví: " + e.getMessage());
         }
     }
 
@@ -511,7 +620,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
         // Cập nhật câu chữ để Bidder hiểu rõ luồng tiền
         boolean confirmed = AlertUtil.showConfirm("Xác nhận thanh toán",
-                "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
+            "Bạn có chắc muốn thanh toán cho phiên đấu giá này?\nSố tiền đang bị tạm giữ trong ví của bạn sẽ chính thức được chuyển cho người bán.");
         if (!confirmed) return;
 
         new Thread(() -> {
@@ -555,6 +664,12 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
 
             String event     = getSafe(eventData, "event", "");
             String newStatus = getSafe(data, "newStatus", getSafe(data, "status", ""));
+
+            if (Actions.AUCTION_INFO_UPDATED.equals(event)) {
+                // Seller vừa cập nhật thông tin phiên → hiện banner reload
+                Platform.runLater(() -> showReloadBanner());
+                return;
+            }
 
             if (Actions.AUCTION_CLOSED.equals(event) || "FINISHED".equalsIgnoreCase(newStatus)) {
                 // Phiên vừa kết thúc → lưu winnerId từ push
@@ -676,6 +791,29 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         return String.format("%,d VNĐ", amount);
     }
 
+    /**
+     * Hiện banner thông báo seller vừa cập nhật thông tin phiên.
+     * Banner gồm text + nút "Tải lại" — khi nhấn sẽ reload dữ liệu phiên.
+     */
+    private void showReloadBanner() {
+        showMessage("ℹ️ Thông tin phiên đấu giá vừa được người bán cập nhật. Nhấn để tải lại.");
+        if (btnReload != null) {
+            btnReload.setVisible(true);
+            btnReload.setManaged(true);
+        }
+    }
+
+    /** Xử lý khi bidder nhấn nút "Tải lại" */
+    @FXML
+    void handleReload(javafx.event.ActionEvent event) {
+        if (btnReload != null) btnReload.setVisible(false);
+        if (lblMessage != null) lblMessage.setVisible(false);
+        // Reload toàn bộ dữ liệu phiên từ server
+        if (currentAuctionId != null) {
+            initData(currentAuctionId);
+        }
+    }
+
     private void showMessage(String msg) {
         if (lblMessage != null) {
             lblMessage.setText(msg);
@@ -699,6 +837,23 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         return raw.isBlank() ? "—" : raw;
     }
 
+    /** Tách lấy URL ảnh từ chuỗi mô tả thô */
+    private String extractImageUrl(String raw) {
+        if (raw == null) return null;
+        if (raw.startsWith("[IMGS:") || raw.startsWith("[IMG:")) {
+            int end = raw.indexOf("]");
+            if (end > 0) {
+                String urlPart = raw.substring(raw.indexOf(":") + 1, end).trim();
+                // Nếu có nhiều ảnh phẩy nhau, lấy ảnh đầu tiên hiển thị
+                if (urlPart.contains(",")) {
+                    urlPart = urlPart.split(",")[0].trim();
+                }
+                return urlPart;
+            }
+        }
+        return null;
+    }
+
     private String formatTimeOnly(String rawTimestamp) {
         if (rawTimestamp == null || rawTimestamp.isEmpty()) return "";
         try {
@@ -713,4 +868,62 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
             return rawTimestamp;
         }
     }
+
+    // ----------------- Multi-Image Logic -----------------
+
+    private void updateImageDisplay() {
+        if (productImages.isEmpty()) {
+            imgProduct.setImage(null);
+            if(btnPrevImage != null) btnPrevImage.setVisible(false);
+            if(btnNextImage != null) btnNextImage.setVisible(false);
+            if(lblImageIndex != null) lblImageIndex.setVisible(false);
+            return;
+        }
+
+        // Hiển thị ảnh hiện tại
+        imgProduct.setImage(productImages.get(currentImageIndex));
+
+        // Nếu có nhiều hơn 1 ảnh thì hiện nút chuyển và số thứ tự
+        if (productImages.size() > 1) {
+            if(btnPrevImage != null) btnPrevImage.setVisible(true);
+            if(btnNextImage != null) btnNextImage.setVisible(true);
+            if(lblImageIndex != null) {
+                lblImageIndex.setText((currentImageIndex + 1) + "/" + productImages.size());
+                lblImageIndex.setVisible(true);
+            }
+        } else {
+            // Có đúng 1 ảnh thì ẩn nút đi
+            if(btnPrevImage != null) btnPrevImage.setVisible(false);
+            if(btnNextImage != null) btnNextImage.setVisible(false);
+            if(lblImageIndex != null) {
+                lblImageIndex.setText("1/1");
+                lblImageIndex.setVisible(true);
+            }
+        }
+    }
+
+    @FXML
+    void handlePrevImage(ActionEvent event) {
+        if (productImages.isEmpty()) return;
+        // Lùi index, nếu < 0 thì vòng về ảnh cuối
+        currentImageIndex = (currentImageIndex - 1 + productImages.size()) % productImages.size();
+        updateImageDisplay();
+    }
+
+    @FXML
+    void handleNextImage(ActionEvent event) {
+        if (productImages.isEmpty()) return;
+        // Tiến index, nếu quá số lượng thì vòng về ảnh đầu
+        currentImageIndex = (currentImageIndex + 1) % productImages.size();
+        updateImageDisplay();
+    }
+
+    @FXML
+    private void handleToggleTheme(javafx.event.ActionEvent event) {
+        com.auction.client.util.ThemeManager tm =
+            com.auction.client.util.ThemeManager.getInstance();
+        tm.toggle();
+        if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
+    }
+
 }

@@ -68,6 +68,10 @@ public class MainApp extends Application {
                 System.err.println(">>> LỖI: Không tìm thấy file style.css!");
             }
 
+            // ★ THÊM MỚI: Đăng ký Scene với ThemeManager để dark mode hoạt động toàn app.
+            // Gọi sau khi nạp style.css để ThemeManager có thể thêm dark-mode.css vào sau.
+            com.auction.client.util.ThemeManager.getInstance().setScene(scene);
+
             // 4. Cấu hình Stage
             primaryStage.setTitle("Hệ thống đấu giá trực tuyến");
             primaryStage.setScene(scene);

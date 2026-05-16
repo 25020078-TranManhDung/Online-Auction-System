@@ -45,10 +45,14 @@ public class AdminWalletController {
     @FXML private Button btnClose;
     @FXML private Button btnRefresh;
 
+    @FXML private javafx.scene.layout.HBox headerUserArea;
+    @FXML private javafx.scene.image.ImageView imgAvatar;
+
     private final ObservableList<WalletTransaction> txList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
         loadUserInfo();
         setupTable();
         loadWallet();

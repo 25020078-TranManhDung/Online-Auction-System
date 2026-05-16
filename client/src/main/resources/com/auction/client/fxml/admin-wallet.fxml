@@ -33,12 +33,25 @@
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <VBox alignment="CENTER_RIGHT" spacing="2.0">
-                <Label fx:id="lblUser" text="Admin"
-                       style="-fx-text-fill: #2c3e50; -fx-font-weight: bold; -fx-font-size: 14px;"/>
-                <Label fx:id="lblRole" text="Quản trị viên"
-                       style="-fx-text-fill: #7f8c8d; -fx-font-size: 12px;"/>
-            </VBox>
+            <HBox fx:id="headerUserArea" alignment="CENTER_LEFT" spacing="10.0" style="-fx-padding: 4 8;">
+
+                <ImageView fx:id="imgAvatar"
+                           fitHeight="40.0" fitWidth="40.0"
+                           preserveRatio="true"
+                           style="-fx-border-radius: 50; -fx-background-radius: 50;
+                                  -fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
+                    <image>
+                        <Image url="@/com/auction/client/images/default_avatar.png"/>
+                    </image>
+                </ImageView>
+
+                <VBox alignment="CENTER_LEFT" spacing="2.0">
+                    <Label fx:id="lblUser" text="Admin"
+                           style="-fx-text-fill: #2c3e50; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+                    <Label fx:id="lblRole" text="Quản trị viên"
+                           style="-fx-text-fill: #7f8c8d; -fx-font-size: 12px;"/>
+                </VBox>
+            </HBox>
 
             <Button fx:id="btnClose" text="✕ Đóng" onAction="#handleClose"
                     style="-fx-background-color: #e74c3c; -fx-text-fill: white;

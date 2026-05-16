@@ -15,11 +15,15 @@
     -fx-background-repeat: no-repeat;
 }
 
+/* Register screen uses a clean light background */
+.register-bg {
+    -fx-background-color: #f0f4f8;
+}
+
 /* ──────────────────────────────────────────────────────────
    2. GLASS-BOX – Glassmorphism card
       Dùng cho: header, form card, bảng, tab content, v.v.
    ────────────────────────────────────────────────────────── */
-/* glass-box (dùng để điều chỉnh độ trong suốt / viền của card login) */
 .glass-box {
     -fx-background-color: rgba(255, 255, 255, 0.72);
     -fx-background-radius: 18;
@@ -29,34 +33,34 @@
     -fx-effect: dropshadow(gaussian, rgba(67, 20, 118, 0.10), 18, 0, 0, 6);
 }
 
-/* auction-title (tiêu đề header "AUCTION HOUSE") */
+/* auction-title */
 .auction-title {
-    -fx-font-size: 24px; /* Tăng nhẹ cỡ chữ để tiêu đề to hơn */
-    -fx-font-weight: 900; /* Làm chữ dày dặn hơn */
-    -fx-text-fill: #4b1a6a; /* Đổi sang màu tím sẫm (đồng bộ với thông báo login) để tương phản mạnh với nền sáng */
-    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.85), 10, 0.6, 0, 0); /* Thêm viền bóng trắng (Glow) để tách biệt hoàn toàn khỏi hình nền */
+    -fx-font-size: 24px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #4b1a6a;
+    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.85), 10, 0.6, 0, 0);
 }
 
-/* Thêm mới: auction-subtitle (Dòng slogan bên dưới) */
+/* auction-subtitle */
 .auction-subtitle {
     -fx-font-size: 13px;
     -fx-font-weight: bold;
-    -fx-text-fill: #6c3483; /* Màu tím nhạt hơn một chút để phân cấp thông tin */
+    -fx-text-fill: #6c3483;
     -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.7), 5, 0.5, 0, 0);
 }
 
-/* login-main-title (tiêu đề bên trong card login) */
+/* login-main-title */
 .login-main-title {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #4b1a6a; /* deeper purple for readability */
+    -fx-text-fill: #4b1a6a;
 }
 
-/* input-auction (border/padding của ô nhập) */
+/* input-auction */
 .input-auction {
     -fx-background-color: rgba(255, 255, 255, 0.92);
     -fx-background-radius: 10;
-    -fx-border-color: #e8d6f0; /* subtle warm-lilac border */
+    -fx-border-color: #e8d6f0;
     -fx-border-width: 1.5;
     -fx-border-radius: 10;
     -fx-padding: 9 14;
@@ -67,7 +71,7 @@
 }
 
 .input-auction:focused {
-    -fx-border-color: #7a3fa0; /* focused color aligned with login title */
+    -fx-border-color: #7a3fa0;
     -fx-border-width: 2;
     -fx-effect: dropshadow(gaussian, rgba(122, 63, 160, 0.22), 8, 0, 0, 0);
 }
@@ -76,9 +80,7 @@
     -fx-border-color: #a569bd;
 }
 
-
-/* ComboBox – danh sách thả xuống */
-/* 1. Phủ nền trắng đặc cho khung popup để che bảng phía sau */
+/* ComboBox */
 .combo-box-popup .list-view {
     -fx-background-color: #ffffff;
     -fx-border-color: #e8d6f0;
@@ -88,15 +90,13 @@
     -fx-effect: dropshadow(gaussian, rgba(108, 52, 131, 0.15), 10, 0, 0, 3);
 }
 
-/* 2. Style cho từng dòng bên trong */
 .combo-box-popup .list-cell {
     -fx-padding: 8 12;
     -fx-font-size: 13.5px;
     -fx-text-fill: #2c3e50;
-    -fx-background-color: transparent; /* Để màu nền list-view hiển thị */
+    -fx-background-color: transparent;
 }
 
-/* 3. Hiệu ứng hover và selected (Giữ nguyên màu thiết kế cũ của bạn) */
 .combo-box-popup .list-cell:filled:hover {
     -fx-background-color: #f0e6fa;
     -fx-text-fill: #431476;
@@ -125,7 +125,7 @@
     -fx-background-radius: 10;
     -fx-border-radius: 10;
     -fx-cursor: hand;
-    -fx-padding: 10 28;
+    -fx-padding: 12 28;
     -fx-effect: dropshadow(gaussian, rgba(108, 52, 131, 0.35), 8, 0, 0, 3);
 }
 
@@ -140,7 +140,6 @@
     -fx-background-color: linear-gradient(to bottom right, #6c3483, #5b2c6f);
     -fx-scale-x: 0.97;
     -fx-scale-y: 0.97;
-    -fx-effect: dropshadow(gaussian, rgba(108, 52, 131, 0.20), 4, 0, 0, 1);
 }
 
 .btn-auction-primary:disabled {
@@ -180,7 +179,6 @@
     -fx-table-cell-border-color: #f0e6fa;
 }
 
-/* Header cột */
 .table-view .column-header-background {
     -fx-background-color: linear-gradient(to right, #7d3c98, #9b59b6);
     -fx-background-radius: 12 12 0 0;
@@ -200,7 +198,6 @@
     -fx-alignment: CENTER;
 }
 
-/* Dòng dữ liệu */
 .table-row-cell {
     -fx-background-color: rgba(255, 255, 255, 0.65);
     -fx-border-color: transparent transparent #f0e6fa transparent;
@@ -233,14 +230,12 @@
     -fx-alignment: CENTER_LEFT;
 }
 
-/* Placeholder bảng rỗng */
 .table-view .placeholder .label {
     -fx-text-fill: #9b59b6;
     -fx-font-size: 14px;
     -fx-font-style: italic;
 }
 
-/* Scrollbar bảng */
 .table-view .scroll-bar:vertical {
     -fx-background-color: transparent;
     -fx-pref-width: 8px;
@@ -256,7 +251,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────
-   8. LIST VIEW (auction-detail)
+   8. LIST VIEW
    ────────────────────────────────────────────────────────── */
 .list-view {
     -fx-background-color: transparent;
@@ -288,7 +283,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────
-   9. TAB PANE (admin-dashboard)
+   9. TAB PANE
    ────────────────────────────────────────────────────────── */
 .tab-pane {
     -fx-background-color: transparent;
@@ -341,7 +336,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────
-   10. LINE CHART (auction-detail)
+   10. LINE CHART
    ────────────────────────────────────────────────────────── */
 .chart {
     -fx-background-color: transparent;
@@ -376,14 +371,12 @@
     -fx-padding: 4px;
 }
 
-/* Style cho các mốc giá trị trên trục tọa độ (Tick labels) */
 .axis {
     -fx-tick-label-fill: #6c3483;
     -fx-font-size: 11px;
-    -fx-tick-label-rotation: -45; /* Xoay nghiêng chữ 45 độ để không bị chồng chéo */
+    -fx-tick-label-rotation: -45;
 }
 
-/* Style cho tên của trục (Ví dụ: "Thời điểm" ở trục X, "Giá (VNĐ)" ở trục Y) */
 .axis-label {
     -fx-text-fill: #8e44ad;
     -fx-font-size: 12px;
@@ -435,7 +428,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────
-   13. RADIO BUTTON (register)
+   13. RADIO BUTTON
    ────────────────────────────────────────────────────────── */
 .radio-button {
     -fx-font-size: 13.5px;
@@ -478,11 +471,9 @@
 }
 
 /* ──────────────────────────────────────────────────────────
-   15. ID-SPECIFIC – Nền từng màn hình
-       (Dự phòng nếu styleClass auction-bg chưa apply)
+   15. ID-SPECIFIC backgrounds
    ────────────────────────────────────────────────────────── */
 #loginPane,
-#registerPane,
 #auctionListPane,
 #biddingPane,
 #auctionDetailPane,
@@ -492,4 +483,276 @@
     -fx-background-size: cover;
     -fx-background-position: center;
     -fx-background-repeat: no-repeat;
+}
+
+/* registerPane uses .register-bg class (clean light bg), not an image */
+#registerPane {
+    -fx-background-color: #f0f4f8;
+}
+
+/* ════════════════════════════════════════════════════════════
+   REGISTER SCREEN – New Two-Step Role Selection Layout
+   ════════════════════════════════════════════════════════════ */
+
+/* Page title & subtitle */
+.reg-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: 900;
+    -fx-text-fill: white; /* Đổi sang trắng */
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 2);
+}
+
+.reg-subtitle, .reg-back-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #d2b4de; /* Tím nhạt */
+}
+
+
+/* ── Role cards shared base ── */
+.role-card {
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1.5;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 16, 0, 0, 4);
+    -fx-cursor: hand;
+}
+
+.role-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 24, 0, 0, 8);
+    -fx-scale-x: 1.015;
+    -fx-scale-y: 1.015;
+}
+
+/* ── Bidder card header (blue) ── */
+.role-card-header {
+    -fx-background-radius: 14 14 0 0;
+}
+
+.role-header-bidder {
+    -fx-background-color: rgba(41, 128, 185, 0.6);
+}
+
+.role-header-seller {
+    -fx-background-color: rgba(39, 174, 96, 0.6);
+}
+
+/* --- 1. Phủ màng tím đen mờ (55%) lên thân và chân thẻ để cản ánh sáng chói --- */
+.role-card-body {
+    -fx-background-color: rgba(30, 10, 50, 0.55);
+}
+
+.role-card-footer {
+    -fx-background-color: rgba(30, 10, 50, 0.55); /* Đồng màu với thân thẻ */
+    -fx-background-radius: 0 0 14 14; /* Giữ nguyên bo góc dưới */
+}
+
+/* ── Card icon / title / desc ── */
+.role-card-icon {
+    -fx-font-size: 36px;
+}
+
+.role-card-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.role-card-desc {
+    -fx-font-size: 13px;
+    -fx-text-fill: rgba(255,255,255,0.88);
+}
+
+/* ── Feature items ── */
+.role-feature-heading {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f1c40f; /* Đổi thành Vàng Gold */
+}
+
+.role-feature-heading-seller {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2ecc71; /* Đổi thành Xanh lá sáng */
+}
+
+/* --- 2. Làm mềm lại chữ, xóa bỏ bóng đen gắt gây lem --- */
+.role-feature-item {
+    -fx-font-size: 13.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff; /* Trắng tinh khiết */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 4, 0, 0, 1); /* Bóng cực nhẹ và êm */
+}
+
+.role-card-note {
+    -fx-font-size: 12px;
+    -fx-text-fill: #95a5a6;
+}
+
+/* ── CTA buttons ── */
+.btn-role-bidder {
+    -fx-background-color: #2980b9;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-cursor: hand;
+    -fx-padding: 12 20;
+    -fx-effect: dropshadow(gaussian, rgba(41,128,185,0.35), 8, 0, 0, 3);
+}
+
+.btn-role-bidder:hover {
+    -fx-background-color: #3498db;
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+    -fx-effect: dropshadow(gaussian, rgba(41,128,185,0.55), 12, 0, 0, 4);
+}
+
+.btn-role-bidder:pressed {
+    -fx-background-color: #1a6ea0;
+    -fx-scale-x: 0.97;
+    -fx-scale-y: 0.97;
+}
+
+.btn-role-seller {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-cursor: hand;
+    -fx-padding: 12 20;
+    -fx-effect: dropshadow(gaussian, rgba(39,174,96,0.35), 8, 0, 0, 3);
+}
+
+.btn-role-seller:hover {
+    -fx-background-color: #2ecc71;
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+    -fx-effect: dropshadow(gaussian, rgba(39,174,96,0.55), 12, 0, 0, 4);
+}
+
+.btn-role-seller:pressed {
+    -fx-background-color: #1e8449;
+    -fx-scale-x: 0.97;
+    -fx-scale-y: 0.97;
+}
+
+/* ── Step 2: Form card ── */
+.form-card {
+    /* Đã xóa nền trắng */
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-color: #e8e8e8;
+    -fx-border-width: 1.5;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 20, 0, 0, 6);
+}
+
+.form-card-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white; /* Đổi sang trắng */
+}
+
+/* Form inputs override – remove purple, use neutral style */
+.form-card .input-auction {
+    -fx-border-color: #dfe6e9;
+    -fx-background-color: #f9fafb;
+    -fx-pref-width: 9999px; /* stretch to maxWidth */
+}
+
+.form-card .input-auction:focused {
+    -fx-border-color: #3498db;
+    -fx-background-color: white;
+    -fx-effect: dropshadow(gaussian, rgba(52,152,219,0.20), 8, 0, 0, 0);
+}
+
+.form-card .field-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #d2b4de; /* Tím nhạt */
+}
+
+/* ── Role badge shown in Step 2 header ── */
+.role-badge-bidder {
+    -fx-background-color: #ebf5fb;
+    -fx-background-radius: 20;
+    -fx-border-color: #aed6f1;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 20;
+    -fx-text-fill: #2980b9;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 18;
+}
+
+.role-badge-seller {
+    -fx-background-color: #eafaf1;
+    -fx-background-radius: 20;
+    -fx-border-color: #a9dfbf;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 20;
+    -fx-text-fill: #27ae60;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 18;
+}
+
+/* Step 2 register button overrides – blue for bidder, green for seller */
+.btn-register-bidder {
+    -fx-background-color: #2980b9;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-cursor: hand;
+    -fx-padding: 12 28;
+    -fx-effect: dropshadow(gaussian, rgba(41,128,185,0.35), 8, 0, 0, 3);
+}
+
+.btn-register-bidder:hover {
+    -fx-background-color: #3498db;
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+.btn-register-bidder:pressed {
+    -fx-background-color: #1a6ea0;
+}
+
+.btn-register-bidder:disabled {
+    -fx-background-color: #aed6f1;
+    -fx-effect: none;
+    -fx-cursor: default;
+}
+
+.btn-register-seller {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-cursor: hand;
+    -fx-padding: 12 28;
+    -fx-effect: dropshadow(gaussian, rgba(39,174,96,0.35), 8, 0, 0, 3);
+}
+
+.btn-register-seller:hover {
+    -fx-background-color: #2ecc71;
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+.btn-register-seller:pressed {
+    -fx-background-color: #1e8449;
+}
+
+.btn-register-seller:disabled {
+    -fx-background-color: #a9dfbf;
+    -fx-effect: none;
+    -fx-cursor: default;
 }

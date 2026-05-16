@@ -14,9 +14,14 @@ public abstract class User extends Entity {
     private String status = "ACTIVE";           // ACTIVE | TEMP_LOCKED | PERM_LOCKED
     private int violationCount = 0;             // Số lần vi phạm tích lũy
     private LocalDateTime lockedUntil = null;   // null = ACTIVE hoặc PERM_LOCKED
+
+    // [MỚI] Thêm trường lưu chuỗi mã hóa ảnh đại diện (Base64) hoặc URL
+    private String avatar;
+
     public User() {
         super();
     }
+
     public User(String id, String username, String password, String email, UserRole role) {
         super(id);
         this.username = username;
@@ -54,4 +59,8 @@ public abstract class User extends Entity {
 
     public LocalDateTime getLockedUntil() { return lockedUntil; }
     public void setLockedUntil(LocalDateTime lockedUntil) { this.lockedUntil = lockedUntil; }
+
+    // [MỚI] Getter và Setter cho avatar
+    public String getAvatar() { return avatar; }
+    public void setAvatar(String avatar) { this.avatar = avatar; }
 }

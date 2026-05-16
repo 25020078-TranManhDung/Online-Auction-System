@@ -60,9 +60,14 @@ public class BidderWalletController {
     @FXML private Label lblTxCount;
 
     @FXML private Button btnClose;
+    @FXML private Button btnTheme;  // Dark/Light mode toggle
+
     @FXML private Button btnRefresh;
 
     @FXML private Label lblAvailableBalance;
+
+    @FXML private javafx.scene.layout.HBox headerUserArea;
+    @FXML private javafx.scene.image.ImageView imgAvatar;
 
     // Nội bộ
     private double requiredAmount = 0;   // Số tiền cần để đặt giá (nếu mở từ BiddingController)
@@ -73,6 +78,9 @@ public class BidderWalletController {
 
     @FXML
     public void initialize() {
+        if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
+
         loadUserInfo();
         setupTable();
         loadWallet();
@@ -319,4 +327,13 @@ public class BidderWalletController {
     private String formatVnd(double amount) {
         return String.format("%,.0f VNĐ", amount);
     }
+
+    @FXML
+    private void handleToggleTheme(javafx.event.ActionEvent event) {
+        com.auction.client.util.ThemeManager tm =
+            com.auction.client.util.ThemeManager.getInstance();
+        tm.toggle();
+        if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
+    }
+
 }

@@ -12,6 +12,7 @@ public final class Actions {
     public static final String GET_AUCTIONS       = "GET_AUCTIONS";
     public static final String GET_AUCTION_DETAIL = "GET_AUCTION_DETAIL";
     public static final String CREATE_AUCTION     = "CREATE_AUCTION";
+    public static final String UPDATE_AUCTION     = "UPDATE_AUCTION";   // [MỚI] Seller sửa phiên OPEN
     public static final String START_AUCTION      = "START_AUCTION";
     public static final String CLOSE_AUCTION      = "CLOSE_AUCTION";
     public static final String ADMIN_CLOSE_AUCTION = "ADMIN_CLOSE_AUCTION";
@@ -45,6 +46,7 @@ public final class Actions {
     public static final String BID_PLACED             = "BID_PLACED";
     public static final String AUCTION_CLOSED         = "AUCTION_CLOSED";
     public static final String AUCTION_EXTENDED       = "AUCTION_EXTENDED";
+    public static final String AUCTION_INFO_UPDATED   = "AUCTION_INFO_UPDATED"; // Seller sửa thông tin OPEN
     public static final String AUTO_BID_PLACED        = "AUTO_BID_PLACED";
     public static final String AUTO_BID_FAILED        = "AUTO_BID_FAILED";
     public static final String AUCTION_STATUS_CHANGED = "AUCTION_STATUS_CHANGED"; // PAID / CANCELED
@@ -55,4 +57,7 @@ public final class Actions {
     public static final String GET_WALLET = "GET_WALLET"; // Xem số dư & lịch sử
     public static final String TOP_UP     = "TOP_UP";     // Bidder nạp tiền
     public static final String WITHDRAW   = "WITHDRAW";   // Seller rút tiền
+
+    public static final String CHANGE_PASSWORD = "CHANGE_PASSWORD";
+    public static final String UPDATE_AVATAR = "UPDATE_AVATAR";
 }

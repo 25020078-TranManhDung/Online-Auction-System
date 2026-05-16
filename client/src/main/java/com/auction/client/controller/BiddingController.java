@@ -56,6 +56,8 @@ public class BiddingController implements BidUpdateListener {
     @FXML private Label lblUser;
     @FXML private Label lblRole;
     @FXML private Button btnBack;
+    @FXML private Button btnTheme;  // Dark/Light mode toggle
+
 
     // ===== Left column (info) =====
     @FXML private Label lblProductName;
@@ -103,6 +105,10 @@ public class BiddingController implements BidUpdateListener {
     @FXML private Label lblLeaderName;
     @FXML private Label lblLeaderBid;
 
+    @FXML private Label lblWalletBalance;
+
+    @FXML private javafx.scene.layout.HBox headerUserArea;
+
     // Internal state
     private String auctionId;
     private double currentPrice;
@@ -126,7 +132,10 @@ public class BiddingController implements BidUpdateListener {
 
     @FXML
     public void initialize() {
+        if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+
         loadUserInfo();
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
 
         // Đăng ký listener real-time (nếu có)
         MessageHandler handler = getMessageHandlerSecurely();
@@ -210,7 +219,7 @@ public class BiddingController implements BidUpdateListener {
         imgMainPane.setOnScroll(null);
         // Scale transform
         javafx.scene.transform.Scale scale = new javafx.scene.transform.Scale(1, 1,
-                imgProductMain.getFitWidth() / 2, imgProductMain.getFitHeight() / 2);
+            imgProductMain.getFitWidth() / 2, imgProductMain.getFitHeight() / 2);
         if (imgProductMain.getTransforms().isEmpty()) {
             imgProductMain.getTransforms().add(scale);
         } else {
@@ -286,8 +295,8 @@ public class BiddingController implements BidUpdateListener {
             StackPane cell = new StackPane();
             cell.setPrefSize(56, 56); cell.setMinSize(56, 56); cell.setMaxSize(56, 56);
             cell.setStyle("-fx-background-color:#111; -fx-background-radius:8;"
-                    + "-fx-border-color:#44444470; -fx-border-radius:8; -fx-border-width:2; -fx-cursor:hand;"
-                    + "-fx-clip:true;");
+                + "-fx-border-color:#44444470; -fx-border-radius:8; -fx-border-width:2; -fx-cursor:hand;"
+                + "-fx-clip:true;");
             try {
                 Image img = new Image(new ByteArrayInputStream(productImages.get(i)));
                 ImageView iv = new ImageView(img);
@@ -306,8 +315,8 @@ public class BiddingController implements BidUpdateListener {
         for (int i = 0; i < hboxThumbs.getChildren().size(); i++) {
             String border = (i == active) ? "#9b59b6" : "#44444470";
             hboxThumbs.getChildren().get(i).setStyle(
-                    "-fx-background-color:#111; -fx-background-radius:8;"
-                            + "-fx-border-color:" + border + "; -fx-border-radius:8; -fx-border-width:2; -fx-cursor:hand;");
+                "-fx-background-color:#111; -fx-background-radius:8;"
+                    + "-fx-border-color:" + border + "; -fx-border-radius:8; -fx-border-width:2; -fx-cursor:hand;");
         }
     }
 
@@ -345,17 +354,17 @@ public class BiddingController implements BidUpdateListener {
         // Counter
         Label counter = new Label();
         counter.setStyle("-fx-text-fill:white; -fx-font-size:14px; -fx-background-color:#00000080;"
-                + "-fx-padding:4 12; -fx-background-radius:20;");
+            + "-fx-padding:4 12; -fx-background-radius:20;");
 
         // Buttons
         Button prev = new Button("❮");
         Button next = new Button("❯");
         Button close = new Button("✕");
         String arrowStyle = "-fx-background-color:#00000080; -fx-text-fill:white; -fx-font-size:32px;"
-                + "-fx-padding:16 22; -fx-cursor:hand; -fx-background-radius:50; -fx-border-width:0;";
+            + "-fx-padding:16 22; -fx-cursor:hand; -fx-background-radius:50; -fx-border-width:0;";
         prev.setStyle(arrowStyle); next.setStyle(arrowStyle);
         close.setStyle("-fx-background-color:#e74c3c; -fx-text-fill:white; -fx-font-size:16px;"
-                + "-fx-padding:6 14; -fx-cursor:hand; -fx-background-radius:8; -fx-border-width:0;");
+            + "-fx-padding:6 14; -fx-cursor:hand; -fx-background-radius:8; -fx-border-width:0;");
 
         Runnable updateImg = () -> {
             try {
@@ -459,7 +468,7 @@ public class BiddingController implements BidUpdateListener {
                 colBidder.setCellValueFactory(param -> {
                     JsonObject obj = param.getValue();
                     String name = obj.has("bidderName") ? obj.get("bidderName").getAsString()
-                            : obj.has("bidder")     ? obj.get("bidder").getAsString() : "—";
+                        : obj.has("bidder")     ? obj.get("bidder").getAsString() : "—";
                     return new SimpleStringProperty(name);
                 });
                 colBidAmount.setCellValueFactory(param -> {
@@ -470,7 +479,7 @@ public class BiddingController implements BidUpdateListener {
                 colBidTime.setCellValueFactory(param -> {
                     JsonObject obj = param.getValue();
                     String ts = obj.has("timestamp") ? obj.get("timestamp").getAsString()
-                            : obj.has("time")      ? obj.get("time").getAsString() : "";
+                        : obj.has("time")      ? obj.get("time").getAsString() : "";
                     if (ts.contains("T")) ts = ts.replace("T", " ");
                     if (ts.length() > 19) ts = ts.substring(0, 19);
                     return new SimpleStringProperty(ts);
@@ -564,7 +573,7 @@ public class BiddingController implements BidUpdateListener {
         double minAllowed = currentPrice + minIncrement;
         if (bidAmount < minAllowed) {
             AlertUtil.showWarning("Giá quá thấp",
-                    "Bạn phải đặt ít nhất: " + formatCurrency(minAllowed));
+                "Bạn phải đặt ít nhất: " + formatCurrency(minAllowed));
             return;
         }
 
@@ -592,14 +601,29 @@ public class BiddingController implements BidUpdateListener {
 
                 // Gọi blocking send() an toàn trên background thread
                 JsonObject response = SocketClient.getInstance().send(
-                        Actions.PLACE_BID, payload, JsonObject.class);
+                    Actions.PLACE_BID, payload, JsonObject.class);
 
                 // Quay về JavaFX thread để update UI
                 Platform.runLater(() -> {
                     if (response != null) {
                         walletBalance -= capturedBidAmount; // Cập nhật số dư tạm
-                        AlertUtil.showInfo("Chúc mừng", "Đặt giá thành công!");
-                        closeWindow();
+
+                        // 1. Hiển thị thông báo thành công ngay dưới form (Không dùng popup Alert gây vướng)
+                        if (lblMessage != null) {
+                            lblMessage.setText("✅ Đặt giá thành công! Đang chờ đối thủ...");
+                            lblMessage.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+                            lblMessage.setVisible(true);
+                        }
+
+                        // 2. Xóa trắng ô nhập tiền
+                        txtBidAmount.clear();
+
+                        // 3. Bật lại nút Xác nhận để họ có thể "chiến" tiếp vòng sau
+                        resetConfirmButton();
+
+                        // 4. Tự động trỏ chuột (focus) lại vào ô nhập tiền để sẵn sàng gõ
+                        txtBidAmount.requestFocus();
+
                     } else {
                         AlertUtil.showError("Lỗi", "Không nhận được phản hồi từ server.");
                         resetConfirmButton();
@@ -628,7 +652,7 @@ public class BiddingController implements BidUpdateListener {
     private void openWalletInsufficientMode(double requiredAmount) {
         try {
             ViewLoader.ViewResult<BidderWalletController> result =
-                    ViewLoader.loadViewWithController("bidder-wallet.fxml");
+                ViewLoader.loadViewWithController("bidder-wallet.fxml");
             if (result == null) return;
 
             result.getController().setInsufficientMode(requiredAmount);
@@ -639,8 +663,8 @@ public class BiddingController implements BidUpdateListener {
             stage.setTitle("💰 Ví Điện Tử – Nạp Tiền");
         } catch (Exception ex) {
             AlertUtil.showWarning("Số dư không đủ",
-                    String.format("Số dư ví không đủ để đặt %s.\nVui lòng nạp thêm tiền trước khi đặt giá.",
-                            formatCurrency(requiredAmount)));
+                String.format("Số dư ví không đủ để đặt %s.\nVui lòng nạp thêm tiền trước khi đặt giá.",
+                    formatCurrency(requiredAmount)));
         }
     }
 
@@ -649,15 +673,23 @@ public class BiddingController implements BidUpdateListener {
         new Thread(() -> {
             try {
                 WalletResponse resp = SocketClient.getInstance()
-                        .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
+                    .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
                 if (resp != null) {
-                    walletBalance = resp.getBalance();
+                    // Dùng getAvailableBalance() để lấy Số dư khả dụng giống hệt trang Chi tiết
+                    walletBalance = resp.getAvailableBalance();
+
                     Platform.runLater(() -> {
+                        // 1. Cập nhật Số dư lên góc phải Header
+                        if (lblWalletBalance != null) {
+                            lblWalletBalance.setText("Số dư: " + formatCurrency(walletBalance));
+                        }
+
+                        // 2. Giữ nguyên logic cập nhật thông báo ở Form đặt giá bên dưới
                         if (lblMessage != null) {
-                            lblMessage.setText("Số dư ví: " + formatCurrency(walletBalance));
+                            lblMessage.setText("Số dư khả dụng: " + formatCurrency(walletBalance));
                             lblMessage.setStyle(walletBalance < currentPrice + minIncrement
-                                    ? "-fx-text-fill: #e74c3c;"
-                                    : "-fx-text-fill: #27ae60;");
+                                ? "-fx-text-fill: #e74c3c;"
+                                : "-fx-text-fill: #27ae60;");
                             lblMessage.setVisible(true);
                         }
                     });
@@ -682,7 +714,7 @@ public class BiddingController implements BidUpdateListener {
         String incrementInput = txtIncrement.getText();
 
         if (maxBidInput == null || maxBidInput.trim().isEmpty()
-                || incrementInput == null || incrementInput.trim().isEmpty()) {
+            || incrementInput == null || incrementInput.trim().isEmpty()) {
             AlertUtil.showWarning("Thiếu thông tin", "Vui lòng nhập đầy đủ Giá tối đa và Bước giá tự động!");
             return;
         }
@@ -700,7 +732,7 @@ public class BiddingController implements BidUpdateListener {
         double minAllowed = currentPrice + minIncrement;
         if (maxBid < minAllowed) {
             AlertUtil.showWarning("Giá tối đa quá thấp",
-                    "Giá tối đa phải ít nhất bằng: " + formatCurrency(minAllowed));
+                "Giá tối đa phải ít nhất bằng: " + formatCurrency(minAllowed));
             return;
         }
 
@@ -724,7 +756,7 @@ public class BiddingController implements BidUpdateListener {
                 payload.put("incrementAmount",  capturedIncrement);
 
                 JsonObject response = SocketClient.getInstance()
-                        .send(Actions.SET_AUTO_BID, payload, JsonObject.class);
+                    .send(Actions.SET_AUTO_BID, payload, JsonObject.class);
 
                 Platform.runLater(() -> {
                     btnSetAutoBid.setDisable(false);
@@ -761,7 +793,7 @@ public class BiddingController implements BidUpdateListener {
                 payload.put("auctionId", capturedAuctionId);
 
                 JsonObject response = SocketClient.getInstance()
-                        .send(Actions.CANCEL_AUTO_BID, payload, JsonObject.class);
+                    .send(Actions.CANCEL_AUTO_BID, payload, JsonObject.class);
 
                 Platform.runLater(() -> {
                     btnCancelAutoBid.setDisable(false);
@@ -796,7 +828,7 @@ public class BiddingController implements BidUpdateListener {
     void handleOpenWallet(ActionEvent event) {
         try {
             ViewLoader.ViewResult<BidderWalletController> result =
-                    ViewLoader.loadViewWithController("bidder-wallet.fxml");
+                ViewLoader.loadViewWithController("bidder-wallet.fxml");
             if (result == null) return;
 
             result.getController().setReturnAuctionId(this.auctionId); // ← FIX: biết đường quay về
@@ -889,11 +921,11 @@ public class BiddingController implements BidUpdateListener {
         // Quay về auction-detail trên cùng cửa sổ (không đóng Stage)
         try {
             Stage stage = (Stage) (txtBidAmount != null
-                    ? txtBidAmount.getScene().getWindow()
-                    : btnConfirmBid.getScene().getWindow());
+                ? txtBidAmount.getScene().getWindow()
+                : btnConfirmBid.getScene().getWindow());
 
             ViewLoader.ViewResult<AuctionDetailController> result =
-                    ViewLoader.loadViewWithController("auction-detail.fxml");
+                ViewLoader.loadViewWithController("auction-detail.fxml");
 
             if (result != null && stage != null) {
                 result.getController().initData(auctionId);
@@ -924,4 +956,13 @@ public class BiddingController implements BidUpdateListener {
             return null;
         }
     }
+
+    @FXML
+    private void handleToggleTheme(javafx.event.ActionEvent event) {
+        com.auction.client.util.ThemeManager tm =
+            com.auction.client.util.ThemeManager.getInstance();
+        tm.toggle();
+        if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
+    }
+
 }

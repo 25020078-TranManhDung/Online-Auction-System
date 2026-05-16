@@ -54,13 +54,20 @@ public class SellerWalletController {
     @FXML private Label lblTxCount;
 
     @FXML private Button btnClose;
+    @FXML private Button btnTheme;  // Dark/Light mode toggle
+
     @FXML private Button btnRefresh;
+
+    @FXML private javafx.scene.layout.HBox headerUserArea;
+    @FXML private javafx.scene.image.ImageView imgAvatar;
 
     private double currentBalance = 0;
     private final ObservableList<WalletTransaction> txList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
+        if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
+        com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
         loadUserInfo();
         setupTable();
         loadWallet();
@@ -150,7 +157,7 @@ public class SellerWalletController {
             try {
                 WithdrawRequest req = new WithdrawRequest(amount);
                 WalletResponse resp = SocketClient.getInstance()
-                        .send(Actions.WITHDRAW, req, WalletResponse.class);
+                    .send(Actions.WITHDRAW, req, WalletResponse.class);
 
                 Platform.runLater(() -> {
                     btnConfirmWithdraw.setDisable(false);
@@ -160,7 +167,7 @@ public class SellerWalletController {
                         updateBalanceDisplay(resp.getBalance());
                         txtWithdrawAmount.clear();
                         showWithdrawMsg("✅ Rút thành công " + formatVnd(amount)
-                                + "! Số dư còn: " + formatVnd(resp.getBalance()), false);
+                            + "! Số dư còn: " + formatVnd(resp.getBalance()), false);
                         loadWallet();
                     } else {
                         showWithdrawMsg("Không nhận được phản hồi từ server.", true);
@@ -181,7 +188,7 @@ public class SellerWalletController {
         new Thread(() -> {
             try {
                 WalletResponse resp = SocketClient.getInstance()
-                        .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
+                    .send(Actions.GET_WALLET, new HashMap<>(), WalletResponse.class);
 
                 Platform.runLater(() -> {
                     if (resp != null) {
@@ -192,11 +199,11 @@ public class SellerWalletController {
                             txList.addAll(resp.getTransactions());
                             // Tính tổng doanh thu và tổng rút
                             double totalEarned = resp.getTransactions().stream()
-                                    .filter(t -> t.getType() == WalletTransaction.TransactionType.SELLER_RECEIVE)
-                                    .mapToDouble(WalletTransaction::getAmount).sum();
+                                .filter(t -> t.getType() == WalletTransaction.TransactionType.SELLER_RECEIVE)
+                                .mapToDouble(WalletTransaction::getAmount).sum();
                             double totalWithdrawn = resp.getTransactions().stream()
-                                    .filter(t -> t.getType() == WalletTransaction.TransactionType.WITHDRAW)
-                                    .mapToDouble(WalletTransaction::getAmount).sum();
+                                .filter(t -> t.getType() == WalletTransaction.TransactionType.WITHDRAW)
+                                .mapToDouble(WalletTransaction::getAmount).sum();
                             if (lblTotalEarned != null) lblTotalEarned.setText(formatVnd(totalEarned));
                             if (lblTotalWithdrawn != null) lblTotalWithdrawn.setText(formatVnd(totalWithdrawn));
                         }
@@ -219,14 +226,14 @@ public class SellerWalletController {
             return new SimpleStringProperty(label);
         });
         colTxAmount.setCellValueFactory(cd ->
-                new SimpleStringProperty(formatVnd(cd.getValue().getAmount())));
+            new SimpleStringProperty(formatVnd(cd.getValue().getAmount())));
         colTxBalance.setCellValueFactory(cd ->
-                new SimpleStringProperty(formatVnd(cd.getValue().getBalanceAfter())));
+            new SimpleStringProperty(formatVnd(cd.getValue().getBalanceAfter())));
         colTxDesc.setCellValueFactory(cd ->
-                new SimpleStringProperty(cd.getValue().getDescription()));
+            new SimpleStringProperty(cd.getValue().getDescription()));
         colTxTime.setCellValueFactory(cd -> {
             String ts = cd.getValue().getCreatedAt() != null
-                    ? cd.getValue().getCreatedAt().toString().replace("T", " ") : "";
+                ? cd.getValue().getCreatedAt().toString().replace("T", " ") : "";
             if (ts.length() > 19) ts = ts.substring(0, 19);
             return new SimpleStringProperty(ts);
         });
@@ -237,8 +244,8 @@ public class SellerWalletController {
         if (lblBalance != null) {
             lblBalance.setText(formatVnd(balance));
             lblBalance.setStyle(balance > 0
-                    ? "-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 28px;"
-                    : "-fx-text-fill: #7f8c8d; -fx-font-weight: bold; -fx-font-size: 28px;");
+                ? "-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 28px;"
+                : "-fx-text-fill: #7f8c8d; -fx-font-weight: bold; -fx-font-size: 28px;");
         }
         if (lblAvailableBalance != null) {
             lblAvailableBalance.setText("Có thể rút: " + formatVnd(balance));
@@ -261,4 +268,13 @@ public class SellerWalletController {
     private String formatVnd(double amount) {
         return String.format("%,.0f VNĐ", amount);
     }
+
+    @FXML
+    private void handleToggleTheme(javafx.event.ActionEvent event) {
+        com.auction.client.util.ThemeManager tm =
+            com.auction.client.util.ThemeManager.getInstance();
+        tm.toggle();
+        if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
+    }
+
 }
