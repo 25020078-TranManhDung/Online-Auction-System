@@ -17,7 +17,7 @@
             </VBox>
         </HBox>
 
-        <StackPane AnchorPane.topAnchor="110.0" AnchorPane.bottomAnchor="50.0"
+        <StackPane AnchorPane.topAnchor="140.0" AnchorPane.bottomAnchor="50.0"
                    AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
 
             <VBox fx:id="stepRoleSelection" alignment="CENTER" spacing="35.0">
@@ -38,10 +38,10 @@
                         </VBox>
                         <VBox spacing="14.0" styleClass="role-card-body" VBox.vgrow="ALWAYS">
                             <padding><Insets top="25" right="30" bottom="25" left="30"/></padding>
-                            <Label text="✔ What you can do:" styleClass="role-feature-heading"/>
+                            <Label text="✔ What you can do:" styleClass="role-feature-heading" style="-fx-text-fill: #2ecc71; -fx-font-weight: bold;"/>
                             <Label text="🔨 Tham gia đấu giá hàng ngàn sản phẩm" styleClass="role-feature-item"/>
                             <Label text="🔍 Khám phá đa dạng các danh mục" styleClass="role-feature-item"/>
-                            <Label text="❤️ Lưu sản phẩm yêu thích" styleClass="role-feature-item"/>
+                            <Label text="📌 Lưu sản phẩm yêu thích" styleClass="role-feature-item"/>
                             <Label text="🤖 Thiết lập đấu giá tự động" styleClass="role-feature-item"/>
                             <Label text="🏆 Săn hàng hiếm với giá hời" styleClass="role-feature-item"/>
                         </VBox>
@@ -61,9 +61,9 @@
                         </VBox>
                         <VBox spacing="14.0" styleClass="role-card-body" VBox.vgrow="ALWAYS">
                             <padding><Insets top="25" right="30" bottom="25" left="30"/></padding>
-                            <Label text="✔ What you can do:" styleClass="role-feature-heading-seller"/>
+                            <Label text="✔ What you can do:" styleClass="role-feature-heading-seller" style="-fx-text-fill: #3498db; -fx-font-weight: bold;"/>
                             <Label text="➕ Đăng bán không giới hạn sản phẩm" styleClass="role-feature-item"/>
-                            <Label text="🖼️ Giao diện tạo phiên đấu giá trực quan" styleClass="role-feature-item"/>
+                            <Label text="✨ Giao diện tạo phiên đấu giá trực quan" styleClass="role-feature-item"/>
                             <Label text="📈 Thống kê doanh thu &amp; Bảng điều khiển" styleClass="role-feature-item"/>
                             <Label text="🤝 Quản lý phiên đấu giá theo thời gian thực" styleClass="role-feature-item"/>
                             <Label text="💰 Rút tiền an toàn qua Ví điện tử" styleClass="role-feature-item"/>
@@ -76,16 +76,19 @@
                     </VBox>
                 </HBox>
 
-                <HBox alignment="CENTER" spacing="5.0">
-                    <Label text="Bạn đã có tài khoản?" styleClass="reg-back-label"/>
-                    <Hyperlink text="Đăng nhập ngay" onAction="#goBackToLogin" styleClass="hyperlink"/>
+                <HBox alignment="CENTER" spacing="8.0"
+                      style="-fx-background-color: rgba(20, 5, 35, 0.65); -fx-background-radius: 20; -fx-padding: 6 18; -fx-max-width: 320;">
+                    <Label text="Bạn đã có tài khoản?"
+                           style="-fx-font-size: 14px; -fx-text-fill: #ffffff; -fx-font-weight: bold;"/>
+                    <Hyperlink text="Đăng nhập ngay" onAction="#goBackToLogin"
+                               style="-fx-font-size: 14px; -fx-text-fill: #9b59b6; -fx-font-weight: bold; -fx-underline: false;"/>
                 </HBox>
             </VBox>
 
             <VBox fx:id="stepForm" alignment="CENTER" visible="false" managed="false">
 
-                <VBox styleClass="form-card, glass-box" maxWidth="480.0" spacing="18.0">
-                    <padding><Insets top="30" right="35" bottom="30" left="35"/></padding>
+                <VBox styleClass="form-card, glass-box" maxWidth="480.0" spacing="14.0">
+                    <padding><Insets top="20" right="35" bottom="20" left="35"/></padding>
 
                     <HBox alignment="CENTER_LEFT">
                         <Hyperlink text="← Chọn lại loại tài khoản" onAction="#goBackToRoleSelection" styleClass="hyperlink"/>
@@ -95,25 +98,26 @@
 
                     <VBox alignment="CENTER" spacing="5.0">
                         <Label text="Tạo tài khoản mới" styleClass="form-card-title"/>
-                        <Label text="Điền các thông tin dưới đây để bắt đầu" styleClass="reg-subtitle"/>
+                        <Label text="Điền các thông tin dưới đây để bắt đầu"
+                               style="-fx-text-fill: #555555; -fx-font-size: 13px; -fx-font-weight: bold;"/>
                     </VBox>
 
                     <Separator style="-fx-opacity: 0.3;"/>
 
-                    <VBox spacing="10.0">
-                        <Label text="Họ và tên" styleClass="field-label"/>
+                    <VBox spacing="8.0">
+                        <Label text="Họ và tên" styleClass="field-label" style="-fx-text-fill: #2c3e50; -fx-font-weight: bold;"/>
                         <TextField fx:id="txtFullname" promptText="Nhập họ tên đầy đủ" styleClass="input-auction"/>
 
-                        <Label text="Tên đăng nhập" styleClass="field-label"/>
+                        <Label text="Tên đăng nhập" styleClass="field-label" style="-fx-text-fill: #2c3e50; -fx-font-weight: bold;"/>
                         <TextField fx:id="txtUsername" promptText="Chỉ chữ, số, không dấu" styleClass="input-auction"/>
 
-                        <Label text="Email" styleClass="field-label"/>
+                        <Label text="Email" styleClass="field-label" style="-fx-text-fill: #2c3e50; -fx-font-weight: bold;"/>
                         <TextField fx:id="txtEmail" promptText="Địa chỉ email hợp lệ" styleClass="input-auction"/>
 
-                        <Label text="Mật khẩu" styleClass="field-label"/>
+                        <Label text="Mật khẩu" styleClass="field-label" style="-fx-text-fill: #2c3e50; -fx-font-weight: bold;"/>
                         <PasswordField fx:id="txtPassword" promptText="Tạo mật khẩu (tối thiểu 6 ký tự)" styleClass="input-auction"/>
 
-                        <Label text="Xác nhận mật khẩu" styleClass="field-label"/>
+                        <Label text="Xác nhận mật khẩu" styleClass="field-label" style="-fx-text-fill: #2c3e50; -fx-font-weight: bold;"/>
                         <PasswordField fx:id="txtConfirmPassword" promptText="Nhập lại mật khẩu" styleClass="input-auction"/>
                     </VBox>
 
@@ -122,12 +126,13 @@
 
                     <Button fx:id="btnRegister" text="ĐANG XỬ LÝ..." onAction="#handleRegister"
                             maxWidth="Infinity" styleClass="btn-register-bidder">
-                        <VBox.margin><Insets top="10"/></VBox.margin>
+                        <VBox.margin><Insets top="5"/></VBox.margin>
                     </Button>
 
                     <HBox alignment="CENTER" spacing="5.0">
-                        <Label text="Đã có tài khoản?" styleClass="reg-back-label"/>
-                        <Hyperlink text="Đăng nhập" onAction="#goBackToLogin" styleClass="hyperlink"/>
+                        <Label text="Đã có tài khoản?" style="-fx-font-size: 14px; -fx-text-fill: #2c3e50; -fx-font-weight: bold;"/>
+                        <Hyperlink text="Đăng nhập" onAction="#goBackToLogin"
+                                   style="-fx-font-size: 14px; -fx-text-fill: #9b59b6; -fx-font-weight: bold; -fx-underline: false;"/>
                     </HBox>
                 </VBox>
             </VBox>

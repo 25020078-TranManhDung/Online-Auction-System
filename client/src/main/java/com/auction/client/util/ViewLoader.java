@@ -129,24 +129,40 @@ public class ViewLoader {
      * detach khỏi Stage → toggle() không ảnh hưởng gì đến màn hình đang hiển thị.
      */
     private static void setSceneAndShow(Stage stage, Parent root, String title) {
-        Scene scene = new Scene(root);
+        Scene scene = stage.getScene();
+
+        // 1. Kiểm tra xem Stage đã có Scene chưa
+        if (scene == null) {
+            // Nếu chưa có (ví dụ: mở Popup mới), thì tạo Scene mới
+            scene = new Scene(root);
+            stage.setScene(scene);
+            stage.centerOnScreen(); // Chỉ canh giữa màn hình lần đầu tiên
+        } else {
+            // [QUAN TRỌNG] Nếu đã có Scene, CHỈ THAY ĐỔI LÕI (ROOT)
+            // Giúp giữ nguyên hoàn toàn kích thước cửa sổ người dùng đang kéo dãn
+            scene.setRoot(root);
+        }
+
+        // 2. Nạp CSS mặc định (kiểm tra tránh nạp trùng lặp)
         try {
             URL cssUrl = ViewLoader.class.getResource(CSS_PATH);
             if (cssUrl != null) {
-                scene.getStylesheets().add(cssUrl.toExternalForm());
+                String cssExternal = cssUrl.toExternalForm();
+                if (!scene.getStylesheets().contains(cssExternal)) {
+                    scene.getStylesheets().add(cssExternal);
+                }
             }
         } catch (Exception e) {
             System.out.println("Cảnh báo: Không tìm thấy style.css");
         }
 
-        // ★ FIX: Đồng bộ ThemeManager với Scene mới —
-        // applyToScene() vừa cập nhật currentScene vừa thêm/bỏ dark-mode.css
+        // 3. Đồng bộ ThemeManager với Scene
         ThemeManager.getInstance().applyToScene(scene);
 
+        // 4. Cập nhật Title và Show
         stage.setTitle(title);
-        stage.setScene(scene);
-        stage.show();
-
-        stage.centerOnScreen();
+        if (!stage.isShowing()) {
+            stage.show();
+        }
     }
 }
