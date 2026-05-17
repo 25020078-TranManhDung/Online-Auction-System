@@ -316,7 +316,7 @@
                                 </image>
                             </ImageView>
 
-                            <Label text="👑" style="-fx-font-size: 22px; -fx-effect: dropshadow(gaussian, #00000050, 4, 0, 1, 1);"
+                            <Label text="👑" style="-fx-font-size: 22px; -fx-text-fill: #f39c12; -fx-effect: dropshadow(gaussian, #00000050, 4, 0, 1, 1);"
                                    StackPane.alignment="TOP_LEFT">
                                 <StackPane.margin>
                                     <Insets top="-14" left="-14"/>

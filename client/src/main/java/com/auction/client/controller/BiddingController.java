@@ -134,6 +134,13 @@ public class BiddingController implements BidUpdateListener {
     public void initialize() {
         if (btnTheme != null) btnTheme.setText(com.auction.client.util.ThemeManager.getInstance().getToggleIcon());
 
+        // Bo tròn avatar Leader
+        if (imgLeaderAvatar != null) {
+            double radius = imgLeaderAvatar.getFitWidth() / 2;
+            javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
+            imgLeaderAvatar.setClip(clip);
+        }
+
         loadUserInfo();
         com.auction.client.util.ProfileHeaderUtil.bindHeaderProfile(headerUserArea, imgAvatar);
 
@@ -155,14 +162,10 @@ public class BiddingController implements BidUpdateListener {
         loadWalletBalance();
     }
 
-    /**
-     * Được gọi từ AuctionDetailController trước khi mở popup.
-     * Nhận đầy đủ dữ liệu để populate toàn bộ UI ngay khi mở cửa sổ.
-     */
     public void setAuctionData(String auctionId, double currentPrice, double minIncrement,
                                String leaderName, double leaderBid,
                                String productName, String sellerId, String statusText,
-                               int bidCount, long secondsLeft, JsonArray bidHistory,
+                               int bidCount, long secondsLeft, com.google.gson.JsonArray bidHistory,
                                String description) {
         this.auctionId      = auctionId;
         this.currentPrice   = currentPrice;
@@ -181,6 +184,24 @@ public class BiddingController implements BidUpdateListener {
         loadProductImage();
         populateBidHistory(bidHistory);
         startCountdown();
+
+        // 🌟 [MỚI BỔ SUNG] Trích xuất và cập nhật Avatar cho người dẫn đầu từ bidHistory
+        if (bidHistory != null && bidHistory.size() > 0) {
+            try {
+                com.google.gson.JsonObject lastBid = bidHistory.get(0).getAsJsonObject();
+                String leaderAvatar = null;
+                // Kiểm tra xem field "bidderAvatar" có tồn tại và khác null hay không
+                if (lastBid.has("bidderAvatar") && !lastBid.get("bidderAvatar").isJsonNull()) {
+                    leaderAvatar = lastBid.get("bidderAvatar").getAsString();
+                }
+                updateLeaderAvatar(leaderAvatar);
+            } catch (Exception ignored) {
+                System.err.println("[BiddingController] Lỗi khi trích xuất avatar từ bidHistory.");
+            }
+        } else {
+            // Nếu chưa có ai đặt giá, truyền null để load ảnh mặc định
+            updateLeaderAvatar(null);
+        }
     }
 
     /** Parse ảnh từ rawDescription, hỗ trợ [IMGS:b64|b64...] và [IMG:b64] (backward compat) */
@@ -708,10 +729,10 @@ public class BiddingController implements BidUpdateListener {
 
     // ===== Real-time update =====
     @Override
-    public void onBidUpdated(JsonObject rawData) {
+    public void onBidUpdated(com.google.gson.JsonObject rawData) {
         try {
             if (rawData == null || !rawData.has("data")) return;
-            JsonObject data = rawData.getAsJsonObject("data");
+            com.google.gson.JsonObject data = rawData.getAsJsonObject("data");
             if (data == null || !data.has("auctionId")) return;
 
             String pushedAuctionId = data.get("auctionId").getAsString();
@@ -721,15 +742,21 @@ public class BiddingController implements BidUpdateListener {
             String bidderName = data.has("bidderName")    ? data.get("bidderName").getAsString()  : "Người dùng";
             String timestamp  = data.has("timestamp")     ? data.get("timestamp").getAsString()   : "";
 
+            // 🌟 [MỚI BỔ SUNG 1] Trích xuất avatar từ gói tin Socket do Server đẩy về
+            String avatarBase64 = data.has("bidderAvatar") && !data.get("bidderAvatar").isJsonNull()
+                    ? data.get("bidderAvatar").getAsString() : null;
+
+            boolean isNewLeader = false;
             if (newPrice >= this.currentPrice) {
                 this.currentPrice = newPrice;
                 this.leaderName   = bidderName;
                 this.leaderBid    = newPrice;
+                isNewLeader       = true; // Đánh dấu đây là lượt đặt giá lên Top 1
             }
             this.bidCount++;
 
             // Thêm row mới vào đầu bảng
-            JsonObject newRow = new JsonObject();
+            com.google.gson.JsonObject newRow = new com.google.gson.JsonObject();
             newRow.addProperty("bidderName", bidderName);
             newRow.addProperty("amount",     newPrice);
             newRow.addProperty("timestamp",  timestamp);
@@ -737,6 +764,10 @@ public class BiddingController implements BidUpdateListener {
             final double capturedPrice  = this.currentPrice;
             final String capturedLeader = this.leaderName;
             final int    capturedCount  = this.bidCount;
+
+            // 🌟 [MỚI BỔ SUNG 2] Khóa giá trị avatar để luồng giao diện (UI Thread) sử dụng
+            final String capturedAvatar = avatarBase64;
+            final boolean updateAvatar  = isNewLeader;
 
             Platform.runLater(() -> {
                 if (lblCurrentPrice != null) {
@@ -748,6 +779,11 @@ public class BiddingController implements BidUpdateListener {
                 if (lblBidCount   != null) lblBidCount.setText(String.valueOf(capturedCount));
                 updateBidHint();
 
+                // 🌟 [MỚI BỔ SUNG 3] Gọi hàm update ảnh nếu người này vừa giật top 1 thành công
+                if (updateAvatar) {
+                    updateLeaderAvatar(capturedAvatar);
+                }
+
                 // Thêm vào đầu bảng lịch sử
                 if (tbBidHistory != null) {
                     try {
@@ -757,6 +793,7 @@ public class BiddingController implements BidUpdateListener {
                 }
             });
         } catch (Exception e) {
+            System.err.println("[BiddingController] Lỗi xử lý onBidUpdated: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -830,4 +867,30 @@ public class BiddingController implements BidUpdateListener {
         if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
     }
 
+    // ----------------- CẬP NHẬT AVATAR LEADER -----------------
+    private void updateLeaderAvatar(String base64Avatar) {
+        Platform.runLater(() -> {
+            if (imgLeaderAvatar == null) return;
+            try {
+                String finalAvatar = base64Avatar;
+
+                // Mẹo: Nếu mình đang dẫn đầu thì lấy luôn ảnh nội bộ cho nhanh
+                com.auction.client.model.UserSession session = com.auction.client.model.UserSession.getInstance();
+                if (lblLeaderName.getText() != null && lblLeaderName.getText().equals(session.getUsername())) {
+                    if (session.getAvatarBase64() != null && !session.getAvatarBase64().isBlank()) {
+                        finalAvatar = session.getAvatarBase64();
+                    }
+                }
+
+                if (finalAvatar != null && !finalAvatar.isBlank()) {
+                    byte[] imgBytes = java.util.Base64.getDecoder().decode(finalAvatar.trim());
+                    imgLeaderAvatar.setImage(new javafx.scene.image.Image(new java.io.ByteArrayInputStream(imgBytes)));
+                } else {
+                    imgLeaderAvatar.setImage(new javafx.scene.image.Image(getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png")));
+                }
+            } catch (Exception e) {
+                imgLeaderAvatar.setImage(new javafx.scene.image.Image(getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png")));
+            }
+        });
+    }
 }

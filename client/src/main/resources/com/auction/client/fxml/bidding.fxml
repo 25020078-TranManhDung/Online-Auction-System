@@ -347,22 +347,38 @@
 
                         <Separator style="-fx-background-color: #9b59b630;"/>
 
-                        <HBox alignment="CENTER_LEFT" spacing="14.0">
-                            <ImageView fx:id="imgLeaderAvatar"
-                                       fitHeight="46.0" fitWidth="46.0"
-                                       preserveRatio="true"
-                                       style="-fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
-                                <image>
-                                    <Image url="@/com/auction/client/images/default_avatar.png"/>
-                                </image>
-                            </ImageView>
-                            <VBox spacing="3.0">
+                        <HBox alignment="CENTER_LEFT" spacing="16.0"
+                              style="-fx-padding: 12 18; -fx-background-color: rgba(241, 196, 15, 0.1);
+                 -fx-background-radius: 14; -fx-border-color: rgba(241, 196, 15, 0.4);
+                 -fx-border-radius: 14; -fx-border-width: 1.5;">
+
+                            <StackPane>
+                                <Region style="-fx-background-color: #f1c40f; -fx-background-radius: 50;
+                           -fx-min-width: 50; -fx-min-height: 50;
+                           -fx-effect: dropshadow(gaussian, #f1c40f90, 15, 0.6, 0, 0);"/>
+
+                                <ImageView fx:id="imgLeaderAvatar"
+                                           fitHeight="46.0" fitWidth="46.0"
+                                           preserveRatio="true"
+                                           style="-fx-background-radius: 50;">
+                                    <image>
+                                        <Image url="@/com/auction/client/images/default_avatar.png"/>
+                                    </image>
+                                </ImageView>
+
+                                <Label text="👑" style="-fx-font-size: 22px; -fx-text-fill: #f39c12; -fx-effect: dropshadow(gaussian, #00000050, 4, 0, 1, 1);"
+                                       StackPane.alignment="TOP_LEFT">
+                                    <StackPane.margin>
+                                        <Insets top="-14" left="-14"/>
+                                    </StackPane.margin>
+                                </Label>
+                            </StackPane>
+
+                            <VBox spacing="4.0" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
                                 <Label fx:id="lblLeaderName" text="—"
-                                       style="-fx-font-size: 16px; -fx-font-weight: bold;
-                                          -fx-text-fill: #431476;"/>
+                                       style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                                 <Label fx:id="lblLeaderBid" text="—"
-                                       style="-fx-font-size: 14px; -fx-text-fill: #c0392b;
-                                          -fx-font-weight: bold;"/>
+                                       style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e67e22;"/>
                             </VBox>
                         </HBox>
                     </VBox>
@@ -409,7 +425,7 @@
                     <VBox spacing="6.0"
                           style="-fx-background-color: rgba(255, 255, 255, 0.85); -fx-background-radius: 12; -fx-padding: 16; -fx-border-color: #9b59b650; -fx-border-width: 1; -fx-border-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 5, 0, 0, 2);">
 
-                        <Label text="⚠️ Lưu ý quan trọng"
+                        <Label text="🛑 Lưu ý quan trọng"
                                style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;" />
 
                         <Label text="• Giá đặt phải cao hơn giá hiện tại ít nhất một bước giá."
