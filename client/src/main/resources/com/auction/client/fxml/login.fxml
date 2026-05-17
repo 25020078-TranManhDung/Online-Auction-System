@@ -7,6 +7,7 @@
 <?import javafx.geometry.Pos?>
 
 <AnchorPane fx:id="loginPane" prefHeight="800.0" prefWidth="1400.0"
+            minWidth="800.0" minHeight="600.0"
             styleClass="auction-bg"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.LoginController">

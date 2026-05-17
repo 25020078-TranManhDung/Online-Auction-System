@@ -7,6 +7,7 @@
 <?import javafx.geometry.Insets?>
 
 <AnchorPane fx:id="adminDashboardPane" prefWidth="1400.0" prefHeight="800.0"
+            minWidth="800.0" minHeight="600.0"
             styleClass="auction-bg"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.AdminDashboardController">
@@ -206,7 +207,8 @@
                             <TableView fx:id="tvUsers"
                                        VBox.vgrow="ALWAYS"
                                        style="-fx-background-radius: 12; -fx-font-size: 14px;
-                                              -fx-background-color: transparent;">
+                                              -fx-background-color: transparent;"
+                            >
                                 <columns>
                                     <TableColumn fx:id="colUserId"     text="#"             prefWidth="56.0"  style="-fx-alignment: CENTER;"/>
                                     <TableColumn fx:id="colUsername"   text="Tên đăng nhập" prefWidth="190.0"/>
@@ -284,7 +286,8 @@
                             <TableView fx:id="tvAllAuctions"
                                        VBox.vgrow="ALWAYS"
                                        style="-fx-background-radius: 12; -fx-font-size: 14px;
-                                              -fx-background-color: transparent;">
+                                              -fx-background-color: transparent;"
+                            >
                                 <columns>
                                     <TableColumn fx:id="colAuctionId"     text="#"            prefWidth="56.0"  style="-fx-alignment: CENTER;"/>
                                     <TableColumn fx:id="colAuctionName"   text="Sản phẩm"     prefWidth="230.0"/>
@@ -354,7 +357,8 @@
                             <TableView fx:id="tvBidHistory"
                                        VBox.vgrow="ALWAYS"
                                        style="-fx-background-radius: 12; -fx-font-size: 14px;
-                                              -fx-background-color: transparent;">
+                                              -fx-background-color: transparent;"
+                            >
                                 <columns>
                                     <TableColumn fx:id="colBidNo"        text="#"            prefWidth="56.0"  style="-fx-alignment: CENTER;"/>
                                     <TableColumn fx:id="colBidder"       text="Người đặt"    prefWidth="180.0"/>

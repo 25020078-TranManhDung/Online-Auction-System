@@ -7,6 +7,7 @@
 <?import javafx.geometry.Insets?>
 
 <AnchorPane fx:id="sellerDashboardPane" prefWidth="1400.0" prefHeight="800.0"
+            minWidth="800.0" minHeight="600.0"
             styleClass="auction-bg"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.SellerDashboardController">
@@ -144,10 +145,11 @@
             <!-- ══════════════════════════════
                  CỘT TRÁI – Form đăng sản phẩm (ScrollPane để nút luôn hiển thị)
                  ══════════════════════════════ -->
-            <ScrollPane prefWidth="420.0"
+            <ScrollPane prefWidth="400.0"
                         fitToWidth="true"
                         hbarPolicy="NEVER"
                         vbarPolicy="AS_NEEDED"
+                        HBox.hgrow="SOMETIMES"
                         style="-fx-background: transparent; -fx-background-color: transparent;
                                -fx-border-color: transparent; -fx-padding: 0;">
                 <content>
@@ -312,7 +314,8 @@
                 <TableView fx:id="tvSellerItems"
                            VBox.vgrow="ALWAYS"
                            style="-fx-background-radius: 14; -fx-font-size: 14px;
-                                  -fx-background-color: transparent;">
+                                  -fx-background-color: transparent;"
+                >
                     <columns>
                         <TableColumn fx:id="colNo"       text="#"             prefWidth="46.0"  style="-fx-alignment: CENTER;"/>
                         <TableColumn fx:id="colName"     text="Tên Sản Phẩm"  prefWidth="220.0"/>

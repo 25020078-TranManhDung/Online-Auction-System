@@ -133,9 +133,9 @@ public class AdminDashboardController {
         // 🌟 [TINH CHỈNH] Hiệu ứng hover cho vùng Avatar (Đồng bộ padding 4 6 với FXML mới để tránh giật hình)
         if (headerUserArea != null) {
             headerUserArea.setOnMouseEntered(e ->
-                    headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 6; -fx-background-radius: 12; -fx-background-color: rgba(155,89,182,0.12);"));
+                headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 6; -fx-background-radius: 12; -fx-background-color: rgba(155,89,182,0.12);"));
             headerUserArea.setOnMouseExited(e ->
-                    headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 6; -fx-background-radius: 12; -fx-background-color: transparent;"));
+                headerUserArea.setStyle("-fx-cursor: hand; -fx-padding: 4 6; -fx-background-radius: 12; -fx-background-color: transparent;"));
         }
 
         setupUserTable();
@@ -161,6 +161,10 @@ public class AdminDashboardController {
             tvBidHistory.setItems(sortedBids);
         }
         tvAllAuctions.setItems(sortedAuctions);
+
+        tvUsers.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tvAllAuctions.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        if (tvBidHistory != null) tvBidHistory.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         // Populate filter comboboxes (optional defaults)
         if (cboRoleFilter != null) {
@@ -906,9 +910,9 @@ public class AdminDashboardController {
         VBox infoSection = new VBox(10);
         infoSection.setPadding(new Insets(14, 24, 14, 24));
         infoSection.getChildren().addAll(
-                infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
-                infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
-                infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
+            infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
+            infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
+            infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
         );
 
         // ACTION SECTION
@@ -1011,12 +1015,12 @@ public class AdminDashboardController {
         if (session.getUserId() == null) return;
 
         com.auction.shared.dto.request.UpdateAvatarRequest req =
-                new com.auction.shared.dto.request.UpdateAvatarRequest(session.getUserId(), base64);
+            new com.auction.shared.dto.request.UpdateAvatarRequest(session.getUserId(), base64);
 
         new Thread(() -> {
             try {
                 String serverMsg = com.auction.client.network.SocketClient.getInstance()
-                        .send(com.auction.shared.network.protocol.Actions.UPDATE_AVATAR, req, String.class);
+                    .send(com.auction.shared.network.protocol.Actions.UPDATE_AVATAR, req, String.class);
 
                 javafx.application.Platform.runLater(() -> {
                     session.setAvatarBase64(base64);

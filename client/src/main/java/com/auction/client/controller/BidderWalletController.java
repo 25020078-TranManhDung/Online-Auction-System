@@ -278,6 +278,7 @@ public class BidderWalletController {
         });
 
         tvTransactions.setItems(txList);
+        tvTransactions.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
     private void updateBalanceDisplay(double balance, double availableBalance) {

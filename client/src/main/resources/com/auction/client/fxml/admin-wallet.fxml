@@ -128,7 +128,8 @@
             </HBox>
 
             <TableView fx:id="tvTransactions" VBox.vgrow="ALWAYS"
-                       style="-fx-background-radius: 12;">
+                       style="-fx-background-radius: 12;"
+            >
                 <columns>
                     <TableColumn fx:id="colTxType" text="Loại" prefWidth="170.0"/>
                     <TableColumn fx:id="colTxAmount" text="Hoa hồng nhận" prefWidth="150.0"/>

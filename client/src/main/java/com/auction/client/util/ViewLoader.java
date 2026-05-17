@@ -127,6 +127,9 @@ public class ViewLoader {
      *   2. Tự động thêm dark-mode.css nếu dark mode đang bật
      * Nếu thiếu bước này, ThemeManager vẫn giữ tham chiếu đến Scene cũ đã bị
      * detach khỏi Stage → toggle() không ảnh hưởng gì đến màn hình đang hiển thị.
+     *
+     * ★ RESPONSIVE + FULLSCREEN: Stage luôn được đặt minWidth/minHeight để layout
+     * không bị vỡ khi resize, và setMaximized(true) để luôn mở toàn màn hình.
      */
     private static void setSceneAndShow(Stage stage, Parent root, String title) {
         Scene scene = stage.getScene();
@@ -161,8 +164,17 @@ public class ViewLoader {
 
         // 4. Cập nhật Title và Show
         stage.setTitle(title);
+
+        // ★ RESPONSIVE: Đặt kích thước tối thiểu để layout không bị vỡ khi resize
+        stage.setMinWidth(800);
+        stage.setMinHeight(600);
+
         if (!stage.isShowing()) {
             stage.show();
         }
+
+        // ★ FULLSCREEN: Luôn đảm bảo cửa sổ mở toàn màn hình (maximized)
+        // Gọi sau show() để setMaximized có hiệu lực trên mọi nền tảng
+        stage.setMaximized(true);
     }
 }

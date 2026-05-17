@@ -138,6 +138,7 @@ public class AdminWalletController {
             return new SimpleStringProperty(ts);
         });
         tvTransactions.setItems(txList);
+        tvTransactions.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
     private void loadUserInfo() {

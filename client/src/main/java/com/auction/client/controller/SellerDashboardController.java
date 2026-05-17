@@ -246,6 +246,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         SortedList<AuctionResponse> sorted = new SortedList<>(filteredSellerAuctions);
         sorted.comparatorProperty().bind(tvSellerItems.comparatorProperty());
         tvSellerItems.setItems(sorted);
+        tvSellerItems.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         if (cboStatusFilter != null) {
             cboStatusFilter.getItems().clear();
@@ -284,7 +285,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Chọn ảnh sản phẩm (có thể chọn nhiều)");
         chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp")
+            new FileChooser.ExtensionFilter("Ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp")
         );
         javafx.stage.Stage stage = (javafx.stage.Stage) hboxImageRow.getScene().getWindow();
         List<java.io.File> files = chooser.showOpenMultipleDialog(stage);
@@ -381,7 +382,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
             data.put("minBidIncrement", minIncrement);
             data.put("durationMinutes", duration);
             String selectedDisplayName = (cboCategory != null && cboCategory.getValue() != null)
-                    ? cboCategory.getValue() : ItemCategory.OTHER.getDisplayName();
+                ? cboCategory.getValue() : ItemCategory.OTHER.getDisplayName();
 
             String categoryToSend = ItemCategory.OTHER.name();
             for (ItemCategory cat : ItemCategory.values()) {
@@ -397,12 +398,12 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
             }
 
             AuctionResponse response = SocketClient.getInstance().send(
-                    Actions.CREATE_AUCTION, data, AuctionResponse.class);
+                Actions.CREATE_AUCTION, data, AuctionResponse.class);
 
             if (response != null) {
                 String msg = startTimeStr != null
-                        ? "Đã đăng phiên đấu giá. Sẽ bắt đầu lúc " + startTimeStr.replace("T", " ")
-                        : "Đã đăng phiên đấu giá. Bắt đầu ngay lập tức.";
+                    ? "Đã đăng phiên đấu giá. Sẽ bắt đầu lúc " + startTimeStr.replace("T", " ")
+                    : "Đã đăng phiên đấu giá. Bắt đầu ngay lập tức.";
                 AlertUtil.showInfo("Thành công", msg);
                 clearFields();
                 loadMyAuctions();
@@ -445,7 +446,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
                 params.put("status", "ALL");
 
                 GetAuctionsResponse response = SocketClient.getInstance().send(
-                        Actions.GET_AUCTIONS, params, GetAuctionsResponse.class);
+                    Actions.GET_AUCTIONS, params, GetAuctionsResponse.class);
 
                 if (response != null && response.auctions != null) {
                     String myId = UserSession.getInstance().getUserId();
@@ -491,18 +492,18 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
                 box.setAlignment(Pos.CENTER);
 
                 btnEdit.setStyle(
-                        "-fx-background-color: #2980b9; -fx-text-fill: white;" +
-                                "-fx-font-size: 11px; -fx-padding: 4 10;" +
-                                "-fx-background-radius: 6; -fx-cursor: hand;");
+                    "-fx-background-color: #2980b9; -fx-text-fill: white;" +
+                        "-fx-font-size: 11px; -fx-padding: 4 10;" +
+                        "-fx-background-radius: 6; -fx-cursor: hand;");
                 btnEdit.setOnAction(e -> {
                     AuctionResponse item = getTableView().getItems().get(getIndex());
                     handleEditAuction(item);
                 });
 
                 btnCancel.setStyle(
-                        "-fx-background-color: #e74c3c; -fx-text-fill: white;" +
-                                "-fx-font-size: 11px; -fx-padding: 4 10;" +
-                                "-fx-background-radius: 6; -fx-cursor: hand;");
+                    "-fx-background-color: #e74c3c; -fx-text-fill: white;" +
+                        "-fx-font-size: 11px; -fx-padding: 4 10;" +
+                        "-fx-background-radius: 6; -fx-cursor: hand;");
                 btnCancel.setOnAction(e -> {
                     AuctionResponse item = getTableView().getItems().get(getIndex());
                     handleCloseAuction(item);
@@ -539,8 +540,8 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     private void handleEditAuction(AuctionResponse auction) {
         if (auction.getStatus() != AuctionStatus.OPEN) {
             AlertUtil.showInfo("Không thể sửa",
-                    "Chỉ có thể sửa phiên đấu giá khi còn ở trạng thái OPEN.\n"
-                            + "Trạng thái hiện tại: " + auction.getStatus());
+                "Chỉ có thể sửa phiên đấu giá khi còn ở trạng thái OPEN.\n"
+                    + "Trạng thái hiện tại: " + auction.getStatus());
             return;
         }
 
@@ -548,18 +549,18 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         Dialog<Map<String, Object>> dialog = new Dialog<>();
         dialog.setTitle("✏ Chỉnh sửa phiên đấu giá");
         dialog.setHeaderText("Sản phẩm: " + auction.getTitle()
-                + "\n⚠ Chỉ có thể sửa khi phiên còn OPEN.");
+            + "\n⚠ Chỉ có thể sửa khi phiên còn OPEN.");
 
         // Các trường nhập
         TextField fTitle = new TextField(auction.getTitle());
         TextArea fDesc = new TextArea(stripImagePrefix(
-                auction.getDescription() != null ? auction.getDescription() : ""));
+            auction.getDescription() != null ? auction.getDescription() : ""));
         fDesc.setPrefRowCount(3);
         fDesc.setWrapText(true);
 
         TextField fPrice = new TextField(String.format("%.0f", auction.getStartingPrice()));
         TextField fIncr = new TextField(String.format("%.0f",
-                auction.getMinBidIncrement() > 0 ? auction.getMinBidIncrement() : 0));
+            auction.getMinBidIncrement() > 0 ? auction.getMinBidIncrement() : 0));
 
         ComboBox<String> fCat = new ComboBox<>();
         for (ItemCategory cat : ItemCategory.values()) fCat.getItems().add(cat.getDisplayName());
@@ -704,8 +705,8 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         // Style nút Lưu
         Button saveBtn = (Button) dialog.getDialogPane().lookupButton(btnSave);
         saveBtn.setStyle(
-                "-fx-background-color: #2980b9; -fx-text-fill: white;" +
-                        "-fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 8;");
+            "-fx-background-color: #2980b9; -fx-text-fill: white;" +
+                "-fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 8;");
 
         // Result converter
         dialog.setResultConverter(bt -> {
@@ -818,21 +819,21 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         new Thread(() -> {
             try {
                 AuctionResponse resp = SocketClient.getInstance().send(
-                        Actions.UPDATE_AUCTION, data, AuctionResponse.class);
+                    Actions.UPDATE_AUCTION, data, AuctionResponse.class);
 
                 Platform.runLater(() -> {
                     if (resp != null) {
                         AlertUtil.showInfo("Thành công",
-                                "Đã cập nhật phiên đấu giá \"" + resp.getTitle() + "\" thành công!");
+                            "Đã cập nhật phiên đấu giá \"" + resp.getTitle() + "\" thành công!");
                         loadMyAuctions();
                     } else {
                         AlertUtil.showError("Thất bại",
-                                "Không nhận được phản hồi từ Server. Vui lòng thử lại.");
+                            "Không nhận được phản hồi từ Server. Vui lòng thử lại.");
                     }
                 });
             } catch (Exception e) {
                 Platform.runLater(() ->
-                        AlertUtil.showError("Lỗi cập nhật", e.getMessage()));
+                    AlertUtil.showError("Lỗi cập nhật", e.getMessage()));
             }
         }).start();
     }
@@ -908,11 +909,11 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
 
         try {
             ViewLoader.ViewResult<SellerWalletController> result =
-                    ViewLoader.loadViewWithController("seller-wallet.fxml");
+                ViewLoader.loadViewWithController("seller-wallet.fxml");
 
             if (result != null) {
                 javafx.stage.Stage stage = (javafx.stage.Stage)
-                        ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+                    ((javafx.scene.Node) event.getSource()).getScene().getWindow();
                 stage.getScene().setRoot(result.getView());
                 stage.setTitle("💵 Ví Doanh Thu – Seller");
             } else {
@@ -927,7 +928,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     @FXML
     private void applyStatusFilter() {
         String status = (cboStatusFilter == null || cboStatusFilter.getValue() == null)
-                ? "Tất cả" : cboStatusFilter.getValue();
+            ? "Tất cả" : cboStatusFilter.getValue();
         filteredSellerAuctions.setPredicate(a -> {
             if (a == null) return false;
             if ("Tất cả".equals(status)) return true;
@@ -942,17 +943,17 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         int total = sellerAuctions.size();
 
         long active = sellerAuctions.stream()
-                .filter(a -> a.getStatus() != null && AuctionStatus.RUNNING.equals(a.getStatus()))
-                .count();
+            .filter(a -> a.getStatus() != null && AuctionStatus.RUNNING.equals(a.getStatus()))
+            .count();
 
         long closed = sellerAuctions.stream()
-                .filter(a -> a.getStatus() != null
-                        && (AuctionStatus.FINISHED.equals(a.getStatus()) || AuctionStatus.PAID.equals(a.getStatus())))
-                .count();
+            .filter(a -> a.getStatus() != null
+                && (AuctionStatus.FINISHED.equals(a.getStatus()) || AuctionStatus.PAID.equals(a.getStatus())))
+            .count();
 
         long revenue = sellerAuctions.stream()
-                .mapToLong(a -> Math.round(a.getCurrentPrice()))
-                .sum();
+            .mapToLong(a -> Math.round(a.getCurrentPrice()))
+            .sum();
 
         if (lblTotalItems != null) lblTotalItems.setText(String.valueOf(total));
         if (lblActiveItems != null) lblActiveItems.setText(String.valueOf(active));
@@ -960,7 +961,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         if (lblTotalRevenue != null) lblTotalRevenue.setText(String.format("%,d VNĐ", revenue));
         if (lblItemCount != null)
             lblItemCount.setText(String.format("%d sản phẩm",
-                    filteredSellerAuctions == null ? total : filteredSellerAuctions.size()));
+                filteredSellerAuctions == null ? total : filteredSellerAuctions.size()));
     }
 
     // ─────────────────── Multi-image helpers ───────────────────
@@ -976,8 +977,8 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         pane.setPrefSize(128, 128);
         pane.setMinSize(128, 128);
         pane.setStyle("-fx-border-color:#9b59b6;-fx-border-style:dashed;-fx-border-width:2;"
-                + "-fx-border-radius:10;-fx-background-radius:10;"
-                + "-fx-background-color:#9b59b610;-fx-cursor:hand;");
+            + "-fx-border-radius:10;-fx-background-radius:10;"
+            + "-fx-background-color:#9b59b610;-fx-cursor:hand;");
         VBox inner = new VBox(6);
         inner.setAlignment(Pos.CENTER);
         Label icon = new Label("📷");
@@ -1048,7 +1049,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         thumb.setMinSize(128, 128);
         String border = index == 0 ? "#9b59b6" : "#44444460";
         thumb.setStyle("-fx-background-color:#111;-fx-background-radius:10;"
-                + "-fx-border-color:" + border + ";-fx-border-radius:10;-fx-border-width:2;");
+            + "-fx-border-color:" + border + ";-fx-border-radius:10;-fx-border-width:2;");
         Image img = new Image(new java.io.ByteArrayInputStream(bytes));
         ImageView iv = new ImageView(img);
         iv.setFitWidth(128);
@@ -1056,13 +1057,13 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         iv.setPreserveRatio(true);
         Label badge = new Label(index == 0 ? "Đại diện" : "");
         badge.setStyle("-fx-background-color:#9b59b6;-fx-text-fill:white;"
-                + "-fx-font-size:10px;-fx-padding:2 6;-fx-background-radius:0 0 8 0;");
+            + "-fx-font-size:10px;-fx-padding:2 6;-fx-background-radius:0 0 8 0;");
         StackPane.setAlignment(badge, Pos.TOP_LEFT);
         final int idx = index;
         Button del = new Button("×");
         del.setStyle("-fx-background-color:#e74c3c;-fx-text-fill:white;"
-                + "-fx-font-size:13px;-fx-padding:0 5;-fx-cursor:hand;"
-                + "-fx-background-radius:0 8 0 8;-fx-border-width:0;");
+            + "-fx-font-size:13px;-fx-padding:0 5;-fx-cursor:hand;"
+            + "-fx-background-radius:0 8 0 8;-fx-border-width:0;");
         StackPane.setAlignment(del, Pos.TOP_RIGHT);
         del.setOnAction(e -> {
             selectedImagesBase64.remove(idx);
@@ -1241,9 +1242,9 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         VBox infoSection = new VBox(10);
         infoSection.setPadding(new Insets(14, 24, 14, 24));
         infoSection.getChildren().addAll(
-                infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
-                infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
-                infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
+            infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
+            infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
+            infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
         );
 
         // ACTION SECTION
@@ -1317,7 +1318,7 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
     @FXML
     private void handleToggleTheme(javafx.event.ActionEvent event) {
         com.auction.client.util.ThemeManager tm =
-                com.auction.client.util.ThemeManager.getInstance();
+            com.auction.client.util.ThemeManager.getInstance();
         tm.toggle();
         if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
     }
@@ -1354,12 +1355,12 @@ public class SellerDashboardController implements BidUpdateListener, AuctionUpda
         if (session.getUserId() == null) return;
 
         com.auction.shared.dto.request.UpdateAvatarRequest req =
-                new com.auction.shared.dto.request.UpdateAvatarRequest(session.getUserId(), base64);
+            new com.auction.shared.dto.request.UpdateAvatarRequest(session.getUserId(), base64);
 
         new Thread(() -> {
             try {
                 String serverMsg = com.auction.client.network.SocketClient.getInstance()
-                        .send(com.auction.shared.network.protocol.Actions.UPDATE_AVATAR, req, String.class);
+                    .send(com.auction.shared.network.protocol.Actions.UPDATE_AVATAR, req, String.class);
 
                 javafx.application.Platform.runLater(() -> {
                     session.setAvatarBase64(base64);

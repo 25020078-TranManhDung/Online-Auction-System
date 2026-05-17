@@ -8,6 +8,7 @@
 <?import javafx.scene.shape.Circle?>
 
 <AnchorPane fx:id="auctionListPane" prefWidth="1400.0" prefHeight="820.0"
+            minWidth="800.0" minHeight="600.0"
             styleClass="auction-bg"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.AuctionListController">
@@ -91,7 +92,7 @@
               AnchorPane.bottomAnchor="32.0">
 
             <!-- ══════════ SIDEBAR — chỉ danh mục, gọn ══════════ -->
-            <VBox prefWidth="186.0" minWidth="186.0" maxWidth="186.0"
+            <VBox prefWidth="186.0" minWidth="120.0"
                   spacing="4.0"
                   styleClass="glass-box"
                   style="-fx-background-radius: 18; -fx-padding: 20 12;
@@ -235,7 +236,8 @@
                 <!-- Bảng dữ liệu -->
                 <TableView fx:id="tbAuctions" VBox.vgrow="ALWAYS"
                            style="-fx-background-radius: 12; -fx-font-size: 13.5px;
-                                  -fx-background-color: transparent;">
+                                  -fx-background-color: transparent;"
+                >
                     <columns>
                         <TableColumn fx:id="colNo"       text="#"            prefWidth="44.0"  style="-fx-alignment: CENTER;"/>
                         <TableColumn fx:id="colName"     text="Tên Sản Phẩm" prefWidth="240.0"/>

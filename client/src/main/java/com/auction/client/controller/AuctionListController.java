@@ -111,6 +111,7 @@ public class AuctionListController {
         SortedList<JsonObject> sorted = new SortedList<>(filteredAuctions);
         sorted.comparatorProperty().bind(tbAuctions.comparatorProperty());
         tbAuctions.setItems(sorted);
+        tbAuctions.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         // ComboBox trạng thái
         if (cboFilter != null) {
@@ -294,9 +295,9 @@ public class AuctionListController {
         VBox infoSection = new VBox(10);
         infoSection.setPadding(new Insets(14, 24, 14, 24));
         infoSection.getChildren().addAll(
-                infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
-                infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
-                infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
+            infoRow("👤", "User ID", nullSafe(session.getUserId(), "—")),
+            infoRow("✉", "Email", nullSafe(session.getEmail(), "Chưa cập nhật")),
+            infoRow("🏷", "Vai trò", nullSafe(session.getRole(), "—"))
         );
 
         // ACTION SECTION
@@ -848,12 +849,12 @@ public class AuctionListController {
         if (session.getUserId() == null) return;
 
         com.auction.shared.dto.request.UpdateAvatarRequest req =
-                new com.auction.shared.dto.request.UpdateAvatarRequest(session.getUserId(), base64);
+            new com.auction.shared.dto.request.UpdateAvatarRequest(session.getUserId(), base64);
 
         new Thread(() -> {
             try {
                 String serverMsg = com.auction.client.network.SocketClient.getInstance()
-                        .send(com.auction.shared.network.protocol.Actions.UPDATE_AVATAR, req, String.class);
+                    .send(com.auction.shared.network.protocol.Actions.UPDATE_AVATAR, req, String.class);
 
                 javafx.application.Platform.runLater(() -> {
                     session.setAvatarBase64(base64);

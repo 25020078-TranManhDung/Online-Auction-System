@@ -7,6 +7,7 @@
 <?import javafx.geometry.Insets?>
 
 <AnchorPane fx:id="biddingPane" prefWidth="1400.0" prefHeight="800.0"
+            minWidth="800.0" minHeight="600.0"
             styleClass="auction-bg"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.BiddingController">
@@ -194,7 +195,8 @@
                     <TableView fx:id="tbBidHistory"
                                VBox.vgrow="ALWAYS"
                                style="-fx-background-radius: 12; -fx-font-size: 14px;
-                                      -fx-background-color: transparent;">
+                                      -fx-background-color: transparent;"
+                    >
                         <columns>
                             <TableColumn fx:id="colBidNo"     text="#"           prefWidth="46.0"  style="-fx-alignment: CENTER;"/>
                             <TableColumn fx:id="colBidder"    text="Người đặt"   prefWidth="170.0"/>
@@ -217,10 +219,11 @@
             <ScrollPane fitToWidth="true"
                         hbarPolicy="NEVER"
                         vbarPolicy="AS_NEEDED"
-                        prefWidth="420.0"
+                        prefWidth="400.0"
+                        HBox.hgrow="SOMETIMES"
                         VBox.vgrow="ALWAYS"
                         style="-fx-background-color: transparent; -fx-background: transparent;">
-                <VBox spacing="18.0" prefWidth="400.0"
+                <VBox spacing="18.0"
                       style="-fx-padding: 0 4 8 0;">
 
                     <!-- ─── Panel ảnh sản phẩm ─── -->

@@ -8,6 +8,7 @@
 <?import javafx.geometry.Insets?>
 
 <AnchorPane fx:id="auctionDetailPane" prefWidth="1400.0" prefHeight="800.0"
+            minWidth="800.0" minHeight="600.0"
             styleClass="auction-bg"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.AuctionDetailController">
@@ -104,7 +105,7 @@
             <!-- ══════════════════════════════════════
                  CỘT TRÁI – Thông tin sản phẩm & đặt giá
                  ══════════════════════════════════════ -->
-            <VBox spacing="16.0" prefWidth="420.0">
+            <VBox spacing="16.0" prefWidth="420.0" HBox.hgrow="SOMETIMES">
 
                 <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
                             style="-fx-background-color: transparent; -fx-background: transparent; -fx-padding: 0;">
@@ -340,7 +341,7 @@
             <!-- ══════════════════════════════════════
                  CỘT PHẢI – Lịch sử đặt giá
                  ══════════════════════════════════════ -->
-            <VBox spacing="12.0" prefWidth="320.0"
+            <VBox spacing="12.0" prefWidth="300.0" HBox.hgrow="SOMETIMES"
                   styleClass="glass-box"
                   style="-fx-background-radius: 20; -fx-padding: 26 28 22 28;">
 

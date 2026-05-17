@@ -76,6 +76,11 @@ public class MainApp extends Application {
             primaryStage.setTitle("Hệ thống đấu giá trực tuyến");
             primaryStage.setScene(scene);
             primaryStage.setResizable(true);
+            // ★ RESPONSIVE: Kích thước tối thiểu để layout không bị vỡ
+            primaryStage.setMinWidth(800);
+            primaryStage.setMinHeight(600);
+            // ★ FULLSCREEN: Luôn mở toàn màn hình (maximized)
+            primaryStage.setMaximized(true);
             primaryStage.show();
 
         } catch (Exception e) {
