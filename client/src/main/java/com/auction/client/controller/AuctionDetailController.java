@@ -12,6 +12,7 @@ import com.auction.client.controller.BiddingController;
 import com.auction.shared.network.protocol.Actions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -24,7 +25,12 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import com.auction.shared.dto.response.WalletResponse;
 import com.auction.client.controller.BidderWalletController;
 import javafx.scene.layout.StackPane;
@@ -44,6 +50,13 @@ import java.util.TimerTask;
  * - Đăng ký/huỷ đăng ký listener realtime qua reflection.
  */
 public class AuctionDetailController implements BidUpdateListener, AuctionUpdateListener {
+
+    // ===== Root pane (để thêm overlay notification) =====
+    @FXML private javafx.scene.layout.AnchorPane auctionDetailPane;
+
+    // ===== Notification overlay =====
+    private VBox notificationArea;
+    private boolean alerted60 = false, alerted30 = false, alerted10 = false;
 
     // ===== Header / Navigation =====
     @FXML private ImageView imgAvatar;
@@ -154,6 +167,9 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         if (btnMarkAsPaid != null) btnMarkAsPaid.setVisible(false);
         if (lblMessage != null) lblMessage.setVisible(false);
         if (lblTimer != null) lblTimer.setText("--:--:--");
+
+        // Khởi tạo vùng thông báo nổi góc trên trái
+        Platform.runLater(this::initNotificationArea);
 
         // Load default avatar if resource available
         try (InputStream is = getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png")) {
@@ -709,6 +725,20 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                 return;
             }
 
+            // ─── ANTI-SNIPING: Server gia hạn thêm thời gian ───
+            if (Actions.AUCTION_EXTENDED.equals(event)) {
+                long extraSeconds = getLongSafe(data, "extraSeconds", 60L);
+                // Cộng thêm thời gian gia hạn vào bộ đếm hiện tại
+                this.secondsRemaining += extraSeconds;
+                Platform.runLater(() -> {
+                    // Khởi động lại bộ đếm với thời gian mới
+                    startCountdown();
+                    // Hiện thông báo gia hạn
+                    showTimerToast("⏱️ Thời gian được gia hạn thêm " + extraSeconds + "s (Anti-Sniping)!", "#27ae60", "#1a5c35");
+                });
+                return;
+            }
+
             if (Actions.AUCTION_CLOSED.equals(event) || "FINISHED".equalsIgnoreCase(newStatus)) {
                 // Phiên vừa kết thúc → lưu winnerId từ push
                 String wId = getSafe(data, "winnerId", getSafe(data, "winner_id", null));
@@ -769,6 +799,11 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
     // ----------------- Countdown -----------------
 
     private void startCountdown() {
+        // Reset alert flags khi restart countdown (VD: sau khi gia hạn)
+        if (secondsRemaining > 60) alerted60 = false;
+        if (secondsRemaining > 30) alerted30 = false;
+        if (secondsRemaining > 10) alerted10 = false;
+
         if (countdownTimer != null) countdownTimer.cancel();
         countdownTimer = new Timer(true);
         countdownTimer.scheduleAtFixedRate(new TimerTask() {
@@ -779,18 +814,128 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                     long h = secondsRemaining / 3600;
                     long m = (secondsRemaining % 3600) / 60;
                     long s = secondsRemaining % 60;
+                    final long snap = secondsRemaining;
                     Platform.runLater(() -> {
-                        if (lblTimer != null) lblTimer.setText(String.format("%02d:%02d:%02d", h, m, s));
+                        if (lblTimer != null) {
+                            lblTimer.setText(String.format("%02d:%02d:%02d", h, m, s));
+                            updateTimerStyle(snap, lblTimer);
+                        }
+                        // Cảnh báo theo mốc thời gian (chỉ 1 lần mỗi mốc)
+                        if (snap == 60 && !alerted60) {
+                            alerted60 = true;
+                            showTimerToast("⏰ Còn 1 phút! Nhanh tay đặt giá!", "#f39c12", "#7d5a00");
+                        } else if (snap == 30 && !alerted30) {
+                            alerted30 = true;
+                            showTimerToast("⚡ Còn 30 giây! Đặt giá ngay để gia hạn thêm 60s!", "#e74c3c", "#7d0000");
+                        } else if (snap == 10 && !alerted10) {
+                            alerted10 = true;
+                            showTimerToast("🚨 KHẨN CẤP! Chỉ còn 10 giây!", "#c0392b", "#5a0000");
+                            if (lblTimer != null) shakeNode(lblTimer);
+                        }
                     });
                 } else {
                     Platform.runLater(() -> {
-                        if (lblTimer != null) lblTimer.setText("ĐÃ KẾT THÚC");
+                        if (lblTimer != null) {
+                            lblTimer.setText("ĐÃ KẾT THÚC");
+                            lblTimer.setStyle("-fx-text-fill: #95a5a6; -fx-font-size: 18px; -fx-font-weight: bold;");
+                        }
                         if (btnPlaceBid != null) btnPlaceBid.setDisable(true);
                     });
                     countdownTimer.cancel();
                 }
             }
         }, 0, 1000);
+    }
+
+    /** Đổi màu và hiệu ứng đồng hồ đếm ngược theo thời gian còn lại */
+    private void updateTimerStyle(long secs, Label timerLabel) {
+        if (timerLabel == null) return;
+        String style;
+        if (secs <= 10) {
+            style = "-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #c0392b; " +
+                "-fx-font-family: 'Monospace'; -fx-effect: dropshadow(gaussian,#e74c3c,8,0.6,0,0);";
+        } else if (secs <= 30) {
+            style = "-fx-font-size: 23px; -fx-font-weight: bold; -fx-text-fill: #e74c3c; " +
+                "-fx-font-family: 'Monospace'; -fx-effect: dropshadow(gaussian,#e74c3c,4,0.3,0,0);";
+        } else if (secs <= 60) {
+            style = "-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #f39c12; " +
+                "-fx-font-family: 'Monospace';";
+        } else {
+            style = "-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #e67e22; " +
+                "-fx-font-family: 'Monospace';";
+        }
+        timerLabel.setStyle(style);
+    }
+
+    /** Rung nhẹ node (Label) theo chiều ngang */
+    private void shakeNode(javafx.scene.Node node) {
+        TranslateTransition shake = new TranslateTransition(Duration.millis(60), node);
+        shake.setByX(6);
+        shake.setCycleCount(8);
+        shake.setAutoReverse(true);
+        shake.setOnFinished(e -> node.setTranslateX(0));
+        shake.play();
+    }
+
+    /** Khởi tạo vùng chứa toast notification tại góc trên trái */
+    private void initNotificationArea() {
+        if (auctionDetailPane == null) return;
+        notificationArea = new VBox(6);
+        notificationArea.setPickOnBounds(false);
+        notificationArea.setMouseTransparent(true);
+        notificationArea.setMaxWidth(360);
+        javafx.scene.layout.AnchorPane.setTopAnchor(notificationArea, 136.0);
+        javafx.scene.layout.AnchorPane.setLeftAnchor(notificationArea, 32.0);
+        auctionDetailPane.getChildren().add(notificationArea);
+    }
+
+    /** Hiện toast notification trượt từ trái sang, tự biến mất sau vài giây */
+    private void showTimerToast(String message, String bgColor, String borderColor) {
+        if (notificationArea == null) return;
+        Platform.runLater(() -> {
+            HBox card = new HBox(10);
+            card.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            card.setStyle(
+                "-fx-background-color: " + bgColor + ";" +
+                    "-fx-background-radius: 10;" +
+                    "-fx-border-color: " + borderColor + ";" +
+                    "-fx-border-radius: 10;" +
+                    "-fx-border-width: 1.5;" +
+                    "-fx-padding: 10 18 10 14;" +
+                    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 12, 0.3, 0, 3);"
+            );
+            Label lblMsg = new Label(message);
+            lblMsg.setStyle("-fx-text-fill: white; -fx-font-size: 13.5px; -fx-font-weight: bold; -fx-wrap-text: true;");
+            lblMsg.setWrapText(true);
+            card.getChildren().add(lblMsg);
+            card.setMaxWidth(340);
+
+            // Bắt đầu ngoài màn hình (trái)
+            card.setTranslateX(-420);
+            card.setOpacity(0);
+            notificationArea.getChildren().add(0, card);
+
+            // Slide in
+            TranslateTransition slideIn = new TranslateTransition(Duration.millis(320), card);
+            slideIn.setToX(0);
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(320), card);
+            fadeIn.setToValue(1);
+            ParallelTransition enterAnim = new ParallelTransition(slideIn, fadeIn);
+            enterAnim.play();
+
+            // Sau 4s, slide out và xoá
+            PauseTransition pause = new PauseTransition(Duration.seconds(4));
+            pause.setOnFinished(ev -> {
+                TranslateTransition slideOut = new TranslateTransition(Duration.millis(300), card);
+                slideOut.setToX(-420);
+                FadeTransition fadeOut = new FadeTransition(Duration.millis(300), card);
+                fadeOut.setToValue(0);
+                ParallelTransition exitAnim = new ParallelTransition(slideOut, fadeOut);
+                exitAnim.setOnFinished(e2 -> notificationArea.getChildren().remove(card));
+                exitAnim.play();
+            });
+            pause.play();
+        });
     }
 
     // ----------------- Utilities -----------------
@@ -964,8 +1109,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
             if (node != null) {
                 // 1. Tạo Popup thông tin (Tooltip)
                 String info = String.format("Thời điểm: %s\nGiá: %,d VNĐ",
-                        data.getXValue(),
-                        data.getYValue().longValue());
+                    data.getXValue(),
+                    data.getYValue().longValue());
                 Tooltip tooltip = new Tooltip(info);
                 tooltip.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-background-color: rgba(67, 20, 118, 0.9); -fx-text-fill: white; -fx-padding: 8px; -fx-background-radius: 8px;");
 
