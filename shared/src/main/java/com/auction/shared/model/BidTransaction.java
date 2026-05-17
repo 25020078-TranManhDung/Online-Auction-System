@@ -7,6 +7,7 @@ public class BidTransaction extends Entity {
     private String auctionId;
     private String bidderId;
     private String bidderName;
+    private String bidderAvatar; // 🌟 [MỚI BỔ SUNG] Lưu chuỗi Base64 ảnh đại diện của người đặt giá
     private double amount;       // Protocol: "amount"
     private LocalDateTime timestamp;
     private boolean isAutoBid;   // Vẫn để đây cho hợp form JSON, server cứ set false là xong
@@ -36,6 +37,10 @@ public class BidTransaction extends Entity {
 
     public String getBidderName() { return bidderName; }
     public void setBidderName(String bidderName) { this.bidderName = bidderName; }
+
+    // 🌟 [MỚI BỔ SUNG] Getter và Setter cho bidderAvatar
+    public String getBidderAvatar() { return bidderAvatar; }
+    public void setBidderAvatar(String bidderAvatar) { this.bidderAvatar = bidderAvatar; }
 
     public double getAmount() { return amount; }
     public void setAmount(double amount) { this.amount = amount; }

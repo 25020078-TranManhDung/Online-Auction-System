@@ -95,9 +95,9 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
 
     @Override
     public List<BidTransaction> findByAuctionId(String auctionId) {
-        // BUG FIX: JOIN phải dùng bt.bidder_id = u.id (không phải bt.bidder_name = u.id)
+        // 🌟 [MỚI] Thêm u.avatar as bidder_avatar vào lệnh SELECT
         String sql = """
-            SELECT bt.*, u.username as real_bidder_name
+            SELECT bt.*, u.username as real_bidder_name, u.avatar as bidder_avatar
             FROM bid_transactions bt
             LEFT JOIN users u ON bt.bidder_id = u.id
             WHERE bt.auction_id = ?
@@ -181,7 +181,7 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
         BidTransaction bid = new BidTransaction();
         bid.setId        (rs.getString  ("id"));
         bid.setAuctionId (rs.getString  ("auction_id"));
-        bid.setBidderId  (rs.getString  ("bidder_id"));          // BUG FIX: đọc đúng cột bidder_id
+        bid.setBidderId  (rs.getString  ("bidder_id"));
         bid.setAmount    (rs.getDouble  ("amount"));
         bid.setAutoBid   (rs.getBoolean ("is_auto_bid"));
         bid.setTimestamp (rs.getTimestamp("timestamp").toLocalDateTime());
@@ -193,6 +193,12 @@ public class BidTransactionDaoImpl implements BidTransactionDAO{
             try { realName = rs.getString("bidder_name"); } catch (SQLException ignored) {}
         }
         bid.setBidderName(realName);
+
+        // 🌟 [MỚI BỔ SUNG] Lấy avatar từ Database map vào Object
+        try {
+            String avatar = rs.getString("bidder_avatar");
+            bid.setBidderAvatar(avatar);
+        } catch (SQLException ignored) {}
 
         return bid;
     }

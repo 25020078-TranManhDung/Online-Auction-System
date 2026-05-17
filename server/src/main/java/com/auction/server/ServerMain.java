@@ -123,7 +123,7 @@ public class ServerMain {
 
             // 6.3 Tạo BidNotifier — Observer gửi push notification qua Socket
             // (Phải tạo SAU khi socketServer đã được khởi tạo)
-            BidNotifier bidNotifier = new BidNotifier(socketServer);
+            BidNotifier bidNotifier = new BidNotifier(socketServer, userDao);
             AuctionEventBus.getInstance().subscribe(bidNotifier);
 
             // 6.4 Tiêm các Service nghiệp vụ và SocketServer vào các Controller giao tiếp

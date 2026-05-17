@@ -439,7 +439,7 @@ public class AuctionService {
     }
 
     // =========================================================================
-    // GET DETAIL
+    // GET DETAIL — Phiên bản TỐI ƯU SẠCH SẼ (0 extra queries cho Avatar)
     // =========================================================================
     public AuctionResponse getDetail(String auctionId) {
         Auction auction = getOrThrow(auctionId);
@@ -463,9 +463,18 @@ public class AuctionService {
         response.setBidCount(auction.getBidCount());
 
         try {
+            // Lấy danh sách lịch sử đặt giá (DAO đã JOIN lấy sẵn kèm Avatar của từng người)
             List<BidTransaction> bids = bidDao.findByAuctionId(auctionId);
             if (bids != null) {
                 response.setRecentBids(new ArrayList<>(bids));
+
+                // 🌟 MẸO TỐI ƯU ĐẲNG CẤP: Vì danh sách 'bids' đã được câu lệnh SQL sắp xếp theo
+                // ORDER BY amount DESC, nên phần tử đầu tiên (index 0) CHÍNH LÀ lượt đặt giá cao nhất!
+                // Ta chỉ việc bốc luôn Avatar của phần tử này gán cho người dẫn đầu (Leader)
+                // mà KHÔNG CẦN gọi Database thêm bất kỳ một lần nào nữa.
+                if (!bids.isEmpty() && bids.get(0).getBidderAvatar() != null) {
+                    response.setHighestBidderAvatar(bids.get(0).getBidderAvatar());
+                }
             }
         } catch (Exception e) {
             System.err.println("[AuctionService.getDetail] Không load được bid history: " + e.getMessage());
@@ -473,7 +482,6 @@ public class AuctionService {
 
         return response;
     }
-
     // =========================================================================
     // GET LIST
     // =========================================================================

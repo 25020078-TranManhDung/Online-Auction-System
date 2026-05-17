@@ -160,6 +160,14 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
             if (is != null && imgLeaderAvatar != null) imgLeaderAvatar.setImage(new Image(is));
         } catch (Exception ignored) {}
 
+        // 🌟 CẮT AVATAR NGƯỜI DẪN ĐẦU THÀNH HÌNH TRÒN TUYỆT ĐỐI
+        if (imgLeaderAvatar != null) {
+            // Lấy bán kính dựa trên 1 nửa chiều rộng của ImageView (46 / 2 = 23)
+            double radius = imgLeaderAvatar.getFitWidth() / 2;
+            javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(radius, radius, radius);
+            imgLeaderAvatar.setClip(clip);
+        }
+
         // Debug: check message handler presence
         MessageHandler handler = getMessageHandlerByReflection();
         System.out.println("MessageHandler via reflection: " + (handler == null ? "null" : handler.getClass().getName()));
@@ -333,21 +341,25 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                     for (int i = limit - 1; i >= 0; i--) {
                         try {
                             JsonObject b = bids.get(i).getAsJsonObject();
-                            // "timestamp" được serialize bởi JsonUtil thành ISO-8601 string
-                            // → ChartUtil.normalizeLabel() cắt lấy HH:mm:ss
-                            String raw = getSafe(b, "timestamp",
-                                getSafe(b, "time", getSafe(b, "createdAt", "")));
-                            String timeLabel = formatTimeOnly(raw); // Gọi hàm vừa tạo thay vì dùng ChartUtil
+                            String raw = getSafe(b, "timestamp", getSafe(b, "time", getSafe(b, "createdAt", "")));
+                            String timeLabel = formatTimeOnly(raw);
                             if (timeLabel.equals(raw) && raw.isEmpty()) {
-                                timeLabel = "Bid " + (limit - i); // fallback index khi không có timestamp
+                                timeLabel = "Bid " + (limit - i);
                             }
                             long amount = getLongSafe(b, "amount", getLongSafe(b, "bidAmount", 0L));
-                            priceSeries.getData().add(new XYChart.Data<>(timeLabel, amount));
+
+                            // [SỬA LẠI] Tạo điểm dữ liệu, add vào biểu đồ và gọi hàm hiệu ứng
+                            XYChart.Data<String, Number> dataPoint = new XYChart.Data<>(timeLabel, amount);
+                            priceSeries.getData().add(dataPoint);
+                            installTooltipAndHover(dataPoint);
+
                         } catch (Exception ignored) {}
                     }
                 } else {
                     // Chưa có bid nào → vẽ điểm giá khởi điểm
-                    priceSeries.getData().add(new XYChart.Data<>("Bắt đầu", startPrice));
+                    XYChart.Data<String, Number> dataPoint = new XYChart.Data<>("Bắt đầu", startPrice);
+                    priceSeries.getData().add(dataPoint);
+                    installTooltipAndHover(dataPoint);
                 }
             }
 
@@ -374,6 +386,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                 this.currentLeaderBid  = currentPrice;
                 lblLeaderName.setText(leaderName);
                 lblLeaderBid.setText(formatMoney(currentPrice));
+                String leaderAvatar = getSafe(auction, "highestBidderAvatar", getSafe(auction, "leaderAvatar", null));
+                updateLeaderAvatar(leaderAvatar);
                 if (lblLeaderTime != null) lblLeaderTime.setText("");
             } else if (bids != null && bids.size() > 0) {
                 try {
@@ -382,6 +396,8 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                     this.currentLeaderBid  = getLongSafe(last, "amount", 0L);
                     lblLeaderName.setText(this.currentLeaderName);
                     lblLeaderBid.setText(formatMoney(this.currentLeaderBid));
+                    String leaderAvatar = getSafe(last, "bidderAvatar", getSafe(last, "avatar", null));
+                    updateLeaderAvatar(leaderAvatar);
                     if (lblLeaderTime != null) lblLeaderTime.setText(getSafe(last, "timestamp", getSafe(last, "time", "")));
                 } catch (Exception ignored) {}
             }
@@ -582,6 +598,7 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                 final String displayBidder = bidder;
                 final long   leaderPrice   = this.currentPriceValue;
                 final String leaderName    = this.currentLeaderName;
+                final String leaderAvatar  = getSafe(data, "bidderAvatar", getSafe(data, "avatar", null));
 
                 Platform.runLater(() -> {
                     // Cập nhật giá hiện tại (chỉ nếu cao hơn giá đang hiển thị)
@@ -601,14 +618,26 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
                     // Cập nhật leader card — luôn hiển thị người có giá cao nhất
                     lblLeaderName.setText(leaderName);
                     lblLeaderBid.setText(formatMoney(leaderPrice));
+                    if (bidAmount >= leaderPrice) {
+                        updateLeaderAvatar(leaderAvatar);
+                    }
                     if (lblLeaderTime != null) lblLeaderTime.setText("");
 
                     // Thêm điểm vào biểu đồ
                     if (priceSeries != null) {
-                        // BidNotifier gửi timestamp = LocalDateTime.toString() → ISO-8601, length=19
-                        // Phải normalize qua ChartUtil.normalizeLabel() để tránh label dài xoay trục X
                         String rawLabel = getSafe(data, "timestamp", getSafe(data, "time", ""));
-                        ChartUtil.addDataPoint(priceSeries, formatTimeOnly(rawLabel), displayPrice); // Thay thế ở đây
+
+                        // [MỚI] Tự tạo điểm, giới hạn 10 điểm và gán hiệu ứng Tooltip
+                        XYChart.Data<String, Number> newData = new XYChart.Data<>(formatTimeOnly(rawLabel), displayPrice);
+                        priceSeries.getData().add(newData);
+
+                        // Giữ tối đa 10 điểm trên biểu đồ cho đẹp và không bị rối
+                        if (priceSeries.getData().size() > 10) {
+                            priceSeries.getData().remove(0);
+                        }
+
+                        // Gắn hiệu ứng phóng to cho điểm vừa thêm
+                        installTooltipAndHover(newData);
                     }
                 });
             }
@@ -927,6 +956,42 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         updateImageDisplay();
     }
 
+    // ----------------- CƠ CHẾ HOVER & TOOLTIP CHO BIỂU ĐỒ -----------------
+    private void installTooltipAndHover(XYChart.Data<String, Number> data) {
+        // Dùng Platform.runLater để đảm bảo Node đồ họa đã được JavaFX vẽ ra màn hình
+        Platform.runLater(() -> {
+            javafx.scene.Node node = data.getNode();
+            if (node != null) {
+                // 1. Tạo Popup thông tin (Tooltip)
+                String info = String.format("Thời điểm: %s\nGiá: %,d VNĐ",
+                        data.getXValue(),
+                        data.getYValue().longValue());
+                Tooltip tooltip = new Tooltip(info);
+                tooltip.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-background-color: rgba(67, 20, 118, 0.9); -fx-text-fill: white; -fx-padding: 8px; -fx-background-radius: 8px;");
+
+                // 🌟 [MỚI BỔ SUNG] Ép độ trễ xuất hiện về 0 để Tooltip hiện ra NGAY LẬP TỨC
+                tooltip.setShowDelay(javafx.util.Duration.ZERO);
+
+                Tooltip.install(node, tooltip);
+
+                // 2. Thêm hiệu ứng Hover phóng to (Scale) và đổi màu vàng kim
+                node.setCursor(javafx.scene.Cursor.HAND);
+                node.setOnMouseEntered(e -> {
+                    node.setScaleX(1.8);
+                    node.setScaleY(1.8);
+                    node.setStyle("-fx-background-color: #f1c40f, white;");
+                });
+
+                // 3. Trả về bình thường khi chuột rời đi
+                node.setOnMouseExited(e -> {
+                    node.setScaleX(1.0);
+                    node.setScaleY(1.0);
+                    node.setStyle(""); // Trả về theme mặc định
+                });
+            }
+        });
+    }
+
     @FXML
     private void handleToggleTheme(javafx.event.ActionEvent event) {
         com.auction.client.util.ThemeManager tm =
@@ -935,4 +1000,20 @@ public class AuctionDetailController implements BidUpdateListener, AuctionUpdate
         if (btnTheme != null) btnTheme.setText(tm.getToggleIcon());
     }
 
+    // ----------------- CẬP NHẬT AVATAR LEADER -----------------
+    private void updateLeaderAvatar(String base64Avatar) {
+        Platform.runLater(() -> {
+            if (imgLeaderAvatar == null) return;
+            try {
+                if (base64Avatar != null && !base64Avatar.isBlank()) {
+                    byte[] imgBytes = java.util.Base64.getDecoder().decode(base64Avatar.trim());
+                    imgLeaderAvatar.setImage(new javafx.scene.image.Image(new java.io.ByteArrayInputStream(imgBytes)));
+                } else {
+                    imgLeaderAvatar.setImage(new javafx.scene.image.Image(getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png")));
+                }
+            } catch (Exception e) {
+                imgLeaderAvatar.setImage(new javafx.scene.image.Image(getClass().getResourceAsStream("/com/auction/client/images/default_avatar.png")));
+            }
+        });
+    }
 }

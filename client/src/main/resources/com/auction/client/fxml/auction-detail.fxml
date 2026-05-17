@@ -289,7 +289,6 @@
                     </LineChart>
                 </VBox>
 
-                <!-- Thẻ người dẫn đầu -->
                 <VBox spacing="12.0"
                       styleClass="glass-box"
                       style="-fx-background-radius: 20; -fx-padding: 22 30 18 30;">
@@ -299,24 +298,41 @@
 
                     <Separator style="-fx-background-color: #9b59b630;"/>
 
-                    <HBox alignment="CENTER_LEFT" spacing="14.0">
-                        <ImageView fx:id="imgLeaderAvatar"
-                                   fitHeight="46.0" fitWidth="46.0"
-                                   style="-fx-effect: dropshadow(gaussian, #9b59b660, 6, 0, 0, 1);">
-                            <image>
-                                <Image url="@../images/default_avatar.png"/>
-                            </image>
-                        </ImageView>
-                        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                    <HBox alignment="CENTER_LEFT" spacing="16.0"
+                          style="-fx-padding: 12 18; -fx-background-color: rgba(241, 196, 15, 0.1);
+                     -fx-background-radius: 14; -fx-border-color: rgba(241, 196, 15, 0.4);
+                     -fx-border-radius: 14; -fx-border-width: 1.5;">
+
+                        <StackPane>
+                            <Region style="-fx-background-color: #f1c40f; -fx-background-radius: 50;
+                               -fx-min-width: 50; -fx-min-height: 50;
+                               -fx-effect: dropshadow(gaussian, #f1c40f90, 15, 0.6, 0, 0);"/>
+
+                            <ImageView fx:id="imgLeaderAvatar"
+                                       fitHeight="46.0" fitWidth="46.0"
+                                       style="-fx-background-radius: 50;">
+                                <image>
+                                    <Image url="@../images/default_avatar.png"/>
+                                </image>
+                            </ImageView>
+
+                            <Label text="👑" style="-fx-font-size: 22px; -fx-effect: dropshadow(gaussian, #00000050, 4, 0, 1, 1);"
+                                   StackPane.alignment="TOP_LEFT">
+                                <StackPane.margin>
+                                    <Insets top="-14" left="-14"/>
+                                </StackPane.margin>
+                            </Label>
+                        </StackPane>
+
+                        <VBox spacing="4.0" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
                             <Label fx:id="lblLeaderName" text="—"
-                                   style="-fx-font-size: 16px; -fx-font-weight: bold;
-                                          -fx-text-fill: #431476;"/>
+                                   style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <Label fx:id="lblLeaderBid" text="—"
-                                   style="-fx-font-size: 14px; -fx-font-weight: bold;
-                                          -fx-text-fill: #c0392b;"/>
+                                   style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e67e22;"/>
                         </VBox>
+
                         <Label fx:id="lblLeaderTime" text=""
-                               style="-fx-font-size: 12px; -fx-text-fill: #9b59b6;"/>
+                               style="-fx-font-size: 12.5px; -fx-text-fill: #e67e22; -fx-font-style: italic;"/>
                     </HBox>
                 </VBox>
             </VBox>

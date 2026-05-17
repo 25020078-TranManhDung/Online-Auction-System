@@ -20,7 +20,9 @@ public class AuctionResponse implements Serializable {
     // Thông tin về giá (sử dụng wrapper Double để có thể null)
     private Double startingPrice;
     private Double currentPrice;
+
     private String highestBidderName;
+    private String highestBidderAvatar; // 🌟 [MỚI BỔ SUNG] Lưu chuỗi Base64 ảnh của người dẫn đầu
 
     private String sellerId;
     private String winnerId;     // ← FIX: ID người thắng cuộc (null nếu chưa kết thúc)
@@ -69,6 +71,10 @@ public class AuctionResponse implements Serializable {
 
     public String getHighestBidderName() { return highestBidderName; }
     public void setHighestBidderName(String highestBidderName) { this.highestBidderName = highestBidderName; }
+
+    // 🌟 [MỚI BỔ SUNG] Getter và Setter cho highestBidderAvatar
+    public String getHighestBidderAvatar() { return highestBidderAvatar; }
+    public void setHighestBidderAvatar(String highestBidderAvatar) { this.highestBidderAvatar = highestBidderAvatar; }
 
     public LocalDateTime getStartTime() { return startTime; }
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
