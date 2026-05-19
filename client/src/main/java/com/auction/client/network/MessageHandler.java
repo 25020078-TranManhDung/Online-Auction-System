@@ -35,18 +35,26 @@ public class MessageHandler implements Runnable {
 
     @Override
     public void run() {
+        boolean reconnectCalled = false;
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             String line;
             // Liên tục lắng nghe dữ liệu từ Server gửi xuống
             while ((line = reader.readLine()) != null) {
                 if (line.isBlank()) continue;
                 dispatch(line);
             }
-        } catch (IOException e) {
-            System.out.println("[MessageHandler] Mất kết nối server");
-            // Gọi reconnect trên thread riêng, không block luồng reader hiện tại
+            // readLine() trả null = server đóng connection (EOF) — không throw IOException
+            // Xảy ra khi bị forceClose() sau khi nhận SESSION_EXPIRED / ACCOUNT_LOCKED
+            System.out.println("[MessageHandler] Server đóng kết nối (EOF)");
+            reconnectCalled = true;
             new Thread(client::reconnect).start();
+        } catch (IOException e) {
+            System.out.println("[MessageHandler] Mất kết nối server (IOException): " + e.getMessage());
+            if (!reconnectCalled) {
+                reconnectCalled = true;
+                new Thread(client::reconnect).start();
+            }
         }
     }
 
@@ -122,18 +130,19 @@ public class MessageHandler implements Runnable {
                     } catch (Exception ignored) {}
 
                     javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                            javafx.scene.control.Alert.AlertType.WARNING);
+                        javafx.scene.control.Alert.AlertType.WARNING);
                     alert.setTitle("⚠️ Cảnh báo từ Quản trị viên");
                     alert.setHeaderText("Tài khoản của bạn đã bị cảnh báo");
                     alert.setContentText(warningMsg
-                            + "\n\nVui lòng tuân thủ quy định của hệ thống để tránh bị khoá tài khoản.");
+                        + "\n\nVui lòng tuân thủ quy định của hệ thống để tránh bị khoá tài khoản.");
                     alert.showAndWait();
                 });
             }
 
             case Actions.SESSION_EXPIRED -> {
-                // FIX: Bị đẩy ra vì có đăng nhập mới từ thiết bị khác
-                new Thread(() -> client.reconnectImmediately(), "session-expired-reconnect").start();
+                // FIX: Set flag NGAY trên thread này (trước khi socket đóng)
+                // để IOException handler không reconnect thêm lần nữa
+                client.suppressReconnect();
 
                 Platform.runLater(() -> {
                     String reason = "Tài khoản của bạn đã được đăng nhập ở thiết bị khác. Bạn đã bị đăng xuất.";
@@ -147,7 +156,7 @@ public class MessageHandler implements Runnable {
                     com.auction.client.model.UserSession.getInstance().cleanUserSession();
 
                     javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                            javafx.scene.control.Alert.AlertType.WARNING);
+                        javafx.scene.control.Alert.AlertType.WARNING);
                     alert.setTitle("Phiên đăng nhập hết hạn");
                     alert.setHeaderText("Bạn đã bị đăng xuất");
                     alert.setContentText(reason);
@@ -155,12 +164,12 @@ public class MessageHandler implements Runnable {
 
                     try {
                         javafx.stage.Stage stage = (javafx.stage.Stage)
-                                javafx.stage.Window.getWindows().stream()
-                                        .filter(javafx.stage.Window::isShowing)
-                                        .findFirst().orElse(null);
+                            javafx.stage.Window.getWindows().stream()
+                                .filter(javafx.stage.Window::isShowing)
+                                .findFirst().orElse(null);
                         if (stage != null) {
                             javafx.scene.Parent loginView =
-                                    com.auction.client.util.ViewLoader.loadView("login.fxml");
+                                com.auction.client.util.ViewLoader.loadView("login.fxml");
                             if (loginView != null) {
                                 stage.getScene().setRoot(loginView);
                                 stage.setTitle("Đăng nhập - Online Auction System");
@@ -173,11 +182,8 @@ public class MessageHandler implements Runnable {
             }
 
             case Actions.ACCOUNT_LOCKED -> {
-                // FIX: Reconnect ngay trên background thread TRƯỚC KHI show alert.
-                // Mục đích: khi user dismiss alert và về login, socket đã sẵn sàng.
-                // suppressNextReconnect = true trong reconnectImmediately() ngăn
-                // IOException handler gọi reconnect() thêm lần nữa.
-                new Thread(() -> client.reconnectImmediately(), "kick-reconnect").start();
+                // Set flag ngay trên reader thread để chặn auto-reconnect khi socket đóng
+                client.suppressReconnect();
 
                 Platform.runLater(() -> {
                     String reason = "Tài khoản của bạn đã bị khoá bởi quản trị viên.";
@@ -193,7 +199,7 @@ public class MessageHandler implements Runnable {
 
                     // Hiển thị thông báo
                     javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                            javafx.scene.control.Alert.AlertType.WARNING);
+                        javafx.scene.control.Alert.AlertType.WARNING);
                     alert.setTitle("Tài khoản bị khoá");
                     alert.setHeaderText("Phiên đăng nhập đã bị chấm dứt");
                     alert.setContentText(reason);
@@ -203,12 +209,12 @@ public class MessageHandler implements Runnable {
                     // Lúc này reconnectImmediately() đã chạy xong → socket sẵn sàng
                     try {
                         javafx.stage.Stage stage = (javafx.stage.Stage)
-                                javafx.stage.Window.getWindows().stream()
-                                        .filter(javafx.stage.Window::isShowing)
-                                        .findFirst().orElse(null);
+                            javafx.stage.Window.getWindows().stream()
+                                .filter(javafx.stage.Window::isShowing)
+                                .findFirst().orElse(null);
                         if (stage != null) {
                             javafx.scene.Parent loginView =
-                                    com.auction.client.util.ViewLoader.loadView("login.fxml");
+                                com.auction.client.util.ViewLoader.loadView("login.fxml");
                             if (loginView != null) {
                                 stage.getScene().setRoot(loginView);
                                 stage.setTitle("Đăng nhập - Online Auction System");

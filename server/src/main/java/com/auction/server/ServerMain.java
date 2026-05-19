@@ -26,11 +26,12 @@ import java.util.List;
  */
 public class ServerMain {
 
-    // Cổng mạng TCP mặc định cho SocketServer
-    private static final int PORT = 8080;
-
     public static void main(String[] args) {
         System.out.println("🚀 Đang khởi động Online Auction Server...");
+
+        // Đọc port từ application.properties (server.port) thay vì hardcode
+        // → Cho phép đổi port mà không cần recompile
+        final int PORT = com.auction.server.config.AppConfig.getServerPort();
 
         // Khai báo ở phạm vi ngoài try-catch để có thể truy cập được từ khối finally (dùng cho Shutdown Hook)
         SocketServer socketServer = null;

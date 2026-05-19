@@ -139,10 +139,24 @@ public class SocketClient {
      * Cơ chế thử kết nối lại khi rớt mạng (sau 3 giây).
      * Nếu suppressNextReconnect = true (bị kick có chủ ý), bỏ qua — đã reconnect trước rồi.
      */
+    /**
+     * Đặt cờ để chặn reconnect tự động lần tới — gọi trên reader thread ngay khi nhận
+     * SESSION_EXPIRED hoặc ACCOUNT_LOCKED, trước khi socket bị đóng.
+     */
+    public void suppressReconnect() {
+        suppressNextReconnect = true;
+    }
+
+    public boolean isSuppressNextReconnect() {
+        return suppressNextReconnect;
+    }
+
     public void reconnect() {
         if (suppressNextReconnect) {
             suppressNextReconnect = false; // reset flag
-            System.out.println("[Client] Bỏ qua reconnect tự động (đã reconnect thủ công).");
+            System.out.println("[Client] Bỏ qua reconnect tự động — sẽ reconnect từ UI handler.");
+            // Reconnect ngay để màn hình login có socket sẵn sàng
+            doConnect();
             return;
         }
         System.out.println("[Client] Đang thử kết nối lại sau 3 giây...");

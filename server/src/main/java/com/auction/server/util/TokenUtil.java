@@ -75,7 +75,9 @@ public final class TokenUtil {
 
         tokenStore.put(token, new TokenPayload(userId, role, expiry));
         // FIX: đăng ký vào reverse index để có thể thu hồi sau khi khoá tài khoản
-        userTokens.computeIfAbsent(userId, k -> new java.util.HashSet<>()).add(token);
+        // FIX: Dùng ConcurrentHashMap.newKeySet() thay cho HashSet không thread-safe.
+        // HashSet bị corrupt nếu generate() và invalidateAllForUserExcept() chạy đồng thời.
+        userTokens.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet()).add(token);
         return token;
     }
 
@@ -124,5 +126,30 @@ public final class TokenUtil {
             System.out.println("[TokenUtil] Đã thu hồi " + tokens.size()
                 + " token của user: " + userId);
         }
+    }
+
+    /**
+     * Thu hồi tất cả token cũ của user NGOẠI TRỪ token mới vừa cấp.
+     * Dùng khi phát hiện đăng nhập trùng (máy 2 login cùng tài khoản với máy 1):
+     *   - Token của máy 1 bị xóa → máy 1 không thể tiếp tục dùng
+     *   - Token của máy 2 (exceptToken) được giữ lại → máy 2 dùng bình thường
+     *
+     * @param userId      ID user
+     * @param exceptToken Token mới vừa cấp cho phiên login thứ hai — KHÔNG xóa cái này
+     */
+    public static void invalidateAllForUserExcept(String userId, String exceptToken) {
+        Set<String> tokens = userTokens.get(userId);
+        if (tokens == null) return;
+
+        // Xóa token cũ khỏi tokenStore nhưng giữ lại exceptToken
+        tokens.removeIf(t -> {
+            if (!t.equals(exceptToken)) {
+                tokenStore.remove(t);
+                return true;  // xóa khỏi set
+            }
+            return false;     // giữ lại exceptToken trong set
+        });
+        System.out.println("[TokenUtil] Đã thu hồi token cũ của user: " + userId
+            + " (giữ lại token mới)");
     }
 }

@@ -258,12 +258,18 @@ public class AuctionListController {
                 });
 
             } catch (Exception e) {
+                e.printStackTrace();
                 Platform.runLater(() -> {
                     if (btnRefresh != null) btnRefresh.setDisable(false);
                     if (cardGrid != null) cardGrid.getChildren().clear();
-                    showMessage("Lỗi tải dữ liệu: " + e.getMessage());
+                    String errMsg = e.getMessage() != null ? e.getMessage() : "";
+                    if (errMsg.contains("hết hạn") || errMsg.contains("không hợp lệ")
+                        || errMsg.contains("TOKEN") || errMsg.contains("UNAUTHORIZED")) {
+                        navigateToLogin("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                    } else {
+                        showMessage("Lỗi tải dữ liệu: " + errMsg);
+                    }
                 });
-                e.printStackTrace();
             }
         }).start();
     }
@@ -920,9 +926,48 @@ public class AuctionListController {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                Platform.runLater(() -> { if (lblWalletBalance != null) lblWalletBalance.setText("Lỗi tải ví"); });
+                Platform.runLater(() -> {
+                    if (lblWalletBalance != null) lblWalletBalance.setText("Lỗi tải ví");
+                    String msg = e.getMessage() != null ? e.getMessage() : "";
+                    if (msg.contains("hết hạn") || msg.contains("không hợp lệ")
+                        || msg.contains("TOKEN") || msg.contains("UNAUTHORIZED")) {
+                        navigateToLogin("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                    }
+                });
             }
         }).start();
+    }
+
+
+    /**
+     * Điều hướng về màn hình đăng nhập khi phiên hết hạn. Gọi trên FX thread.
+     */
+    private void navigateToLogin(String reason) {
+        com.auction.client.model.UserSession.getInstance().cleanUserSession();
+        try {
+            javafx.stage.Stage stage = (javafx.stage.Stage)
+                javafx.stage.Window.getWindows().stream()
+                    .filter(javafx.stage.Window::isShowing)
+                    .findFirst().orElse(null);
+            if (stage != null) {
+                javafx.scene.Parent loginView =
+                    com.auction.client.util.ViewLoader.loadView("login.fxml");
+                if (loginView != null) {
+                    stage.getScene().setRoot(loginView);
+                    stage.setTitle("Đăng nhập - Online Auction System");
+                }
+            }
+            if (reason != null && !reason.isBlank()) {
+                javafx.scene.control.Alert alert =
+                    new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.WARNING);
+                alert.setTitle("Phiên đăng nhập hết hạn");
+                alert.setHeaderText(null);
+                alert.setContentText(reason);
+                alert.show();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     @FXML

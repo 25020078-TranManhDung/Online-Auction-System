@@ -23,13 +23,13 @@ public class UserController {
     }
 
     public ServerResponse login(Message msg, ClientHandler sender) {
-        // Tận dụng hàm getData() tích hợp sẵn JsonUtil
         LoginRequest req = msg.getData(LoginRequest.class);
         AuthResponse auth = userService.login(req);
 
         // Lưu userId vào ClientHandler để dùng khi cleanup
         sender.setUserId(auth.getUserId());
-        socketServer.registerUser(auth.getUserId(), sender);
+        // FIX: truyền token mới để registerUser chỉ xóa token cũ, không xóa token này
+        socketServer.registerUser(auth.getUserId(), sender, auth.getToken());
 
         return ServerResponse.ok(msg.getRequestId(), auth);
     }
@@ -166,7 +166,7 @@ public class UserController {
         try {
             // Lấy dữ liệu từ gói tin gửi lên
             com.auction.shared.dto.request.UpdateAvatarRequest req =
-                    msg.getData(com.auction.shared.dto.request.UpdateAvatarRequest.class);
+                msg.getData(com.auction.shared.dto.request.UpdateAvatarRequest.class);
 
             if (req == null || req.getUserId() == null) {
                 return ServerResponse.fail(msg.getRequestId(), "BAD_REQUEST", "Thiếu thông tin User ID.");
