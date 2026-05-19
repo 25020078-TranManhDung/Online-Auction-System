@@ -23,10 +23,10 @@ public class SocketServer {
     // - Queue=200: Cho phép 200 client xếp hàng chờ khi pool đầy
     // - CallerRunsPolicy: Khi queue đầy, từ chối kết nối mới thay vì crash server
     private final ExecutorService pool = new ThreadPoolExecutor(
-        10, 100,
-        60L, TimeUnit.SECONDS,
-        new LinkedBlockingQueue<>(200),
-        new ThreadPoolExecutor.CallerRunsPolicy()
+            10, 100,
+            60L, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(200),
+            new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
     // Map auctionId -> Tập hợp các ClientHandler đang xem auction đó
@@ -67,8 +67,8 @@ public class SocketServer {
     // Đăng ký một client vào danh sách theo dõi phiên đấu giá cụ thể.
     public void subscribeAuction(String auctionId, ClientHandler handler) {
         auctionSubscribers
-            .computeIfAbsent(auctionId, k -> ConcurrentHashMap.newKeySet())
-            .add(handler);
+                .computeIfAbsent(auctionId, k -> ConcurrentHashMap.newKeySet())
+                .add(handler);
         System.out.println("[SERVER] Client đăng ký xem Auction: " + auctionId);
     }
 
@@ -97,7 +97,20 @@ public class SocketServer {
     }
 
     // Lưu trữ handler khi user đăng nhập thành công để hỗ trợ push riêng.
+    // FIX: Nếu userId đã có session cũ trên máy khác → kick phiên cũ ra trước.
     public void registerUser(String userId, ClientHandler handler) {
+        ClientHandler oldHandler = userHandlers.get(userId);
+        if (oldHandler != null && oldHandler != handler) {
+            // Gửi push để client cũ biết bị đẩy ra
+            String kickPush = "{\"type\":\"PUSH\",\"event\":\"SESSION_EXPIRED\"," +
+                    "\"data\":{\"message\":\"Tài khoản của bạn đã được đăng nhập ở thiết bị khác. Bạn đã bị đăng xuất.\"}}"
+                    ;
+            oldHandler.sendMessage(kickPush);
+            // Delay nhỏ để client nhận message trước khi socket đóng
+            try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+            oldHandler.forceClose();
+            System.out.println("[SERVER] Đã kick phiên cũ của user " + userId + " do đăng nhập từ thiết bị mới.");
+        }
         userHandlers.put(userId, handler);
     }
 
@@ -124,8 +137,8 @@ public class SocketServer {
         }
         // Gửi PUSH trước để client có thể hiển thị thông báo và điều hướng về login
         String kickPush = String.format(
-            "{\"type\":\"PUSH\",\"event\":\"ACCOUNT_LOCKED\",\"data\":{\"message\":\"%s\"}}",
-            reason.replace("\"", "\\\"")
+                "{\"type\":\"PUSH\",\"event\":\"ACCOUNT_LOCKED\",\"data\":{\"message\":\"%s\"}}",
+                reason.replace("\"", "\\\"")
         );
         handler.sendMessage(kickPush);
 

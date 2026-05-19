@@ -52,6 +52,7 @@ public final class Actions {
     public static final String AUCTION_STATUS_CHANGED = "AUCTION_STATUS_CHANGED"; // PAID / CANCELED
     public static final String ACCOUNT_LOCKED         = "ACCOUNT_LOCKED";         // Admin khoá → kick về login
     public static final String WARNING_RECEIVED       = "WARNING_RECEIVED";       // Admin cảnh báo → hiện thông báo tại user
+    public static final String SESSION_EXPIRED         = "SESSION_EXPIRED";         // Đăng nhập từ thiết bị mới → kick phiên cũ
 
     // Wallet
     public static final String GET_WALLET = "GET_WALLET"; // Xem số dư & lịch sử

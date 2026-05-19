@@ -33,7 +33,7 @@ public class AuctionController {
 
     String status = payload != null ? (String) payload.get("status") : null;
     int page = payload != null && payload.get("page") != null ? ((Number) payload.get("page")).intValue() : 0;
-    int size = payload != null && payload.get("size") != null ? ((Number) payload.get("size")).intValue() : 20;
+    int size = payload != null && payload.get("size") != null ? ((Number) payload.get("size")).intValue() : Integer.MAX_VALUE;
 
     List<?> auctionList = auctionService.getList(status, page, size);
 
