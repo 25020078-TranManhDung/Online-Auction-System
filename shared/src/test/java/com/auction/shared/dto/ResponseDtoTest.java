@@ -3,12 +3,14 @@ package com.auction.shared.dto;
 import com.auction.shared.dto.response.*;
 import com.auction.shared.enums.AuctionStatus;
 import com.auction.shared.enums.UserRole;
+import com.auction.shared.model.WalletTransaction;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -196,7 +198,6 @@ class ResponseDtoTest {
             BidResponse broadcast = new BidResponse(
                     "auction-001", "bidder-002", "Bob", 2_500_000.0, 2_500_000.0);
 
-            // Client nhận response và cập nhật UI
             assertNotNull(broadcast.getAuctionId());
             assertNotNull(broadcast.getBidderName());
             assertTrue(broadcast.getNewCurrentPrice() > 0,
@@ -253,7 +254,7 @@ class ResponseDtoTest {
         @DisplayName("timeRemaining: set và get đúng số giây còn lại")
         void timeRemaining_setAndGet() {
             AuctionResponse res = new AuctionResponse();
-            res.setTimeRemaining(1800L); // 30 phút
+            res.setTimeRemaining(1800L);
             assertEquals(1800L, res.getTimeRemaining());
         }
 
@@ -339,11 +340,10 @@ class ResponseDtoTest {
                     "auction-001", "MacBook Pro M3", "Laptop cao cấp", "ELECTRONICS",
                     40_000_000.0, 42_000_000.0, "Bob",
                     START, END, AuctionStatus.RUNNING);
-            res.setTimeRemaining(1200L);    // 20 phút còn lại
+            res.setTimeRemaining(1200L);
             res.setMinBidIncrement(500_000.0);
             res.setBidCount(15);
 
-            // Client dùng các giá trị này để render UI
             assertNotNull(res.getAuctionId());
             assertNotNull(res.getTitle());
             assertNotNull(res.getCurrentPrice());
@@ -577,7 +577,7 @@ class ResponseDtoTest {
         void availableBalance_setAndGet() {
             WalletResponse res = new WalletResponse();
             res.setBalance(10_000_000.0);
-            res.setAvailableBalance(7_000_000.0); // 3M đang bị hold
+            res.setAvailableBalance(7_000_000.0);
 
             assertEquals(10_000_000.0, res.getBalance(), 0.001);
             assertEquals(7_000_000.0,  res.getAvailableBalance(), 0.001);
@@ -614,12 +614,15 @@ class ResponseDtoTest {
         }
 
         @Test
-        @DisplayName("transactions: set và get list đúng")
+        @DisplayName("transactions: null khi chưa set, sau khi set danh sách rỗng thì không null")
         void transactions_setAndGet() {
             WalletResponse res = new WalletResponse();
+            // Chưa set → phải null
             assertNull(res.getTransactions(), "transactions null khi chưa set (nullable)");
-            // set danh sách rỗng
-            res.setTransactions(List.of());
+
+            // Set danh sách rỗng đúng kiểu List<WalletTransaction>
+            List<WalletTransaction> emptyList = new ArrayList<>();
+            res.setTransactions(emptyList);
             assertNotNull(res.getTransactions());
             assertTrue(res.getTransactions().isEmpty());
         }
@@ -628,8 +631,8 @@ class ResponseDtoTest {
         @DisplayName("Scenario: Bidder nạp 2 triệu – balance tăng đúng")
         void scenario_bidderTopUp_balanceIncreases() {
             WalletResponse res = new WalletResponse();
-            double oldBalance   = 5_000_000.0;
-            double topUpAmount  = 2_000_000.0;
+            double oldBalance  = 5_000_000.0;
+            double topUpAmount = 2_000_000.0;
 
             res.setBalance(oldBalance + topUpAmount);
             res.setAvailableBalance(oldBalance + topUpAmount);
@@ -647,7 +650,7 @@ class ResponseDtoTest {
         void scenario_sellerWithdraw_balanceDecreases() {
             WalletResponse res = new WalletResponse();
             res.setBalance(10_000_000.0);
-            res.setAvailableBalance(8_000_000.0);   // 2M đang bị hold
+            res.setAvailableBalance(8_000_000.0);
             res.setTransactionAmount(3_000_000.0);
             res.setTransactionType("WITHDRAW");
             res.setMessage("Rút 3,000,000đ thành công");
@@ -664,7 +667,7 @@ class ResponseDtoTest {
             res.setUserId("user-001");
             res.setUsername("alice");
             res.setBalance(10_000_000.0);
-            res.setAvailableBalance(6_000_000.0); // 4M đang hold do đang đấu giá
+            res.setAvailableBalance(6_000_000.0);
 
             assertNotEquals(res.getBalance(), res.getAvailableBalance(),
                     "balance và availableBalance khác nhau khi có tiền đang hold");
