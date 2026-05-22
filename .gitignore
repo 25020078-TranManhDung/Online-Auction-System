@@ -32,5 +32,3 @@ Thumbs.db
 *.swp
 local.properties
 
-# Bỏ qua file cấu hình chứa mật khẩu thật của Server
-server/src/main/resources/application.properties
