@@ -293,6 +293,7 @@
                             <Label text="Số tiền muốn đặt (VNĐ)" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #431476;"/>
                             <TextField fx:id="txtBidAmount"
                                        promptText="Nhập số tiền đặt giá"
+                                       onAction="#handleConfirmBid"
                                        styleClass="input-auction"
                                        style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
                             <Label fx:id="lblBidHint"
@@ -326,6 +327,7 @@
                         <Button fx:id="btnConfirmBid"
                                 text="XÁC NHẬN ĐẶT GIÁ"
                                 onAction="#handleConfirmBid"
+                                defaultButton="true"
                                 styleClass="btn-auction-primary"
                                 maxWidth="Infinity"
                                 style="-fx-font-size: 15px; -fx-padding: 13 0;
