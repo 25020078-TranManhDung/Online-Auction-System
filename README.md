@@ -107,7 +107,7 @@ Online-Auction-System/
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/<tên-nhóm>/Online-Auction-System.git
+git clone https://github.com/25020078-TranManhDung/Online-Auction-System.git
 cd Online-Auction-System
 ```
 
